@@ -7,6 +7,18 @@ from backend.config import settings
 from backend.exceptions import register_exception_handlers
 from backend.modules.auth.router import limiter, router as auth_router
 from backend.modules.auth.staff_router import router as staff_router
+from backend.modules.product.router import (
+    category_router,
+    product_router,
+)
+from backend.modules.customer.router import (
+    customer_router,
+    supplier_router,
+)
+from backend.modules.inventory.router import (
+    inventory_router,
+    receipt_router,
+)
 
 
 def create_app() -> FastAPI:
@@ -31,6 +43,12 @@ def create_app() -> FastAPI:
 
     app.include_router(auth_router)
     app.include_router(staff_router)
+    app.include_router(category_router)
+    app.include_router(product_router)
+    app.include_router(customer_router)
+    app.include_router(supplier_router)
+    app.include_router(receipt_router)
+    app.include_router(inventory_router)
 
     @app.get("/health", tags=["meta"])
     async def health():

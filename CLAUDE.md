@@ -119,7 +119,7 @@ pos-system/
 
 ---
 
-## Database Schema — DDL đầy đủ (17 bảng)
+## Database Schema — DDL đầy đủ (18 bảng)
 
 ### Nguyên tắc thiết kế (BẮT BUỘC tuân thủ)
 
@@ -147,27 +147,31 @@ CREATE TABLE tenants (
 );
 
 CREATE TABLE users (
-    id              BIGSERIAL PRIMARY KEY,
-    tenant_id       BIGINT NOT NULL REFERENCES tenants(id),
-    phone           VARCHAR(20),
-    email           VARCHAR(200),
-    full_name       VARCHAR(200) NOT NULL,
-    password_hash   VARCHAR(200) NOT NULL,
-    role            VARCHAR(20) NOT NULL DEFAULT 'CASHIER',
-    is_active       BOOLEAN DEFAULT TRUE,
-    last_login_at   TIMESTAMPTZ,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at      TIMESTAMPTZ,
-    UNIQUE (tenant_id, phone),
-    UNIQUE (tenant_id, email)
+    id                  BIGSERIAL PRIMARY KEY,
+    tenant_id           BIGINT NOT NULL REFERENCES tenants(id),
+    phone               VARCHAR(20),
+    email               VARCHAR(200),
+    full_name           VARCHAR(200) NOT NULL,
+    password_hash       VARCHAR(200) NOT NULL,
+    role                VARCHAR(20) NOT NULL DEFAULT 'CASHIER',
+    is_active           BOOLEAN DEFAULT TRUE,
+    failed_login_count  SMALLINT NOT NULL DEFAULT 0,        -- chống brute-force
+    locked_until        TIMESTAMPTZ,                        -- khóa tạm khi vượt ngưỡng
+    last_login_at       TIMESTAMPTZ,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_at          TIMESTAMPTZ
+    -- UNIQUE (tenant_id, phone) / (tenant_id, email) — xem Partial Unique Indexes ở Phần 7
 );
 
 CREATE TABLE refresh_tokens (
     id              BIGSERIAL PRIMARY KEY,
     user_id         BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     token           VARCHAR(500) NOT NULL UNIQUE,
+    family_id       UUID NOT NULL,                          -- cùng family = chuỗi rotation từ 1 lần đăng nhập
     expires_at      TIMESTAMPTZ NOT NULL,
+    revoked_at      TIMESTAMPTZ,                            -- set khi rotate / logout / detect reuse
+    replaced_by     VARCHAR(500),                           -- token mới sinh ra khi rotate
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 ```
@@ -180,10 +184,12 @@ CREATE TABLE categories (
     tenant_id       BIGINT NOT NULL REFERENCES tenants(id),
     parent_id       BIGINT REFERENCES categories(id),
     name            VARCHAR(200) NOT NULL,
+    depth           SMALLINT NOT NULL DEFAULT 1 CHECK (depth IN (1, 2)),  -- chỉ cho phép 2 cấp
     sort_order      INTEGER DEFAULT 0,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at      TIMESTAMPTZ
+    -- App-layer enforce: nếu parent_id != NULL thì parent.depth phải = 1 (con của con bị cấm)
 );
 
 CREATE TABLE products (
@@ -205,9 +211,9 @@ CREATE TABLE products (
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_by      BIGINT REFERENCES users(id),
     updated_by      BIGINT REFERENCES users(id),
-    deleted_at      TIMESTAMPTZ,
-    UNIQUE (tenant_id, sku),
-    UNIQUE (tenant_id, barcode)
+    deleted_at      TIMESTAMPTZ
+    -- UNIQUE (tenant_id, sku) / (tenant_id, barcode) — xem Partial Unique Indexes ở Phần 7
+    -- (bắt buộc dùng partial vì phải cho phép tạo lại SKU/barcode sau khi soft-delete SP cũ)
 );
 
 CREATE TABLE product_images (
@@ -231,8 +237,8 @@ CREATE TABLE customers (
     last_order_at   TIMESTAMPTZ,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at      TIMESTAMPTZ,
-    UNIQUE (tenant_id, phone)
+    deleted_at      TIMESTAMPTZ
+    -- UNIQUE (tenant_id, phone) — xem Partial Unique Indexes ở Phần 7
 );
 
 CREATE TABLE suppliers (
@@ -264,9 +270,14 @@ CREATE TABLE invoices (
     discount_amount DECIMAL(15,2) NOT NULL DEFAULT 0,
     total           DECIMAL(15,2) NOT NULL DEFAULT 0,
     cost_total      DECIMAL(15,2) NOT NULL DEFAULT 0,
+    paid_amount     DECIMAL(15,2) NOT NULL DEFAULT 0,    -- tổng tiền KH đã trả (cho phép bán nợ: paid < total)
+    change_amount   DECIMAL(15,2) NOT NULL DEFAULT 0,    -- tiền thối lại KH (nếu paid > total)
     status          VARCHAR(20) NOT NULL DEFAULT 'DRAFT',  -- DRAFT | COMPLETED | CANCELLED
     note            TEXT,
     completed_at    TIMESTAMPTZ,
+    cancelled_at    TIMESTAMPTZ,
+    cancelled_by    BIGINT REFERENCES users(id),
+    cancel_reason   TEXT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_by      BIGINT REFERENCES users(id),
@@ -335,10 +346,11 @@ CREATE TABLE stock_movements (
     tenant_id       BIGINT NOT NULL REFERENCES tenants(id),
     product_id      BIGINT NOT NULL REFERENCES products(id),
     quantity        DECIMAL(10,3) NOT NULL,          -- dương = nhập, âm = xuất
+    unit_cost       DECIMAL(15,2),                   -- snapshot giá vốn 1 đơn vị tại thời điểm move
     type            VARCHAR(20) NOT NULL,            -- SALE | RECEIPT | CANCEL_SALE | CANCEL_RECEIPT | ADJUSTMENT
-    ref_type        VARCHAR(20) NOT NULL,            -- INVOICE | GOODS_RECEIPT
+    ref_type        VARCHAR(20) NOT NULL,            -- INVOICE | GOODS_RECEIPT | MANUAL
     ref_id          BIGINT NOT NULL,
-    balance_after   DECIMAL(10,3) NOT NULL,          -- tồn sau giao dịch (debug)
+    balance_after   DECIMAL(10,3) NOT NULL,          -- tồn sau giao dịch (debug + audit)
     note            TEXT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_by      BIGINT NOT NULL REFERENCES users(id)
@@ -380,6 +392,99 @@ CREATE TABLE code_sequences (
     last_number     INTEGER NOT NULL DEFAULT 0,
     UNIQUE (tenant_id, prefix, date_part)
 );
+```
+
+### Phần 7: Audit phụ trợ — Lịch sử giá
+
+```sql
+-- Tracking thay đổi cost_price / sale_price để báo cáo lợi nhuận chính xác theo thời gian
+CREATE TABLE price_history (
+    id              BIGSERIAL PRIMARY KEY,
+    tenant_id       BIGINT NOT NULL REFERENCES tenants(id),
+    product_id      BIGINT NOT NULL REFERENCES products(id),
+    field           VARCHAR(20) NOT NULL,            -- 'cost_price' | 'sale_price'
+    old_value       DECIMAL(15,2),
+    new_value       DECIMAL(15,2) NOT NULL,
+    ref_type        VARCHAR(20) NOT NULL,            -- 'MANUAL' | 'GOODS_RECEIPT'
+    ref_id          BIGINT,                          -- ID phiếu nhập nếu là RECEIPT
+    changed_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    changed_by      BIGINT REFERENCES users(id)
+);
+```
+
+### Phần 8: Indexes & Partial Unique Constraints (BẮT BUỘC)
+
+Phần này tách riêng vì:
+- **Partial unique** (`WHERE deleted_at IS NULL`) là yêu cầu chính khi đã soft-delete — UNIQUE inline trong CREATE TABLE sẽ chặn việc tái tạo SKU/phone/email sau khi xóa.
+- Composite index theo `tenant_id` là **bắt buộc** cho mọi query nóng — không có thì 50 tenant × 10k row sẽ chậm thấy rõ ngay từ ngày 1.
+
+```sql
+-- === PARTIAL UNIQUE INDEXES (thay UNIQUE inline) ===
+CREATE UNIQUE INDEX uq_users_tenant_phone
+  ON users (tenant_id, phone) WHERE deleted_at IS NULL AND phone IS NOT NULL;
+CREATE UNIQUE INDEX uq_users_tenant_email
+  ON users (tenant_id, email) WHERE deleted_at IS NULL AND email IS NOT NULL;
+
+CREATE UNIQUE INDEX uq_products_tenant_sku
+  ON products (tenant_id, sku) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX uq_products_tenant_barcode
+  ON products (tenant_id, barcode) WHERE deleted_at IS NULL AND barcode IS NOT NULL;
+
+CREATE UNIQUE INDEX uq_customers_tenant_phone
+  ON customers (tenant_id, phone) WHERE deleted_at IS NULL AND phone IS NOT NULL;
+
+-- === PERFORMANCE INDEXES ===
+-- Products: danh sách / lọc trong admin
+CREATE INDEX idx_products_tenant_active
+  ON products (tenant_id, status) WHERE deleted_at IS NULL;
+CREATE INDEX idx_products_tenant_category
+  ON products (tenant_id, category_id) WHERE deleted_at IS NULL;
+
+-- Products: full-text search cho POS (gõ tên SP gợi ý)
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX idx_products_name_trgm
+  ON products USING gin (name gin_trgm_ops) WHERE deleted_at IS NULL;
+
+-- Inventory: lookup tồn theo SP
+CREATE INDEX idx_inventory_tenant ON inventory (tenant_id, product_id);
+
+-- Stock movements: kardex (thẻ kho) — CỰC quan trọng
+CREATE INDEX idx_stock_movements_kardex
+  ON stock_movements (tenant_id, product_id, created_at DESC);
+
+-- Invoices: báo cáo doanh thu theo ngày
+CREATE INDEX idx_invoices_tenant_completed
+  ON invoices (tenant_id, completed_at DESC)
+  WHERE status = 'COMPLETED';
+-- Invoices: lịch sử mua của 1 KH
+CREATE INDEX idx_invoices_customer
+  ON invoices (tenant_id, customer_id, completed_at DESC)
+  WHERE status = 'COMPLETED' AND customer_id IS NOT NULL;
+-- Invoices: hóa đơn treo (drafts) theo cashier
+CREATE INDEX idx_invoices_drafts
+  ON invoices (tenant_id, cashier_id, created_at DESC)
+  WHERE status = 'DRAFT';
+
+-- Goods receipts: lịch sử nhập
+CREATE INDEX idx_goods_receipts_tenant_completed
+  ON goods_receipts (tenant_id, completed_at DESC)
+  WHERE status = 'COMPLETED';
+
+-- Customers / Suppliers: tìm theo tên (autocomplete)
+CREATE INDEX idx_customers_name_trgm
+  ON customers USING gin (name gin_trgm_ops) WHERE deleted_at IS NULL;
+
+-- Refresh tokens: cleanup expired (cron đêm)
+CREATE INDEX idx_refresh_tokens_expires ON refresh_tokens (expires_at);
+CREATE INDEX idx_refresh_tokens_family ON refresh_tokens (family_id);
+
+-- Audit logs: tra cứu theo entity
+CREATE INDEX idx_audit_logs_entity
+  ON audit_logs (tenant_id, entity_type, entity_id, created_at DESC);
+
+-- Price history: tra cứu theo SP
+CREATE INDEX idx_price_history_product
+  ON price_history (tenant_id, product_id, changed_at DESC);
 ```
 
 ### Helper function — Sinh mã tự động
@@ -504,44 +609,61 @@ async def complete_invoice(db, tenant_id, invoice_id, payments, cashier_id):
         invoice = await get_invoice_with_items(db, tenant_id, invoice_id)
         assert invoice.status == 'DRAFT'
 
-        # 2. Validate tổng thanh toán >= tổng hóa đơn
+        # 2. Validate tiền: paid >= total (hoặc cho phép bán nợ tùy setting)
         total_paid = sum(p.amount for p in payments)
-        assert total_paid >= invoice.total
+        if total_paid < invoice.total and not tenant_settings.allow_debt:
+            raise AppException('INSUFFICIENT_PAYMENT')
 
-        # 3. Lock & kiểm tra tồn kho (SELECT FOR UPDATE tránh race condition)
+        # 3. Lock tồn kho — LOCK THEO product_id ASC để tránh deadlock
+        #    (2 hóa đơn cùng SP A+B nhưng đảo thứ tự cart sẽ deadlock nếu không sort)
+        product_ids = sorted({item.product_id for item in invoice.items})
+        inv_rows = (await db.execute(
+            select(Inventory)
+            .where(Inventory.tenant_id == tenant_id, Inventory.product_id.in_(product_ids))
+            .order_by(Inventory.product_id)
+            .with_for_update()
+        )).scalars().all()
+        inv_by_pid = {r.product_id: r for r in inv_rows}
+
+        # 4. Kiểm tra đủ tồn (gom toàn bộ thiếu để báo 1 lần, UX tốt hơn)
+        shortages = []
         for item in invoice.items:
-            inv = await db.execute(
-                select(Inventory)
-                .where(Inventory.tenant_id == tenant_id, Inventory.product_id == item.product_id)
-                .with_for_update()
-            )
-            current_stock = inv.scalar_one_or_none().quantity or 0
-            if current_stock < item.quantity and not product.allow_negative:
-                raise "Không đủ tồn kho"
+            current = inv_by_pid[item.product_id].quantity if item.product_id in inv_by_pid else 0
+            if current < item.quantity and not item.product.allow_negative:
+                shortages.append({'product_id': item.product_id, 'need': item.quantity, 'have': current})
+        if shortages:
+            raise AppException('INSUFFICIENT_STOCK', details=shortages)
 
-        # 4. Cập nhật trạng thái
+        # 5. Cập nhật trạng thái + snapshot giá vốn TẠI THỜI ĐIỂM COMPLETE
         invoice.status = 'COMPLETED'
         invoice.completed_at = now()
-
-        # 5. Snapshot giá vốn vào invoice_items
+        invoice.paid_amount = total_paid
+        invoice.change_amount = max(0, total_paid - invoice.total)
         for item in invoice.items:
-            item.cost_price = product.cost_price
-        invoice.cost_total = sum(item.quantity * item.cost_price)
+            item.cost_price = item.product.cost_price   # snapshot ngay tại đây
+        invoice.cost_total = sum(item.quantity * item.cost_price for item in invoice.items)
 
         # 6. Tạo payments
         for p in payments:
             db.add(Payment(invoice_id=invoice.id, method=p.method, amount=p.amount))
 
-        # 7. Trừ tồn kho: ghi kardex (stock_movements) + update cache (inventory)
+        # 7. Trừ tồn: ghi kardex (append-only) + update cache (inventory)
         for item in invoice.items:
-            new_balance = current_stock - item.quantity
-            db.add(StockMovement(quantity=-item.quantity, type='SALE', ref_type='INVOICE', ref_id=invoice.id, balance_after=new_balance))
-            inventory_row.quantity = new_balance
+            inv = inv_by_pid[item.product_id]
+            new_balance = inv.quantity - item.quantity
+            db.add(StockMovement(
+                tenant_id=tenant_id, product_id=item.product_id,
+                quantity=-item.quantity, unit_cost=item.cost_price,
+                type='SALE', ref_type='INVOICE', ref_id=invoice.id,
+                balance_after=new_balance, created_by=cashier_id,
+            ))
+            inv.quantity = new_balance
 
         # 8. Cập nhật thống kê KH nếu có
         if invoice.customer_id:
             customer.total_spent += invoice.total
             customer.total_orders += 1
+            customer.last_order_at = now()
 
     # 9. Ngoài transaction: trả response để FE in bill
 ```
@@ -552,32 +674,100 @@ async def complete_invoice(db, tenant_id, invoice_id, payments, cashier_id):
 async def complete_goods_receipt(db, tenant_id, receipt_id, user_id):
     async with db.begin():
         receipt = await get_receipt_with_items(db, tenant_id, receipt_id)
+        assert receipt.status == 'DRAFT'
+
+        # 1. LOCK inventory rows theo product_id ASC (cùng quy ước với complete_invoice)
+        product_ids = sorted({item.product_id for item in receipt.items})
+        inv_rows = (await db.execute(
+            select(Inventory)
+            .where(Inventory.tenant_id == tenant_id, Inventory.product_id.in_(product_ids))
+            .order_by(Inventory.product_id)
+            .with_for_update()
+        )).scalars().all()
+        inv_by_pid = {r.product_id: r for r in inv_rows}
+        # Tạo row inventory nếu SP chưa có
+        for pid in product_ids:
+            if pid not in inv_by_pid:
+                row = Inventory(tenant_id=tenant_id, product_id=pid, quantity=0)
+                db.add(row); inv_by_pid[pid] = row
+
         receipt.status = 'COMPLETED'
+        receipt.completed_at = now()
 
         for item in receipt.items:
-            # Tính giá vốn bình quân mới
-            old_stock = inventory.quantity
+            inv = inv_by_pid[item.product_id]
+            product = await get_product_for_update(db, tenant_id, item.product_id)
+
+            old_stock = inv.quantity
             old_cost = product.cost_price
-            new_cost = (old_stock * old_cost + item.quantity * item.cost_price) / (old_stock + item.quantity)
-            product.cost_price = new_cost
+            denom = old_stock + item.quantity
+
+            # Giá vốn bình quân — phòng chia 0 / âm khi allow_negative
+            if denom <= 0:
+                new_cost = item.cost_price          # fallback: dùng giá nhập lần này
+            else:
+                new_cost = (old_stock * old_cost + item.quantity * item.cost_price) / denom
+
+            # Ghi lịch sử giá nếu cost thay đổi
+            if new_cost != old_cost:
+                db.add(PriceHistory(
+                    tenant_id=tenant_id, product_id=product.id,
+                    field='cost_price', old_value=old_cost, new_value=new_cost,
+                    ref_type='GOODS_RECEIPT', ref_id=receipt.id, changed_by=user_id,
+                ))
+                product.cost_price = new_cost
 
             # Ghi kardex + cộng tồn
             new_balance = old_stock + item.quantity
-            db.add(StockMovement(quantity=+item.quantity, type='RECEIPT', ...))
-            inventory.quantity = new_balance
+            db.add(StockMovement(
+                tenant_id=tenant_id, product_id=product.id,
+                quantity=+item.quantity, unit_cost=item.cost_price,
+                type='RECEIPT', ref_type='GOODS_RECEIPT', ref_id=receipt.id,
+                balance_after=new_balance, created_by=user_id,
+            ))
+            inv.quantity = new_balance
 ```
 
 ### 3. Hủy hóa đơn đã hoàn tất
 
 ```python
 async def cancel_invoice(db, tenant_id, invoice_id, user_id, reason):
-    # Tạo bút toán ngược — KHÔNG xóa dữ liệu cũ
-    invoice.status = 'CANCELLED'
-    for item in invoice.items:
-        # Cộng lại tồn kho
-        db.add(StockMovement(quantity=+item.quantity, type='CANCEL_SALE', ...))
-        inventory.quantity += item.quantity
-    # Trừ lại thống kê KH
+    async with db.begin():
+        invoice = await get_invoice_with_items(db, tenant_id, invoice_id)
+        assert invoice.status == 'COMPLETED'   # chỉ cancel hóa đơn đã hoàn tất
+
+        # 1. LOCK inventory theo product_id ASC (cùng quy ước)
+        product_ids = sorted({item.product_id for item in invoice.items})
+        inv_rows = (await db.execute(
+            select(Inventory)
+            .where(Inventory.tenant_id == tenant_id, Inventory.product_id.in_(product_ids))
+            .order_by(Inventory.product_id)
+            .with_for_update()
+        )).scalars().all()
+        inv_by_pid = {r.product_id: r for r in inv_rows}
+
+        # 2. Bút toán ngược — KHÔNG xóa dữ liệu cũ, KHÔNG đụng invoice_items
+        invoice.status = 'CANCELLED'
+        invoice.cancelled_at = now()
+        invoice.cancelled_by = user_id
+        invoice.cancel_reason = reason
+
+        for item in invoice.items:
+            inv = inv_by_pid[item.product_id]
+            new_balance = inv.quantity + item.quantity
+            db.add(StockMovement(
+                tenant_id=tenant_id, product_id=item.product_id,
+                quantity=+item.quantity, unit_cost=item.cost_price,
+                type='CANCEL_SALE', ref_type='INVOICE', ref_id=invoice.id,
+                balance_after=new_balance, created_by=user_id,
+                note=f'Hủy hóa đơn: {reason}',
+            ))
+            inv.quantity = new_balance
+
+        # 3. Trừ lại thống kê KH (nếu có)
+        if invoice.customer_id:
+            customer.total_spent -= invoice.total
+            customer.total_orders -= 1
 ```
 
 ### 4. Sinh mã tự động
@@ -668,3 +858,101 @@ APP_ENV=development
 | Tạo/sửa SP, KH | ✅ | ✅ |
 | Nhập kho | ✅ | ✅ (GĐ 1 cho phép) |
 | Xem doanh thu hôm nay | ✅ | ✅ |
+
+---
+
+## Security & Operations
+
+### Brute-force protection cho /auth/login
+
+- Mỗi lần sai mật khẩu → `failed_login_count += 1`
+- Khi `failed_login_count >= 5` → set `locked_until = NOW() + 15 minutes`, trả 429
+- Login thành công → reset về 0 và xóa `locked_until`
+- Vì không có Redis, dùng cột trên bảng `users` (đã thêm trong DDL Phần 1)
+- Thêm `slowapi` middleware cho IP-based rate limit ở tầng app: 10 req/phút/IP cho `/auth/login`, `/auth/register`
+
+### Refresh token rotation (chống reuse attack)
+
+```python
+async def rotate_refresh_token(db, old_token_str):
+    old = await db.scalar(select(RefreshToken).where(RefreshToken.token == old_token_str))
+    if old is None or old.expires_at < now():
+        raise AppException('INVALID_REFRESH_TOKEN')
+
+    # REUSE DETECTION: token đã revoke nhưng vẫn được dùng → bị đánh cắp
+    if old.revoked_at is not None:
+        # Revoke toàn bộ family — buộc user login lại từ đầu
+        await db.execute(
+            update(RefreshToken)
+            .where(RefreshToken.family_id == old.family_id, RefreshToken.revoked_at.is_(None))
+            .values(revoked_at=now())
+        )
+        raise AppException('REFRESH_TOKEN_REUSE_DETECTED')
+
+    new_token = generate_refresh_token()
+    db.add(RefreshToken(
+        user_id=old.user_id, token=new_token,
+        family_id=old.family_id,                        # giữ nguyên family
+        expires_at=now() + timedelta(days=30),
+    ))
+    old.revoked_at = now()
+    old.replaced_by = new_token
+    return new_token
+```
+
+### Lưu token ở frontend
+
+- **Access token (1h):** giữ trong memory (Zustand store, KHÔNG vào localStorage) → tránh XSS đọc được
+- **Refresh token (30d):** HttpOnly + Secure + SameSite=Strict cookie → JS không đọc được
+- CSRF protection: backend kiểm header `X-Requested-With: XMLHttpRequest` cho mọi state-changing request (axios mặc định gửi)
+
+### File upload — ảnh sản phẩm
+
+- **Lưu trữ:** Cloudflare R2 bucket (S3-compatible, 10GB miễn phí). Đã có Cloudflare làm CDN → tận dụng tiếp.
+- **Convention:** key = `tenants/{tenant_id}/products/{product_id}/{uuid}.webp`
+- **Pipeline upload:** FE upload trực tiếp lên R2 qua presigned URL backend cấp (không proxy qua VPS, tiết kiệm băng thông).
+- **Resize:** Cloudflare Images hoặc tự convert sang webp 800px max trước khi lưu (Pillow ở backend).
+- **`image_url` trong DB:** lưu key R2 (relative), FE ghép với domain CDN khi render.
+
+### Backup & retention
+
+- **pg_dump hằng đêm** → tải về máy nhà mỗi tuần (cron + rclone lên Google Drive).
+- **audit_logs / stock_movements / price_history:** retention 1 năm. Cron tháng: xóa rows > 365 ngày (hoặc move sang bảng `*_archive`).
+- **refresh_tokens:** cron mỗi giờ xóa rows có `expires_at < NOW() - 7 days`.
+
+### Timezone
+
+- DB lưu `TIMESTAMPTZ` (UTC).
+- API trả ISO 8601 có offset, FE convert sang `Asia/Ho_Chi_Minh` để hiển thị.
+- Báo cáo "doanh thu ngày" → `WHERE completed_at AT TIME ZONE 'Asia/Ho_Chi_Minh' BETWEEN ...`.
+
+---
+
+## Scope phase 1 — Quyết định "không làm"
+
+Ghi rõ ở đây để khỏi vô tình build dở rồi vứt:
+
+| Tính năng | Trạng thái | Lý do |
+|-----------|-----------|-------|
+| **Multi-warehouse** (nhiều kho/shop) | ❌ Phase 2 | Hiện `inventory.UNIQUE (tenant_id, product_id)` ngầm định 1 kho. Khi support, đổi thành `(tenant_id, warehouse_id, product_id)` và thêm bảng `warehouses`. |
+| **Product variants** (size/màu) | ❌ Phase 2 | Tạp hóa chủ yếu bán SKU đơn. Nếu cần → thêm `product_variants` (parent_product_id, attributes JSONB). |
+| **Khuyến mãi/voucher engine** | ❌ Phase 2 | MVP chỉ cho `discount_amount` thủ công trên từng dòng / cả hóa đơn. |
+| **Hóa đơn VAT (xuất hóa đơn đỏ)** | ❌ Phase 2 | Tạp hóa MVP không cần. Khi thêm: cột `tax_code`, `tax_rate`, `tax_amount` trên invoices + items. |
+| **Bán nợ phức tạp** (sổ công nợ) | ⚠️ Đơn giản | DDL có `paid_amount` để bán nợ 1 lần, nhưng KHÔNG có module sổ công nợ riêng. |
+| **Báo cáo FIFO / LIFO cost** | ❌ Phase 2 | Chỉ làm giá vốn bình quân (moving average). |
+| **Đa NCC/SP** (`product_suppliers`) | ❌ Phase 2 | Phiếu nhập đủ để biết đã mua từ NCC nào. Khi cần báo cáo "SP X mua bao nhiêu NCC" → thêm bảng nối. |
+| **Realtime (WebSocket) đồng bộ POS** | ❌ Phase 2 | 1 ca chỉ 1-2 thu ngân, refresh thủ công đủ dùng. |
+| **Mobile app / PWA offline** | ❌ Phase 2 | Web responsive đủ cho MVP. |
+
+---
+
+## Migration checklist khi vào module mới
+
+Trước khi bắt đầu code 1 module (UC-P, UC-C, UC-I, UC-S, UC-R), kiểm:
+
+1. ✅ Đã tạo Alembic migration cho các bảng + indexes của module đó chưa?
+2. ✅ Đã verify partial unique index hoạt động (test soft-delete rồi tạo lại cùng key)?
+3. ✅ Mọi query trong service.py đã filter `tenant_id` chưa? (grep `select(` để check)
+4. ✅ Mọi mutation có ghi audit_logs (action + entity + old/new) chưa?
+5. ✅ Endpoint mutation có require_role đúng chưa?
+6. ✅ Test integration: ít nhất 1 test "tenant A không thấy data tenant B"
