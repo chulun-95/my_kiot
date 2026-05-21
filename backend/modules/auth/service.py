@@ -28,6 +28,7 @@ from backend.modules.auth.utils import (
     verify_password,
 )
 from backend.modules.tenant.models import Tenant
+from backend.shared import audit as audit_helper
 from backend.shared.pagination import paginate
 
 
@@ -246,7 +247,10 @@ async def change_password(
 # ---------- staff ----------
 
 async def create_staff(
-    db: AsyncSession, tenant_id: int, payload: StaffCreateRequest
+    db: AsyncSession,
+    tenant_id: int,
+    actor_id: int,
+    payload: StaffCreateRequest,
 ) -> User:
     existing = await db.scalar(
         select(User.id).where(
@@ -279,6 +283,24 @@ async def create_staff(
         is_active=True,
     )
     db.add(staff)
+    await db.flush()
+
+    await audit_helper.write_audit(
+        db,
+        tenant_id=tenant_id,
+        user_id=actor_id,
+        action=audit_helper.CREATE_STAFF,
+        entity_type="user",
+        entity_id=staff.id,
+        new_data={
+            "phone": staff.phone,
+            "email": staff.email,
+            "full_name": staff.full_name,
+            "role": staff.role,
+            "is_active": staff.is_active,
+        },
+    )
+
     await db.commit()
     await db.refresh(staff)
     return staff
@@ -330,13 +352,18 @@ async def get_staff(db: AsyncSession, tenant_id: int, staff_id: int) -> User:
 async def update_staff(
     db: AsyncSession,
     tenant_id: int,
+    actor_id: int,
     staff_id: int,
     payload: StaffUpdateRequest,
 ) -> User:
     user = await get_staff(db, tenant_id, staff_id)
 
+    old_snapshot = {"full_name": user.full_name, "email": user.email}
+    new_values: dict = {}
+
     if payload.full_name is not None:
-        user.full_name = payload.full_name.strip()
+        new_values["full_name"] = payload.full_name.strip()
+        user.full_name = new_values["full_name"]
     if payload.email is not None:
         if payload.email != user.email:
             existing = await db.scalar(
@@ -349,7 +376,21 @@ async def update_staff(
             )
             if existing:
                 raise AppError(409, "EMAIL_EXISTS", "Email đã tồn tại trong shop")
+        new_values["email"] = payload.email
         user.email = payload.email
+
+    old_diff, new_diff = audit_helper.diff_changes(old_snapshot, new_values)
+    if new_diff:
+        await audit_helper.write_audit(
+            db,
+            tenant_id=tenant_id,
+            user_id=actor_id,
+            action=audit_helper.UPDATE_STAFF,
+            entity_type="user",
+            entity_id=user.id,
+            old_data=old_diff,
+            new_data=new_diff,
+        )
 
     await db.commit()
     await db.refresh(user)
@@ -367,16 +408,38 @@ async def deactivate_staff(
     await db.execute(
         delete(RefreshToken).where(RefreshToken.user_id == user.id)
     )
+
+    await audit_helper.write_audit(
+        db,
+        tenant_id=tenant_id,
+        user_id=current_user_id,
+        action=audit_helper.DEACTIVATE_STAFF,
+        entity_type="user",
+        entity_id=user.id,
+        new_data={"is_active": False},
+    )
+
     await db.commit()
     await db.refresh(user)
     return user
 
 
 async def activate_staff(
-    db: AsyncSession, tenant_id: int, staff_id: int
+    db: AsyncSession, tenant_id: int, actor_id: int, staff_id: int
 ) -> User:
     user = await get_staff(db, tenant_id, staff_id)
     user.is_active = True
+
+    await audit_helper.write_audit(
+        db,
+        tenant_id=tenant_id,
+        user_id=actor_id,
+        action=audit_helper.ACTIVATE_STAFF,
+        entity_type="user",
+        entity_id=user.id,
+        new_data={"is_active": True},
+    )
+
     await db.commit()
     await db.refresh(user)
     return user

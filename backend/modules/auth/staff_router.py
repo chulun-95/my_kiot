@@ -48,7 +48,9 @@ async def create_staff(
     db: Annotated[AsyncSession, Depends(get_db)],
     owner: Annotated[User, Depends(require_role("OWNER"))],
 ):
-    staff = await auth_service.create_staff(db, owner.current_tenant_id, payload)
+    staff = await auth_service.create_staff(
+        db, owner.current_tenant_id, owner.id, payload
+    )
     return StaffResponse.model_validate(staff)
 
 
@@ -60,7 +62,7 @@ async def update_staff(
     owner: Annotated[User, Depends(require_role("OWNER"))],
 ):
     staff = await auth_service.update_staff(
-        db, owner.current_tenant_id, staff_id, payload
+        db, owner.current_tenant_id, owner.id, staff_id, payload
     )
     return StaffResponse.model_validate(staff)
 
@@ -84,6 +86,6 @@ async def activate_staff(
     owner: Annotated[User, Depends(require_role("OWNER"))],
 ):
     staff = await auth_service.activate_staff(
-        db, owner.current_tenant_id, staff_id
+        db, owner.current_tenant_id, owner.id, staff_id
     )
     return StaffResponse.model_validate(staff)

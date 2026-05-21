@@ -19,6 +19,8 @@ from backend.modules.inventory.router import (
     inventory_router,
     receipt_router,
 )
+from backend.modules.report.router import router as report_router
+from backend.modules.sales.router import router as sales_router
 
 
 def create_app() -> FastAPI:
@@ -49,6 +51,8 @@ def create_app() -> FastAPI:
     app.include_router(supplier_router)
     app.include_router(receipt_router)
     app.include_router(inventory_router)
+    app.include_router(sales_router)
+    app.include_router(report_router)
 
     @app.get("/health", tags=["meta"])
     async def health():

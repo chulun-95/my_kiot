@@ -15,10 +15,12 @@ from backend.modules.inventory.models import (
     StockMovement,
 )
 from backend.modules.inventory.schemas import (
+    AdjustmentCreateRequest,
     GoodsReceiptCreateRequest,
     GoodsReceiptUpdateRequest,
 )
 from backend.modules.product.models import Product
+from backend.shared import audit as audit_helper
 from backend.shared.code_generator import generate_code
 from backend.shared.pagination import paginate
 
@@ -154,15 +156,32 @@ async def create_goods_receipt(
     )
     receipt.items = items_to_add
     db.add(receipt)
+    await db.flush()
+
+    await audit_helper.write_audit(
+        db,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        action=audit_helper.CREATE_RECEIPT,
+        entity_type="goods_receipt",
+        entity_id=receipt.id,
+        new_data={
+            "code": receipt.code,
+            "supplier_id": receipt.supplier_id,
+            "total": receipt.total,
+            "items_count": len(items_to_add),
+        },
+    )
+
     await db.commit()
     await db.refresh(receipt)
-    # re-fetch with items
     return await get_receipt(db, tenant_id, receipt.id)
 
 
 async def update_goods_receipt(
     db: AsyncSession,
     tenant_id: int,
+    user_id: int,
     receipt_id: int,
     payload: GoodsReceiptUpdateRequest,
 ) -> GoodsReceipt:
@@ -174,20 +193,25 @@ async def update_goods_receipt(
             "Chỉ sửa được phiếu nhập ở trạng thái DRAFT",
         )
 
-    if payload.supplier_id is not None:
+    changed_fields: dict = {}
+
+    if payload.supplier_id is not None and payload.supplier_id != receipt.supplier_id:
         await _validate_supplier(db, tenant_id, payload.supplier_id)
+        changed_fields["supplier_id"] = (receipt.supplier_id, payload.supplier_id)
         receipt.supplier_id = payload.supplier_id
 
-    if payload.note is not None:
+    if payload.note is not None and payload.note != receipt.note:
+        changed_fields["note"] = (receipt.note, payload.note)
         receipt.note = payload.note
-    if payload.paid_amount is not None:
+    if payload.paid_amount is not None and payload.paid_amount != receipt.paid_amount:
+        changed_fields["paid_amount"] = (receipt.paid_amount, payload.paid_amount)
         receipt.paid_amount = payload.paid_amount
 
     if payload.items is not None:
         product_ids = [it.product_id for it in payload.items]
         await _validate_products(db, tenant_id, product_ids)
 
-        # Clear collection — cascade="all, delete-orphan" sẽ xóa khỏi DB
+        old_total = receipt.total
         receipt.items.clear()
         await db.flush()
 
@@ -204,6 +228,21 @@ async def update_goods_receipt(
             )
             total += line_total
         receipt.total = total
+        if old_total != total:
+            changed_fields["total"] = (old_total, total)
+        changed_fields["items_count"] = (None, len(payload.items))
+
+    if changed_fields:
+        await audit_helper.write_audit(
+            db,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            action=audit_helper.UPDATE_RECEIPT,
+            entity_type="goods_receipt",
+            entity_id=receipt.id,
+            old_data={k: v[0] for k, v in changed_fields.items()},
+            new_data={k: v[1] for k, v in changed_fields.items()},
+        )
 
     await db.commit()
     await db.refresh(receipt, attribute_names=["items"])
@@ -268,6 +307,17 @@ async def complete_goods_receipt(
             ).quantize(Decimal("0.01"))
 
         if new_cost != old_cost:
+            await audit_helper.write_price_history(
+                db,
+                tenant_id=tenant_id,
+                product_id=product.id,
+                field="cost_price",
+                old_value=old_cost,
+                new_value=new_cost,
+                ref_type=audit_helper.PRICE_REF_GOODS_RECEIPT,
+                ref_id=receipt.id,
+                changed_by=user_id,
+            )
             product.cost_price = new_cost
 
         new_balance = old_stock + qty
@@ -288,6 +338,20 @@ async def complete_goods_receipt(
             )
         )
 
+    await audit_helper.write_audit(
+        db,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        action=audit_helper.COMPLETE_RECEIPT,
+        entity_type="goods_receipt",
+        entity_id=receipt.id,
+        new_data={
+            "code": receipt.code,
+            "total": receipt.total,
+            "items_count": len(receipt.items),
+        },
+    )
+
     await db.commit()
     return await get_receipt(db, tenant_id, receipt.id)
 
@@ -305,10 +369,18 @@ async def cancel_goods_receipt(
         raise AppError(400, "ALREADY_CANCELLED", "Phiếu đã hủy")
 
     if receipt.status == "DRAFT":
-        # Chỉ đổi trạng thái, không có gì để rollback
         receipt.status = "CANCELLED"
         if reason:
             receipt.note = f"{(receipt.note or '').strip()}\n[Hủy] {reason}".strip()
+        await audit_helper.write_audit(
+            db,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            action=audit_helper.CANCEL_RECEIPT,
+            entity_type="goods_receipt",
+            entity_id=receipt.id,
+            new_data={"code": receipt.code, "previous_status": "DRAFT", "reason": reason},
+        )
         await db.commit()
         return await get_receipt(db, tenant_id, receipt.id)
 
@@ -342,6 +414,16 @@ async def cancel_goods_receipt(
     receipt.status = "CANCELLED"
     if reason:
         receipt.note = f"{(receipt.note or '').strip()}\n[Hủy] {reason}".strip()
+
+    await audit_helper.write_audit(
+        db,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        action=audit_helper.CANCEL_RECEIPT,
+        entity_type="goods_receipt",
+        entity_id=receipt.id,
+        new_data={"code": receipt.code, "previous_status": "COMPLETED", "reason": reason},
+    )
     await db.commit()
     return await get_receipt(db, tenant_id, receipt.id)
 
@@ -457,6 +539,136 @@ async def list_movements(
         .order_by(StockMovement.created_at.desc(), StockMovement.id.desc())
     )
     return await paginate(db, stmt, page=page, limit=limit)
+
+
+async def create_stock_adjustment(
+    db: AsyncSession,
+    tenant_id: int,
+    user_id: int,
+    payload: AdjustmentCreateRequest,
+) -> list[dict[str, Any]]:
+    """Stocktake: với mỗi item, lock inventory, ghi 1 stock_movement type=ADJUSTMENT.
+
+    OWNER-only (xem permission table trong CLAUDE.md).
+    """
+    product_ids = [it.product_id for it in payload.items]
+    if len(set(product_ids)) != len(product_ids):
+        raise AppError(
+            400,
+            "DUPLICATE_PRODUCT",
+            "Mỗi sản phẩm chỉ được điều chỉnh 1 lần trong cùng phiếu",
+        )
+
+    products = await _validate_products(db, tenant_id, product_ids)
+    inv_by_pid = await _lock_inventory_rows(db, tenant_id, product_ids)
+
+    results: list[dict[str, Any]] = []
+    for it in payload.items:
+        product = products[it.product_id]
+        inv = inv_by_pid[it.product_id]
+        old_qty = inv.quantity
+        new_qty = it.new_quantity
+        delta = new_qty - old_qty
+
+        if new_qty < 0 and not product.allow_negative:
+            raise AppError(
+                400,
+                "NEGATIVE_NOT_ALLOWED",
+                f"SP {product.sku} không cho phép tồn âm",
+            )
+
+        movement = StockMovement(
+            tenant_id=tenant_id,
+            product_id=it.product_id,
+            quantity=delta,
+            unit_cost=None,
+            type="ADJUSTMENT",
+            ref_type="MANUAL",
+            ref_id=user_id,
+            balance_after=new_qty,
+            note=it.reason,
+            created_by=user_id,
+        )
+        db.add(movement)
+        await db.flush()
+
+        inv.quantity = new_qty
+        inv.updated_at = datetime.now(tz=timezone.utc)
+
+        results.append(
+            {
+                "product_id": product.id,
+                "product_name": product.name,
+                "product_sku": product.sku,
+                "old_quantity": old_qty,
+                "new_quantity": new_qty,
+                "delta": delta,
+                "movement_id": movement.id,
+            }
+        )
+
+    await audit_helper.write_audit(
+        db,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        action=audit_helper.STOCK_ADJUSTMENT,
+        entity_type="inventory",
+        entity_id=None,
+        new_data={"items_count": len(results), "product_ids": product_ids},
+    )
+
+    await db.commit()
+    return results
+
+
+async def list_adjustments(
+    db: AsyncSession,
+    tenant_id: int,
+    page: int = 1,
+    limit: int = 50,
+) -> dict[str, Any]:
+    stmt = (
+        select(StockMovement, Product)
+        .join(Product, Product.id == StockMovement.product_id)
+        .where(
+            StockMovement.tenant_id == tenant_id,
+            StockMovement.type == "ADJUSTMENT",
+        )
+        .order_by(StockMovement.created_at.desc(), StockMovement.id.desc())
+    )
+    page = max(1, page)
+    limit = max(1, min(limit, 200))
+
+    count_stmt = select(func.count()).select_from(stmt.subquery())
+    total = (await db.execute(count_stmt)).scalar() or 0
+
+    rows = (
+        await db.execute(stmt.offset((page - 1) * limit).limit(limit))
+    ).all()
+
+    items = [
+        {
+            "id": mv.id,
+            "product_id": mv.product_id,
+            "product_name": p.name,
+            "product_sku": p.sku,
+            "quantity": mv.quantity,
+            "balance_after": mv.balance_after,
+            "note": mv.note,
+            "created_at": mv.created_at,
+            "created_by": mv.created_by,
+        }
+        for mv, p in rows
+    ]
+    return {
+        "items": items,
+        "pagination": {
+            "page": page,
+            "limit": limit,
+            "total": total,
+            "total_pages": (total + limit - 1) // limit if total else 0,
+        },
+    }
 
 
 async def list_low_stock(

@@ -147,5 +147,48 @@ class LowStockResponse(BaseModel):
     items: list[LowStockItem]
 
 
+# ---------- Stocktake / Adjustment ----------
+
+class AdjustmentItemInput(BaseModel):
+    product_id: int = Field(ge=1)
+    new_quantity: Decimal = Field(ge=0)
+    reason: str | None = None
+
+
+class AdjustmentCreateRequest(BaseModel):
+    items: list[AdjustmentItemInput] = Field(min_length=1)
+
+
+class AdjustmentResultItem(BaseModel):
+    product_id: int
+    product_name: str
+    product_sku: str
+    old_quantity: Decimal
+    new_quantity: Decimal
+    delta: Decimal
+    movement_id: int
+
+
+class AdjustmentResponse(BaseModel):
+    items: list[AdjustmentResultItem]
+
+
+class AdjustmentMovementResponse(BaseModel):
+    id: int
+    product_id: int
+    product_name: str | None = None
+    product_sku: str | None = None
+    quantity: Decimal
+    balance_after: Decimal
+    note: str | None
+    created_at: datetime
+    created_by: int
+
+
+class AdjustmentMovementsResponse(BaseModel):
+    items: list[AdjustmentMovementResponse]
+    pagination: Pagination
+
+
 class MessageResponse(BaseModel):
     message: str

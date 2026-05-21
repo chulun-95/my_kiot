@@ -5,11 +5,16 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database import get_db
-from backend.dependencies import get_current_user
+from backend.dependencies import get_current_user, require_role
 from backend.modules.auth.models import User
 from backend.modules.customer.models import Supplier
 from backend.modules.inventory import service as inv_service
 from backend.modules.inventory.schemas import (
+    AdjustmentCreateRequest,
+    AdjustmentMovementResponse,
+    AdjustmentMovementsResponse,
+    AdjustmentResponse,
+    AdjustmentResultItem,
     GoodsReceiptBriefResponse,
     GoodsReceiptCancelRequest,
     GoodsReceiptCreateRequest,
@@ -152,7 +157,7 @@ async def update_receipt(
     receipt_id: int = Path(..., ge=1),
 ):
     receipt = await inv_service.update_goods_receipt(
-        db, user.current_tenant_id, receipt_id, payload
+        db, user.current_tenant_id, user.id, receipt_id, payload
     )
     return await _enrich_receipt(db, user.current_tenant_id, receipt)
 
@@ -223,6 +228,42 @@ async def low_stock(
 ):
     items = await inv_service.list_low_stock(db, user.current_tenant_id)
     return LowStockResponse(items=[LowStockItem(**i) for i in items])
+
+
+@inventory_router.post(
+    "/adjustments",
+    response_model=AdjustmentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_adjustment(
+    payload: AdjustmentCreateRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    owner: Annotated[User, Depends(require_role("OWNER"))],
+):
+    results = await inv_service.create_stock_adjustment(
+        db, owner.current_tenant_id, owner.id, payload
+    )
+    return AdjustmentResponse(
+        items=[AdjustmentResultItem(**r) for r in results]
+    )
+
+
+@inventory_router.get(
+    "/adjustments", response_model=AdjustmentMovementsResponse
+)
+async def list_adjustments(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=200),
+):
+    result = await inv_service.list_adjustments(
+        db, user.current_tenant_id, page=page, limit=limit
+    )
+    return AdjustmentMovementsResponse(
+        items=[AdjustmentMovementResponse(**i) for i in result["items"]],
+        pagination=Pagination(**result["pagination"]),
+    )
 
 
 @inventory_router.get(

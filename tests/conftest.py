@@ -31,6 +31,12 @@ from backend.modules.inventory.models import (  # noqa: F401
     Inventory,
     StockMovement,
 )
+from backend.modules.sales.models import (  # noqa: F401
+    Invoice,
+    InvoiceItem,
+    Payment,
+)
+from backend.modules.system.models import AuditLog, PriceHistory  # noqa: F401
 from backend.shared.code_generator import CodeSequence  # noqa: F401
 
 

@@ -13,6 +13,7 @@ from backend.modules.product.schemas import (
     ProductCreateRequest,
     ProductUpdateRequest,
 )
+from backend.shared import audit as audit_helper
 from backend.shared.code_generator import generate_code
 from backend.shared.pagination import paginate
 
@@ -73,7 +74,10 @@ async def list_categories_tree(
 
 
 async def create_category(
-    db: AsyncSession, tenant_id: int, payload: CategoryCreateRequest
+    db: AsyncSession,
+    tenant_id: int,
+    user_id: int,
+    payload: CategoryCreateRequest,
 ) -> Category:
     depth = 1
     if payload.parent_id is not None:
@@ -94,6 +98,23 @@ async def create_category(
         sort_order=payload.sort_order or 0,
     )
     db.add(cat)
+    await db.flush()
+
+    await audit_helper.write_audit(
+        db,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        action=audit_helper.CREATE_CATEGORY,
+        entity_type="category",
+        entity_id=cat.id,
+        new_data={
+            "name": cat.name,
+            "depth": cat.depth,
+            "parent_id": cat.parent_id,
+            "sort_order": cat.sort_order,
+        },
+    )
+
     await db.commit()
     await db.refresh(cat)
     return cat
@@ -102,15 +123,26 @@ async def create_category(
 async def update_category(
     db: AsyncSession,
     tenant_id: int,
+    user_id: int,
     category_id: int,
     payload: CategoryUpdateRequest,
 ) -> Category:
     cat = await _get_category(db, tenant_id, category_id)
 
+    old_snapshot = {
+        "name": cat.name,
+        "sort_order": cat.sort_order,
+        "parent_id": cat.parent_id,
+        "depth": cat.depth,
+    }
+    new_values: dict = {}
+
     if payload.name is not None:
         cat.name = payload.name.strip()
+        new_values["name"] = cat.name
     if payload.sort_order is not None:
         cat.sort_order = payload.sort_order
+        new_values["sort_order"] = payload.sort_order
     if payload.parent_id is not None and payload.parent_id != cat.parent_id:
         if payload.parent_id == cat.id:
             raise AppError(
@@ -123,7 +155,6 @@ async def update_category(
                 "CATEGORY_DEPTH_EXCEEDED",
                 "Chỉ hỗ trợ nhóm hàng 2 cấp",
             )
-        # Có con? Không cho chuyển thành con của nhóm khác (vì sẽ thành 3 cấp)
         has_child = await db.scalar(
             select(Category.id).where(
                 Category.parent_id == cat.id,
@@ -138,6 +169,21 @@ async def update_category(
             )
         cat.parent_id = payload.parent_id
         cat.depth = parent.depth + 1
+        new_values["parent_id"] = cat.parent_id
+        new_values["depth"] = cat.depth
+
+    old_diff, new_diff = audit_helper.diff_changes(old_snapshot, new_values)
+    if new_diff:
+        await audit_helper.write_audit(
+            db,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            action=audit_helper.UPDATE_CATEGORY,
+            entity_type="category",
+            entity_id=cat.id,
+            old_data=old_diff,
+            new_data=new_diff,
+        )
 
     await db.commit()
     await db.refresh(cat)
@@ -145,7 +191,7 @@ async def update_category(
 
 
 async def delete_category(
-    db: AsyncSession, tenant_id: int, category_id: int
+    db: AsyncSession, tenant_id: int, user_id: int, category_id: int
 ) -> None:
     cat = await _get_category(db, tenant_id, category_id)
 
@@ -180,6 +226,15 @@ async def delete_category(
     from datetime import datetime, timezone
 
     cat.deleted_at = datetime.now(tz=timezone.utc)
+    await audit_helper.write_audit(
+        db,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        action=audit_helper.DELETE_CATEGORY,
+        entity_type="category",
+        entity_id=cat.id,
+        old_data={"name": cat.name, "depth": cat.depth, "parent_id": cat.parent_id},
+    )
     await db.commit()
 
 
@@ -258,6 +313,27 @@ async def create_product(
     )
     db.add(product)
     try:
+        await db.flush()
+
+        await audit_helper.write_audit(
+            db,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            action=audit_helper.CREATE_PRODUCT,
+            entity_type="product",
+            entity_id=product.id,
+            new_data={
+                "sku": product.sku,
+                "barcode": product.barcode,
+                "name": product.name,
+                "category_id": product.category_id,
+                "cost_price": product.cost_price,
+                "sale_price": product.sale_price,
+                "unit": product.unit,
+                "status": product.status,
+            },
+        )
+
         await db.commit()
     except IntegrityError:
         await db.rollback()
@@ -300,6 +376,23 @@ async def update_product(
     new_barcode = payload.barcode if payload.barcode is not None else None
     await _check_unique(db, tenant_id, new_sku, new_barcode, exclude_id=product.id)
 
+    old_snapshot = {
+        "name": product.name,
+        "sku": product.sku,
+        "barcode": product.barcode,
+        "category_id": product.category_id,
+        "unit": product.unit,
+        "cost_price": product.cost_price,
+        "sale_price": product.sale_price,
+        "min_stock": product.min_stock,
+        "status": product.status,
+        "allow_negative": product.allow_negative,
+        "image_url": product.image_url,
+        "description": product.description,
+    }
+    old_cost = product.cost_price
+    old_sale = product.sale_price
+
     data = payload.model_dump(exclude_unset=True)
     for k, v in data.items():
         if k in {"sku", "barcode", "image_url", "description"} and v is not None:
@@ -310,7 +403,50 @@ async def update_product(
             setattr(product, k, v)
 
     product.updated_by = user_id
+
+    # Build diff for audit
+    new_values = {k: getattr(product, k) for k in old_snapshot.keys()}
+    old_diff, new_diff = audit_helper.diff_changes(old_snapshot, new_values)
+
     try:
+        if new_diff:
+            await audit_helper.write_audit(
+                db,
+                tenant_id=tenant_id,
+                user_id=user_id,
+                action=audit_helper.UPDATE_PRODUCT,
+                entity_type="product",
+                entity_id=product.id,
+                old_data=old_diff,
+                new_data=new_diff,
+            )
+
+        # Price history — chỉ ghi nếu giá thay đổi
+        if product.cost_price != old_cost:
+            await audit_helper.write_price_history(
+                db,
+                tenant_id=tenant_id,
+                product_id=product.id,
+                field="cost_price",
+                old_value=old_cost,
+                new_value=product.cost_price,
+                ref_type=audit_helper.PRICE_REF_MANUAL,
+                ref_id=user_id,
+                changed_by=user_id,
+            )
+        if product.sale_price != old_sale:
+            await audit_helper.write_price_history(
+                db,
+                tenant_id=tenant_id,
+                product_id=product.id,
+                field="sale_price",
+                old_value=old_sale,
+                new_value=product.sale_price,
+                ref_type=audit_helper.PRICE_REF_MANUAL,
+                ref_id=user_id,
+                changed_by=user_id,
+            )
+
         await db.commit()
     except IntegrityError:
         await db.rollback()
@@ -321,13 +457,23 @@ async def update_product(
 
 
 async def soft_delete_product(
-    db: AsyncSession, tenant_id: int, product_id: int
+    db: AsyncSession, tenant_id: int, user_id: int, product_id: int
 ) -> None:
     from datetime import datetime, timezone
 
     product = await get_product(db, tenant_id, product_id)
     product.deleted_at = datetime.now(tz=timezone.utc)
     product.status = "INACTIVE"
+
+    await audit_helper.write_audit(
+        db,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        action=audit_helper.DELETE_PRODUCT,
+        entity_type="product",
+        entity_id=product.id,
+        old_data={"sku": product.sku, "name": product.name, "status": "ACTIVE"},
+    )
     await db.commit()
 
 

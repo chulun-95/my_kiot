@@ -176,6 +176,45 @@ CREATE TABLE refresh_tokens (
 );
 ```
 
+### Phần 1.5: `tenants.settings` JSONB — Canonical schema
+
+Bảng `tenants.settings JSONB DEFAULT '{}'`. Mọi key dưới đây **đều optional** (có default ở app-layer), nhưng **đặt tên cố định** để tránh mỗi developer tự đặt khác nhau.
+
+```jsonc
+{
+  // ---- POS / Bán hàng ----
+  "allow_debt": false,                  // cho phép paid_amount < total khi complete invoice
+  "default_payment_method": "CASH",     // payment mặc định khi mở POS
+  "receipt_footer": "Cám ơn quý khách!", // text in cuối bill nhiệt
+
+  // ---- Quyền hiển thị ----
+  "show_cost_to_cashier": false,        // CASHIER có thấy cost_price ở list/search SP không
+  "show_profit_to_cashier": false,      // (sẽ thêm khi có report)
+
+  // ---- Kho ----
+  "low_stock_threshold_default": 5,     // dùng nếu product.min_stock = 0
+  "negative_stock_allowed_default": false, // override product.allow_negative
+
+  // ---- Bill / mã ----
+  "invoice_code_prefix": "HD",          // override 'HD' default
+  "receipt_code_prefix": "NK",
+
+  // ---- Phase 2 — chưa dùng ở MVP ----
+  "tax_enabled": false,
+  "tax_default_rate": 0.0
+}
+```
+
+**Helper đọc settings ở backend:**
+```python
+def tenant_setting(tenant: Tenant, key: str, default):
+    return (tenant.settings or {}).get(key, default)
+
+# usage
+if not tenant_setting(tenant, "allow_debt", False):
+    raise AppError(...)
+```
+
 ### Phần 2: Master Data — Sản phẩm, Khách hàng, NCC
 
 ```sql
@@ -584,7 +623,22 @@ GET    /api/v1/goods-receipts                  Lịch sử nhập
 GET    /api/v1/inventory                       Tồn kho hiện tại
 GET    /api/v1/inventory/{product_id}/movements Thẻ kho (kardex)
 GET    /api/v1/inventory/low-stock             Hàng sắp hết
+
+POST   /api/v1/inventory/adjustments           Điều chỉnh tồn (kiểm kê, hỏng, mất) — OWNER only
+GET    /api/v1/inventory/adjustments           Lịch sử điều chỉnh
 ```
+
+**Body `POST /inventory/adjustments`:**
+```json
+{
+  "items": [
+    {"product_id": 1, "new_quantity": 42.5, "reason": "Kiểm kê tháng"},
+    {"product_id": 7, "new_quantity": 0,    "reason": "Hỏng do ẩm"}
+  ]
+}
+```
+
+Logic: với mỗi item → LOCK inventory → tính `delta = new_quantity - old_quantity` → ghi 1 row `stock_movements` với `type='ADJUSTMENT'`, `ref_type='MANUAL'`, `ref_id=user_id`, `note=reason` → update inventory cache. Cho phép âm nếu `product.allow_negative=true`.
 
 ### Reports (Báo cáo)
 
@@ -852,12 +906,97 @@ APP_ENV=development
 | Chức năng | OWNER | CASHIER |
 |-----------|-------|---------|
 | Quản lý NV (mời, khóa) | ✅ | ❌ |
-| Hủy hóa đơn đã hoàn tất | ✅ | ❌ |
+| **Hủy hóa đơn DRAFT** (treo bỏ) | ✅ | ✅ (chỉ của chính mình) |
+| **Hủy hóa đơn COMPLETED** (đã hoàn tất) | ✅ | ❌ |
+| **Hủy phiếu nhập DRAFT** | ✅ | ✅ |
+| **Hủy phiếu nhập COMPLETED** | ✅ | ❌ |
+| **Điều chỉnh tồn kho** (stocktake/adjustment) | ✅ | ❌ |
 | Xem báo cáo lợi nhuận | ✅ | ❌ |
+| Xem giá vốn sản phẩm | ✅ | ⚠️ (theo `tenant.settings.show_cost_to_cashier`) |
 | Bán hàng (POS) | ✅ | ✅ |
-| Tạo/sửa SP, KH | ✅ | ✅ |
-| Nhập kho | ✅ | ✅ (GĐ 1 cho phép) |
+| Tạo/sửa SP, KH, NCC | ✅ | ✅ |
+| Xóa SP/KH/NCC (soft) | ✅ | ❌ |
+| Tạo nhóm hàng | ✅ | ✅ |
+| Xóa nhóm hàng | ✅ | ❌ |
+| Nhập kho (tạo/sửa DRAFT, complete) | ✅ | ✅ (GĐ 1 cho phép) |
 | Xem doanh thu hôm nay | ✅ | ✅ |
+
+---
+
+## Audit logging — Quy ước (BẮT BUỘC)
+
+Bảng `audit_logs` đã có trong DDL Phần 6. Quy tắc khi nào ghi và format:
+
+### Khi nào ghi
+
+| Hành động | Có ghi audit? |
+|-----------|---------------|
+| CREATE entity (POST) | ✅ — `new_data` = snapshot sau khi tạo |
+| UPDATE entity (PUT/PATCH) | ✅ — `old_data` + `new_data` (chỉ diff các field thay đổi) |
+| DELETE / soft-delete | ✅ — `old_data` = snapshot trước xóa |
+| Business actions: complete invoice, cancel invoice, complete receipt, cancel receipt, stock adjustment | ✅ — `new_data` chứa key chính (ví dụ `{"invoice_id": 1, "total": 150000}`) |
+| READ (GET) | ❌ — không ghi |
+| Login/logout | ❌ — đã có `last_login_at` + log từ slowapi |
+
+### Action enum chuẩn
+
+```
+CREATE_PRODUCT      UPDATE_PRODUCT      DELETE_PRODUCT
+CREATE_CATEGORY     UPDATE_CATEGORY     DELETE_CATEGORY
+CREATE_CUSTOMER     UPDATE_CUSTOMER     DELETE_CUSTOMER
+CREATE_SUPPLIER     UPDATE_SUPPLIER     DELETE_SUPPLIER
+CREATE_INVOICE      UPDATE_INVOICE      COMPLETE_INVOICE     CANCEL_INVOICE
+CREATE_RECEIPT      UPDATE_RECEIPT      COMPLETE_RECEIPT     CANCEL_RECEIPT
+STOCK_ADJUSTMENT
+CREATE_STAFF        UPDATE_STAFF        DEACTIVATE_STAFF     ACTIVATE_STAFF
+```
+
+### Helper (thêm vào `backend/shared/audit.py`)
+
+```python
+from sqlalchemy.ext.asyncio import AsyncSession
+from backend.modules.system.models import AuditLog  # bảng audit_logs
+
+async def write_audit(
+    db: AsyncSession,
+    *,
+    tenant_id: int,
+    user_id: int,
+    action: str,
+    entity_type: str,
+    entity_id: int | None = None,
+    old_data: dict | None = None,
+    new_data: dict | None = None,
+    ip_address: str | None = None,
+) -> None:
+    db.add(AuditLog(
+        tenant_id=tenant_id, user_id=user_id, action=action,
+        entity_type=entity_type, entity_id=entity_id,
+        old_data=old_data, new_data=new_data, ip_address=ip_address,
+    ))
+    # KHÔNG commit ở đây — caller quyết định trong cùng transaction
+```
+
+### Quy tắc về `old_data` / `new_data`
+
+- Chỉ chứa **scalar fields** (id, name, prices, status, ...) — KHÔNG dump cả relationship
+- Cho UPDATE: chỉ ghi field **thực sự thay đổi** (diff), giúp đọc log dễ
+- Cho CREATE: ghi toàn bộ field công khai (không hash password, không token)
+
+---
+
+## Price history — Quy tắc ghi
+
+Bảng `price_history` ghi MỌI thay đổi `cost_price` / `sale_price` của product:
+
+| Tình huống | `field` | `ref_type` | `ref_id` |
+|-----------|---------|-----------|----------|
+| Owner sửa giá qua `PUT /products/{id}` | `cost_price` hoặc `sale_price` | `MANUAL` | `user_id` |
+| Complete goods_receipt → cost thay đổi do bình quân | `cost_price` | `GOODS_RECEIPT` | `receipt_id` |
+| Import Excel có cột giá → giá thay đổi | `cost_price` / `sale_price` | `IMPORT` | `import_batch_id` (nếu có) |
+| Stocktake adjustment | **KHÔNG ghi** (chỉ thay đổi quantity, không thay đổi giá) | — | — |
+
+**Lưu ý:** chỉ ghi khi giá **thực sự khác** giá cũ. Không ghi nếu `old_value == new_value`.
 
 ---
 
@@ -953,6 +1092,24 @@ Trước khi bắt đầu code 1 module (UC-P, UC-C, UC-I, UC-S, UC-R), kiểm:
 1. ✅ Đã tạo Alembic migration cho các bảng + indexes của module đó chưa?
 2. ✅ Đã verify partial unique index hoạt động (test soft-delete rồi tạo lại cùng key)?
 3. ✅ Mọi query trong service.py đã filter `tenant_id` chưa? (grep `select(` để check)
-4. ✅ Mọi mutation có ghi audit_logs (action + entity + old/new) chưa?
+4. ✅ Mọi mutation có ghi audit_logs (action + entity + old/new) chưa? (xem Audit logging section)
 5. ✅ Endpoint mutation có require_role đúng chưa?
 6. ✅ Test integration: ít nhất 1 test "tenant A không thấy data tenant B"
+7. ✅ Khi sửa giá SP / cost từ goods_receipt → có ghi `price_history` chưa?
+
+---
+
+## Backlog — Issues chưa fix (sẽ xử lý sau khi xong MVP)
+
+Đã có giải pháp nhưng defer để không phình scope phase 1. Mỗi item ghi rõ workaround hiện tại.
+
+| # | Vấn đề | Workaround MVP | Khi nào fix |
+|---|--------|-----------------|--------------|
+| 🟡 1 | `generate_code` SQL function vs Python | Dùng Python `backend/shared/code_generator.py` với `with_for_update()` lock. SQL function trong spec chỉ là tham khảo. | Khi cần đẩy logic xuống DB để giảm round-trip |
+| 🟡 2 | `product_images` bảng có nhưng chưa có API | Phase 1 chỉ dùng `products.image_url` (1 ảnh chính). Bảng `product_images` defer. | Phase 2 khi cần gallery nhiều ảnh |
+| 🟡 3 | `POST /products/import` (Excel) | Chưa implement. UX hiện tại: owner tạo từng SP. | Khi onboarding shop > 100 SP |
+| 🟢 4 | Cost visibility cho CASHIER | Field `tenant.settings.show_cost_to_cashier`. Response service kiểm tra và set `cost_price = None` nếu false. | Implement khi build Phase 4 (POS) |
+| 🟢 5 | Cashier shift / pos_session | Không có. 1 ca = 1 working day, đối chiếu tay. | Phase 2 — thêm bảng `pos_sessions` |
+| 🟢 6 | Phone format chỉ VN | Regex `^0[3|5|7|8|9]\d{8}$`. International defer. | Phase 2 — chuyển E.164 |
+| 🟢 7 | Idempotency cho `complete_invoice` | Không có. Nếu client retry → có thể double-spend. UX hiện tại: FE disable nút sau click. | Phase 1.5 — thêm header `Idempotency-Key` + bảng `idempotency_keys` |
+| 🟢 8 | Soft-delete customer/supplier có lịch sử | Cho phép xóa. Invoice/Receipt cũ vẫn ref `customer_id` → khi join thấy NULL. Display "Khách đã xóa". | Phase 2 — thêm `invoices.customer_name_snapshot` |

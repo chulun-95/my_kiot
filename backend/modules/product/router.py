@@ -7,6 +7,7 @@ from backend.database import get_db
 from backend.dependencies import get_current_user
 from backend.modules.auth.models import User
 from backend.modules.product import service as product_service
+from backend.shared.settings import can_see_cost
 from backend.modules.product.schemas import (
     CategoryCreateRequest,
     CategoryNode,
@@ -62,7 +63,9 @@ async def create_category(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
 ):
-    cat = await product_service.create_category(db, user.current_tenant_id, payload)
+    cat = await product_service.create_category(
+        db, user.current_tenant_id, user.id, payload
+    )
     return _to_category_response(cat)
 
 
@@ -74,7 +77,7 @@ async def update_category(
     category_id: int = Path(..., ge=1),
 ):
     cat = await product_service.update_category(
-        db, user.current_tenant_id, category_id, payload
+        db, user.current_tenant_id, user.id, category_id, payload
     )
     return _to_category_response(cat)
 
@@ -85,7 +88,9 @@ async def delete_category(
     user: Annotated[User, Depends(get_current_user)],
     category_id: int = Path(..., ge=1),
 ):
-    await product_service.delete_category(db, user.current_tenant_id, category_id)
+    await product_service.delete_category(
+        db, user.current_tenant_id, user.id, category_id
+    )
     return MessageResponse(message="Đã xóa nhóm hàng")
 
 
@@ -96,7 +101,8 @@ async def delete_category(
 product_router = APIRouter(prefix="/api/v1/products", tags=["products"])
 
 
-def _to_product_response(p) -> ProductResponse:
+def _to_product_response(p, user: User) -> ProductResponse:
+    show_cost = can_see_cost(getattr(user, "_tenant", None), user.role)
     data = {
         "id": p.id,
         "sku": p.sku,
@@ -104,7 +110,7 @@ def _to_product_response(p) -> ProductResponse:
         "name": p.name,
         "description": p.description,
         "unit": p.unit,
-        "cost_price": p.cost_price,
+        "cost_price": p.cost_price if show_cost else None,
         "sale_price": p.sale_price,
         "min_stock": p.min_stock,
         "image_url": p.image_url,
@@ -116,6 +122,22 @@ def _to_product_response(p) -> ProductResponse:
         "updated_at": p.updated_at,
     }
     return ProductResponse(**data)
+
+
+def _to_brief_response(p, user: User) -> ProductBriefResponse:
+    show_cost = can_see_cost(getattr(user, "_tenant", None), user.role)
+    return ProductBriefResponse(
+        id=p.id,
+        sku=p.sku,
+        barcode=p.barcode,
+        name=p.name,
+        unit=p.unit,
+        sale_price=p.sale_price,
+        cost_price=p.cost_price if show_cost else None,
+        image_url=p.image_url,
+        allow_negative=p.allow_negative,
+        status=p.status,
+    )
 
 
 @product_router.get("", response_model=ProductListResponse)
@@ -138,7 +160,7 @@ async def list_products(
         status=status,
     )
     return ProductListResponse(
-        items=[_to_product_response(p) for p in result["items"]],
+        items=[_to_product_response(p, user) for p in result["items"]],
         pagination=Pagination(**result["pagination"]),
     )
 
@@ -154,7 +176,7 @@ async def search_products(
         db, user.current_tenant_id, query=q, limit=limit
     )
     return ProductSearchResponse(
-        items=[ProductBriefResponse.model_validate(p) for p in products]
+        items=[_to_brief_response(p, user) for p in products]
     )
 
 
@@ -167,7 +189,7 @@ async def get_by_barcode(
     product = await product_service.get_by_barcode(
         db, user.current_tenant_id, code
     )
-    return ProductBriefResponse.model_validate(product)
+    return _to_brief_response(product, user)
 
 
 @product_router.get("/{product_id}", response_model=ProductResponse)
@@ -179,7 +201,7 @@ async def get_product(
     product = await product_service.get_product(
         db, user.current_tenant_id, product_id
     )
-    return _to_product_response(product)
+    return _to_product_response(product, user)
 
 
 @product_router.post(
@@ -193,11 +215,10 @@ async def create_product(
     product = await product_service.create_product(
         db, user.current_tenant_id, user.id, payload
     )
-    # Reload with category eager
     product = await product_service.get_product(
         db, user.current_tenant_id, product.id
     )
-    return _to_product_response(product)
+    return _to_product_response(product, user)
 
 
 @product_router.put("/{product_id}", response_model=ProductResponse)
@@ -213,7 +234,7 @@ async def update_product(
     product = await product_service.get_product(
         db, user.current_tenant_id, product.id
     )
-    return _to_product_response(product)
+    return _to_product_response(product, user)
 
 
 @product_router.delete("/{product_id}", response_model=MessageResponse)
@@ -223,6 +244,6 @@ async def delete_product(
     product_id: int = Path(..., ge=1),
 ):
     await product_service.soft_delete_product(
-        db, user.current_tenant_id, product_id
+        db, user.current_tenant_id, user.id, product_id
     )
     return MessageResponse(message="Đã ngừng bán sản phẩm")

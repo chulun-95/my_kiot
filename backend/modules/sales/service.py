@@ -16,8 +16,11 @@ from backend.modules.sales.schemas import (
     InvoiceCreateRequest,
     InvoiceUpdateRequest,
 )
+from backend.modules.tenant.models import Tenant
+from backend.shared import audit as audit_helper
 from backend.shared.code_generator import generate_code
 from backend.shared.pagination import paginate
+from backend.shared.settings import tenant_setting
 
 
 # ====================================================================
@@ -174,8 +177,26 @@ async def create_invoice(
 
     invoice.subtotal = subtotal
     invoice.total = max(Decimal("0"), subtotal - payload.discount_amount)
+    items_count = len(payload.items)
 
     db.add(invoice)
+    await db.flush()
+
+    await audit_helper.write_audit(
+        db,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        action=audit_helper.CREATE_INVOICE,
+        entity_type="invoice",
+        entity_id=invoice.id,
+        new_data={
+            "code": invoice.code,
+            "customer_id": invoice.customer_id,
+            "total": invoice.total,
+            "items_count": items_count,
+        },
+    )
+
     await db.commit()
     return await _get_invoice(db, tenant_id, invoice.id)
 
@@ -183,6 +204,7 @@ async def create_invoice(
 async def update_invoice(
     db: AsyncSession,
     tenant_id: int,
+    user_id: int,
     invoice_id: int,
     payload: InvoiceUpdateRequest,
 ) -> Invoice:
@@ -228,6 +250,22 @@ async def update_invoice(
         invoice.subtotal = subtotal
 
     invoice.total = max(Decimal("0"), invoice.subtotal - invoice.discount_amount)
+    # SAFE: invoice.items đã loaded từ _get_invoice (selectinload)
+    items_count = len(invoice.items)
+
+    await audit_helper.write_audit(
+        db,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        action=audit_helper.UPDATE_INVOICE,
+        entity_type="invoice",
+        entity_id=invoice.id,
+        new_data={
+            "code": invoice.code,
+            "total": invoice.total,
+            "items_count": items_count,
+        },
+    )
 
     await db.commit()
     return await _get_invoice(db, tenant_id, invoice.id)
@@ -254,9 +292,13 @@ async def complete_invoice(
             400, "INVOICE_NO_ITEMS", "Hóa đơn chưa có sản phẩm"
         )
 
-    # 1. Validate thanh toán
+    # 1. Validate thanh toán — allow_debt từ payload OR tenant.settings.allow_debt
+    tenant = await db.get(Tenant, tenant_id)
+    tenant_allow_debt = bool(tenant_setting(tenant, "allow_debt", False))
+    allow_debt = payload.allow_debt or tenant_allow_debt
+
     total_paid = sum((p.amount for p in payload.payments), Decimal("0"))
-    if total_paid < invoice.total and not payload.allow_debt:
+    if total_paid < invoice.total and not allow_debt:
         raise AppError(
             400,
             "INSUFFICIENT_PAYMENT",
@@ -346,6 +388,21 @@ async def complete_invoice(
             c.total_orders = (c.total_orders or 0) + 1
             c.last_order_at = datetime.now(tz=timezone.utc)
 
+    await audit_helper.write_audit(
+        db,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        action=audit_helper.COMPLETE_INVOICE,
+        entity_type="invoice",
+        entity_id=invoice.id,
+        new_data={
+            "code": invoice.code,
+            "total": invoice.total,
+            "paid_amount": invoice.paid_amount,
+            "cost_total": invoice.cost_total,
+        },
+    )
+
     await db.commit()
     return await _get_invoice(db, tenant_id, invoice.id)
 
@@ -371,6 +428,15 @@ async def cancel_invoice(
         invoice.cancelled_at = datetime.now(tz=timezone.utc)
         invoice.cancelled_by = user_id
         invoice.cancel_reason = reason
+        await audit_helper.write_audit(
+            db,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            action=audit_helper.CANCEL_INVOICE,
+            entity_type="invoice",
+            entity_id=invoice.id,
+            new_data={"code": invoice.code, "previous_status": "DRAFT", "reason": reason},
+        )
         await db.commit()
         return await _get_invoice(db, tenant_id, invoice.id)
 
@@ -413,6 +479,15 @@ async def cancel_invoice(
             c.total_spent = max(Decimal("0"), (c.total_spent or Decimal("0")) - invoice.total)
             c.total_orders = max(0, (c.total_orders or 0) - 1)
 
+    await audit_helper.write_audit(
+        db,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        action=audit_helper.CANCEL_INVOICE,
+        entity_type="invoice",
+        entity_id=invoice.id,
+        new_data={"code": invoice.code, "previous_status": "COMPLETED", "reason": reason},
+    )
     await db.commit()
     return await _get_invoice(db, tenant_id, invoice.id)
 

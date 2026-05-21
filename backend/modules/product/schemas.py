@@ -100,7 +100,7 @@ class ProductResponse(BaseModel):
     name: str
     description: str | None
     unit: str
-    cost_price: Decimal
+    cost_price: Decimal | None = None
     sale_price: Decimal
     min_stock: int
     image_url: str | None
@@ -115,7 +115,9 @@ class ProductResponse(BaseModel):
 
 
 class ProductBriefResponse(BaseModel):
-    """Dùng cho search/barcode lookup ở POS — payload nhẹ."""
+    """Dùng cho search/barcode lookup ở POS — payload nhẹ.
+    cost_price=None khi CASHIER không có quyền xem giá vốn.
+    """
 
     id: int
     sku: str
@@ -123,7 +125,7 @@ class ProductBriefResponse(BaseModel):
     name: str
     unit: str
     sale_price: Decimal
-    cost_price: Decimal
+    cost_price: Decimal | None = None
     image_url: str | None
     allow_negative: bool
     status: ProductStatus

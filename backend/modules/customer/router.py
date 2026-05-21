@@ -86,7 +86,7 @@ async def create_customer(
     user: Annotated[User, Depends(get_current_user)],
 ):
     customer = await customer_service.create_customer(
-        db, user.current_tenant_id, payload
+        db, user.current_tenant_id, user.id, payload
     )
     return CustomerResponse.model_validate(customer)
 
@@ -99,7 +99,7 @@ async def update_customer(
     customer_id: int = Path(..., ge=1),
 ):
     customer = await customer_service.update_customer(
-        db, user.current_tenant_id, customer_id, payload
+        db, user.current_tenant_id, user.id, customer_id, payload
     )
     return CustomerResponse.model_validate(customer)
 
@@ -111,7 +111,7 @@ async def delete_customer(
     customer_id: int = Path(..., ge=1),
 ):
     await customer_service.soft_delete_customer(
-        db, user.current_tenant_id, customer_id
+        db, user.current_tenant_id, user.id, customer_id
     )
     return MessageResponse(message="Đã xóa khách hàng")
 
@@ -161,7 +161,7 @@ async def create_supplier(
     user: Annotated[User, Depends(get_current_user)],
 ):
     s = await customer_service.create_supplier(
-        db, user.current_tenant_id, payload
+        db, user.current_tenant_id, user.id, payload
     )
     return SupplierResponse.model_validate(s)
 
@@ -174,7 +174,7 @@ async def update_supplier(
     supplier_id: int = Path(..., ge=1),
 ):
     s = await customer_service.update_supplier(
-        db, user.current_tenant_id, supplier_id, payload
+        db, user.current_tenant_id, user.id, supplier_id, payload
     )
     return SupplierResponse.model_validate(s)
 
@@ -186,6 +186,6 @@ async def delete_supplier(
     supplier_id: int = Path(..., ge=1),
 ):
     await customer_service.soft_delete_supplier(
-        db, user.current_tenant_id, supplier_id
+        db, user.current_tenant_id, user.id, supplier_id
     )
     return MessageResponse(message="Đã xóa nhà cung cấp")

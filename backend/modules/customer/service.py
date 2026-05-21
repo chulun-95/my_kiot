@@ -13,6 +13,7 @@ from backend.modules.customer.schemas import (
     SupplierCreateRequest,
     SupplierUpdateRequest,
 )
+from backend.shared import audit as audit_helper
 from backend.shared.pagination import paginate
 
 
@@ -44,7 +45,10 @@ async def _check_phone_unique(
 
 
 async def create_customer(
-    db: AsyncSession, tenant_id: int, payload: CustomerCreateRequest
+    db: AsyncSession,
+    tenant_id: int,
+    user_id: int,
+    payload: CustomerCreateRequest,
 ) -> Customer:
     await _check_phone_unique(db, tenant_id, payload.phone)
 
@@ -58,6 +62,20 @@ async def create_customer(
     )
     db.add(customer)
     try:
+        await db.flush()
+        await audit_helper.write_audit(
+            db,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            action=audit_helper.CREATE_CUSTOMER,
+            entity_type="customer",
+            entity_id=customer.id,
+            new_data={
+                "name": customer.name,
+                "phone": customer.phone,
+                "email": customer.email,
+            },
+        )
         await db.commit()
     except IntegrityError:
         await db.rollback()
@@ -84,6 +102,7 @@ async def get_customer(
 async def update_customer(
     db: AsyncSession,
     tenant_id: int,
+    user_id: int,
     customer_id: int,
     payload: CustomerUpdateRequest,
 ) -> Customer:
@@ -92,6 +111,13 @@ async def update_customer(
     if payload.phone is not None and payload.phone != customer.phone:
         await _check_phone_unique(db, tenant_id, payload.phone, exclude_id=customer.id)
 
+    old_snapshot = {
+        "name": customer.name,
+        "phone": customer.phone,
+        "email": customer.email,
+        "address": customer.address,
+        "note": customer.note,
+    }
     data = payload.model_dump(exclude_unset=True)
     for k, v in data.items():
         if k == "name" and v is not None:
@@ -99,7 +125,21 @@ async def update_customer(
         else:
             setattr(customer, k, v)
 
+    new_values = {k: getattr(customer, k) for k in old_snapshot.keys()}
+    old_diff, new_diff = audit_helper.diff_changes(old_snapshot, new_values)
+
     try:
+        if new_diff:
+            await audit_helper.write_audit(
+                db,
+                tenant_id=tenant_id,
+                user_id=user_id,
+                action=audit_helper.UPDATE_CUSTOMER,
+                entity_type="customer",
+                entity_id=customer.id,
+                old_data=old_diff,
+                new_data=new_diff,
+            )
         await db.commit()
     except IntegrityError:
         await db.rollback()
@@ -144,10 +184,19 @@ async def find_by_phone(
 
 
 async def soft_delete_customer(
-    db: AsyncSession, tenant_id: int, customer_id: int
+    db: AsyncSession, tenant_id: int, user_id: int, customer_id: int
 ) -> None:
     customer = await get_customer(db, tenant_id, customer_id)
     customer.deleted_at = datetime.now(tz=timezone.utc)
+    await audit_helper.write_audit(
+        db,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        action=audit_helper.DELETE_CUSTOMER,
+        entity_type="customer",
+        entity_id=customer.id,
+        old_data={"name": customer.name, "phone": customer.phone},
+    )
     await db.commit()
 
 
@@ -189,7 +238,10 @@ async def get_recent_orders(
 # ====================================================================
 
 async def create_supplier(
-    db: AsyncSession, tenant_id: int, payload: SupplierCreateRequest
+    db: AsyncSession,
+    tenant_id: int,
+    user_id: int,
+    payload: SupplierCreateRequest,
 ) -> Supplier:
     supplier = Supplier(
         tenant_id=tenant_id,
@@ -201,6 +253,20 @@ async def create_supplier(
         note=payload.note,
     )
     db.add(supplier)
+    await db.flush()
+    await audit_helper.write_audit(
+        db,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        action=audit_helper.CREATE_SUPPLIER,
+        entity_type="supplier",
+        entity_id=supplier.id,
+        new_data={
+            "name": supplier.name,
+            "phone": supplier.phone,
+            "tax_code": supplier.tax_code,
+        },
+    )
     await db.commit()
     await db.refresh(supplier)
     return supplier
@@ -224,17 +290,40 @@ async def get_supplier(
 async def update_supplier(
     db: AsyncSession,
     tenant_id: int,
+    user_id: int,
     supplier_id: int,
     payload: SupplierUpdateRequest,
 ) -> Supplier:
     supplier = await get_supplier(db, tenant_id, supplier_id)
 
+    old_snapshot = {
+        "name": supplier.name,
+        "phone": supplier.phone,
+        "email": supplier.email,
+        "address": supplier.address,
+        "tax_code": supplier.tax_code,
+        "note": supplier.note,
+    }
     data = payload.model_dump(exclude_unset=True)
     for k, v in data.items():
         if k == "name" and v is not None:
             supplier.name = v.strip()
         else:
             setattr(supplier, k, v)
+
+    new_values = {k: getattr(supplier, k) for k in old_snapshot.keys()}
+    old_diff, new_diff = audit_helper.diff_changes(old_snapshot, new_values)
+    if new_diff:
+        await audit_helper.write_audit(
+            db,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            action=audit_helper.UPDATE_SUPPLIER,
+            entity_type="supplier",
+            entity_id=supplier.id,
+            old_data=old_diff,
+            new_data=new_diff,
+        )
     await db.commit()
     await db.refresh(supplier)
     return supplier
@@ -265,8 +354,17 @@ async def list_suppliers(
 
 
 async def soft_delete_supplier(
-    db: AsyncSession, tenant_id: int, supplier_id: int
+    db: AsyncSession, tenant_id: int, user_id: int, supplier_id: int
 ) -> None:
     supplier = await get_supplier(db, tenant_id, supplier_id)
     supplier.deleted_at = datetime.now(tz=timezone.utc)
+    await audit_helper.write_audit(
+        db,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        action=audit_helper.DELETE_SUPPLIER,
+        entity_type="supplier",
+        entity_id=supplier.id,
+        old_data={"name": supplier.name, "phone": supplier.phone},
+    )
     await db.commit()
