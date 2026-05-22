@@ -93,6 +93,46 @@ class ProductUpdateRequest(BaseModel):
         return v or None
 
 
+class ProductUnitResponse(BaseModel):
+    id: int
+    unit_name: str
+    conversion_rate: Decimal
+    sale_price: Decimal | None
+    barcode: str | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProductUnitCreateRequest(BaseModel):
+    unit_name: str = Field(min_length=1, max_length=30)
+    conversion_rate: Decimal = Field(gt=1)
+    sale_price: Decimal | None = Field(default=None, ge=0)
+    barcode: str | None = Field(default=None, max_length=50)
+
+    @field_validator("barcode")
+    @classmethod
+    def _strip_barcode(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        v = v.strip()
+        return v or None
+
+
+class ProductUnitUpdateRequest(BaseModel):
+    unit_name: str | None = Field(default=None, min_length=1, max_length=30)
+    conversion_rate: Decimal | None = Field(default=None, gt=1)
+    sale_price: Decimal | None = Field(default=None, ge=0)
+    barcode: str | None = Field(default=None, max_length=50)
+
+    @field_validator("barcode")
+    @classmethod
+    def _strip_barcode(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        v = v.strip()
+        return v or None
+
+
 class ProductResponse(BaseModel):
     id: int
     sku: str
@@ -110,6 +150,7 @@ class ProductResponse(BaseModel):
     category_name: str | None = None
     created_at: datetime
     updated_at: datetime
+    units: list[ProductUnitResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -129,6 +170,8 @@ class ProductBriefResponse(BaseModel):
     image_url: str | None
     allow_negative: bool
     status: ProductStatus
+    units: list[ProductUnitResponse] = []
+    matched_unit: ProductUnitResponse | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
