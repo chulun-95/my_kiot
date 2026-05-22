@@ -76,6 +76,13 @@ class GoodsReceiptItem(Base):
     quantity: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False)
     cost_price: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
     line_total: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
+    unit_id: Mapped[int | None] = mapped_column(
+        FKType,
+        ForeignKey("product_units.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    unit_name: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    conversion_rate: Mapped[Decimal | None] = mapped_column(Numeric(10, 3), nullable=True)
 
     receipt: Mapped["GoodsReceipt"] = relationship(
         "GoodsReceipt", back_populates="items"

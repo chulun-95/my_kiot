@@ -23,7 +23,7 @@ from backend.main import app
 from backend.shared.models import Base
 from backend.modules.tenant.models import Tenant  # noqa: F401
 from backend.modules.auth.models import User, RefreshToken  # noqa: F401
-from backend.modules.product.models import Category, Product, ProductImage  # noqa: F401
+from backend.modules.product.models import Category, Product, ProductImage, ProductUnit  # noqa: F401
 from backend.modules.customer.models import Customer, Supplier  # noqa: F401
 from backend.modules.inventory.models import (  # noqa: F401
     GoodsReceipt,

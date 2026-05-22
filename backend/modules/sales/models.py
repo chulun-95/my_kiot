@@ -122,6 +122,12 @@ class InvoiceItem(Base):
         Numeric(15, 2), nullable=False, default=Decimal("0"), server_default="0"
     )
     line_total: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
+    unit_id: Mapped[int | None] = mapped_column(
+        FKType,
+        ForeignKey("product_units.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    conversion_rate: Mapped[Decimal | None] = mapped_column(Numeric(10, 3), nullable=True)
 
     invoice: Mapped["Invoice"] = relationship("Invoice", back_populates="items")
 
