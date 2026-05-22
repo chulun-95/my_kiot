@@ -1,7 +1,7 @@
 ---
 build_id: fe-build-2026-05-22
 created_at: 2026-05-22T14:31:40+07:00
-cron_id: <TO_BE_FILLED>
+cron_id: cdad6073
 total_phases: 7
 completed_phases: 0
 status: in_progress
@@ -88,3 +88,4 @@ status: in_progress
 
 # Run Log
 - 2026-05-22T14:31:40+07:00 | bootstrap | progress file initialized; cron not yet scheduled
+- 2026-05-22T14:32:00+07:00 | bootstrap | cron scheduled (id=cdad6073, schedule="13 * * * *", session-only — keep Claude Code running)
