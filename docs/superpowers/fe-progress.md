@@ -1,7 +1,7 @@
 ---
 build_id: fe-build-2026-05-22
 created_at: 2026-05-22T14:31:40+07:00
-cron_id: cdad6073
+cron_id: a4edf560
 total_phases: 7
 completed_phases: 1
 status: in_progress
@@ -113,3 +113,4 @@ status: in_progress
 - 2026-05-22T14:31:40+07:00 | bootstrap | progress file initialized; cron not yet scheduled
 - 2026-05-22T14:32:00+07:00 | bootstrap | cron scheduled (id=cdad6073, schedule="13 * * * *", session-only — keep Claude Code running)
 - 2026-05-22T14:45:00+07:00 | phase 0 | done (attempts=1) — 18/18 tests pass, tsc clean
+- 2026-05-22T15:32:00+07:00 | recovery | original cron cdad6073 disappeared (session-only); re-scheduled as a4edf560
