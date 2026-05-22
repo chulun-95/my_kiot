@@ -1,3 +1,4 @@
+from typing import Optional
 from sqlalchemy import JSON, Boolean, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -15,9 +16,9 @@ class Tenant(Base, AuditMixin):
     id: Mapped[int] = mapped_column(PKType, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     slug: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
-    phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
-    email: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    address: Mapped[str | None] = mapped_column(Text, nullable=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     settings: Mapped[dict] = mapped_column(
         SettingsType, nullable=False, default=dict, server_default="{}"
     )

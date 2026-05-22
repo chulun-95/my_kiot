@@ -1,3 +1,4 @@
+from typing import Optional
 from datetime import datetime
 from decimal import Decimal
 
@@ -34,7 +35,7 @@ class Category(Base, AuditMixin, SoftDeleteMixin):
     tenant_id: Mapped[int] = mapped_column(
         FKType, ForeignKey("tenants.id"), nullable=False, index=True
     )
-    parent_id: Mapped[int | None] = mapped_column(
+    parent_id: Mapped[Optional[int]] = mapped_column(
         FKType, ForeignKey("categories.id"), nullable=True
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -82,13 +83,13 @@ class Product(Base, AuditMixin, SoftDeleteMixin):
     tenant_id: Mapped[int] = mapped_column(
         FKType, ForeignKey("tenants.id"), nullable=False, index=True
     )
-    category_id: Mapped[int | None] = mapped_column(
+    category_id: Mapped[Optional[int]] = mapped_column(
         FKType, ForeignKey("categories.id"), nullable=True
     )
     sku: Mapped[str] = mapped_column(String(50), nullable=False)
-    barcode: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    barcode: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     name: Mapped[str] = mapped_column(String(300), nullable=False)
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     unit: Mapped[str] = mapped_column(
         String(30), nullable=False, default="cái", server_default="cái"
     )
@@ -101,17 +102,17 @@ class Product(Base, AuditMixin, SoftDeleteMixin):
     min_stock: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default="0"
     )
-    image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    image_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="ACTIVE", server_default="ACTIVE"
     )
     allow_negative: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
     )
-    created_by: Mapped[int | None] = mapped_column(
+    created_by: Mapped[Optional[int]] = mapped_column(
         FKType, ForeignKey("users.id"), nullable=True
     )
-    updated_by: Mapped[int | None] = mapped_column(
+    updated_by: Mapped[Optional[int]] = mapped_column(
         FKType, ForeignKey("users.id"), nullable=True
     )
 
@@ -176,8 +177,8 @@ class ProductUnit(Base):
     )
     unit_name: Mapped[str] = mapped_column(String(30), nullable=False)
     conversion_rate: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False)
-    sale_price: Mapped[Decimal | None] = mapped_column(Numeric(15, 2), nullable=True)
-    barcode: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    sale_price: Mapped[Optional[Decimal]] = mapped_column(Numeric(15, 2), nullable=True)
+    barcode: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

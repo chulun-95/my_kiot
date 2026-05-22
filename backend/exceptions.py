@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
@@ -16,7 +16,7 @@ class AppError(HTTPException):
         status_code: int,
         code: str,
         message: str,
-        details: dict[str, Any] | None = None,
+        details: Optional[dict[str, Any]] = None,
     ):
         super().__init__(status_code=status_code, detail=message)
         self.code = code
@@ -28,7 +28,7 @@ def _error_response(
     status_code: int,
     code: str,
     message: str,
-    details: dict[str, Any] | None = None,
+    details: Optional[dict[str, Any]] = None,
 ) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,

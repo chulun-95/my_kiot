@@ -1,3 +1,4 @@
+from typing import Optional
 from datetime import datetime
 from decimal import Decimal
 
@@ -35,18 +36,18 @@ class Customer(Base, AuditMixin, SoftDeleteMixin):
     tenant_id: Mapped[int] = mapped_column(
         FKType, ForeignKey("tenants.id"), nullable=False, index=True
     )
-    phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
-    email: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    address: Mapped[str | None] = mapped_column(Text, nullable=True)
-    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     total_spent: Mapped[Decimal] = mapped_column(
         Numeric(15, 2), nullable=False, default=Decimal("0"), server_default="0"
     )
     total_orders: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default="0"
     )
-    last_order_at: Mapped[datetime | None] = mapped_column(
+    last_order_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 
@@ -60,11 +61,11 @@ class Supplier(Base, AuditMixin, SoftDeleteMixin):
         FKType, ForeignKey("tenants.id"), nullable=False, index=True
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
-    phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
-    email: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    address: Mapped[str | None] = mapped_column(Text, nullable=True)
-    tax_code: Mapped[str | None] = mapped_column(String(20), nullable=True)
-    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    tax_code: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     total_debt: Mapped[Decimal] = mapped_column(
         Numeric(15, 2), nullable=False, default=Decimal("0"), server_default="0"
     )
