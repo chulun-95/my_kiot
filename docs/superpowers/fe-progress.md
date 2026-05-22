@@ -1,7 +1,7 @@
 ---
 build_id: fe-build-2026-05-22
 created_at: 2026-05-22T14:31:40+07:00
-cron_id: 24b44b52
+cron_id: null  # CronCreate unreliable in this env; switching to ScheduleWakeup chain (1h between phases)
 total_phases: 7
 completed_phases: 1
 status: in_progress
@@ -116,3 +116,4 @@ status: in_progress
 - 2026-05-22T15:32:00+07:00 | recovery | original cron cdad6073 disappeared (session-only); re-scheduled as a4edf560
 - 2026-05-22T15:34:00+07:00 | reschedule | cancelled a4edf560 (:13); created 7a8dd8be (:36) — first tick ~15:36, then hourly
 - 2026-05-22T15:39:00+07:00 | reschedule | 7a8dd8be (:36) didn't fire by 15:39; cancelled and created 24b44b52 (:43) — first tick ~15:43, then hourly
+- 2026-05-22T15:46:00+07:00 | fallback | 24b44b52 (:43) also didn't fire; CronCreate unreliable. Cancelled cron. Plan: dispatch Phase 1 immediately, then chain Phase 2-6 via ScheduleWakeup (3600s each) for hourly spacing.
