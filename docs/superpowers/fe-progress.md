@@ -137,3 +137,4 @@ status: in_progress
 - 2026-05-22T15:39:00+07:00 | reschedule | 7a8dd8be (:36) didn't fire by 15:39; cancelled and created 24b44b52 (:43) — first tick ~15:43, then hourly
 - 2026-05-22T15:46:00+07:00 | fallback | 24b44b52 (:43) also didn't fire; CronCreate unreliable. Cancelled cron. Plan: dispatch Phase 1 immediately, then chain Phase 2-6 via ScheduleWakeup (3600s each) for hourly spacing.
 - 2026-05-22T16:15:00+07:00 | phase 1 | done (attempts=1) — 36/36 tests pass, tsc clean
+- 2026-05-22T23:30:00+07:00 | schedule | ScheduleWakeup(3600s) accepted — Phase 2 dispatch wake in ~1h (mechanism untested; first real validation pending)
