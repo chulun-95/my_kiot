@@ -671,6 +671,20 @@ async def complete_invoice(db, tenant_id, invoice_id, payments, cashier_id):
         # 3. Lock tồn kho — LOCK THEO product_id ASC để tránh deadlock
         #    (2 hóa đơn cùng SP A+B nhưng đảo thứ tự cart sẽ deadlock nếu không sort)
         product_ids = sorted({item.product_id for item in invoice.items})
+
+        # 3a. BẮT BUỘC: Upsert inventory row trước khi lock (PostgreSQL-level, không phải Python-level)
+        #     Vấn đề: 2 POS cùng bán SP allow_negative chưa có inventory row →
+        #       cả 2 SELECT FOR UPDATE thấy rỗng → cả 2 INSERT → Unique Violation
+        #     Fix: INSERT ON CONFLICT DO NOTHING (atomic ở DB) → đảm bảo row tồn tại trước khi lock
+        #     Chỉ cần thiết cho SP allow_negative=True, nhưng apply cho tất cả để code đơn giản hơn.
+        for pid in product_ids:
+            await db.execute(
+                insert(Inventory)
+                .values(tenant_id=tenant_id, product_id=pid, quantity=0)
+                .on_conflict_do_nothing(index_elements=["tenant_id", "product_id"])
+            )
+        await db.flush()
+
         inv_rows = (await db.execute(
             select(Inventory)
             .where(Inventory.tenant_id == tenant_id, Inventory.product_id.in_(product_ids))
@@ -754,13 +768,15 @@ async def complete_goods_receipt(db, tenant_id, receipt_id, user_id):
 
             old_stock = inv.quantity
             old_cost = product.cost_price
-            denom = old_stock + item.quantity
 
-            # Giá vốn bình quân — phòng chia 0 / âm khi allow_negative
-            if denom <= 0:
-                new_cost = item.cost_price          # fallback: dùng giá nhập lần này
+            # Giá vốn bình quân — chỉ tính khi old_stock > 0
+            # BẮT BUỘC: nếu old_stock <= 0 (âm do allow_negative hoặc = 0), dùng giá nhập mới
+            # Lý do: old_stock âm trong công thức tạo ra new_cost lớn hơn giá nhập thực → sai lệch lợi nhuận
+            # Ví dụ: old_stock=-2, old_cost=10, qty=5, in_cost=20 → (−20+100)/3 = 26.67 (sai) vs 20.00 (đúng)
+            if old_stock <= 0:
+                new_cost = item.cost_price
             else:
-                new_cost = (old_stock * old_cost + item.quantity * item.cost_price) / denom
+                new_cost = (old_stock * old_cost + item.quantity * item.cost_price) / (old_stock + item.quantity)
 
             # Ghi lịch sử giá nếu cost thay đổi
             if new_cost != old_cost:
@@ -1113,3 +1129,4 @@ Trước khi bắt đầu code 1 module (UC-P, UC-C, UC-I, UC-S, UC-R), kiểm:
 | 🟢 6 | Phone format chỉ VN | Regex `^0[3|5|7|8|9]\d{8}$`. International defer. | Phase 2 — chuyển E.164 |
 | 🟢 7 | Idempotency cho `complete_invoice` | Không có. Nếu client retry → có thể double-spend. UX hiện tại: FE disable nút sau click. | Phase 1.5 — thêm header `Idempotency-Key` + bảng `idempotency_keys` |
 | 🟢 8 | Soft-delete customer/supplier có lịch sử | Cho phép xóa. Invoice/Receipt cũ vẫn ref `customer_id` → khi join thấy NULL. Display "Khách đã xóa". | Phase 2 — thêm `invoices.customer_name_snapshot` |
+| 🟡 9 | Đơn vị quy đổi (thùng/lốc → lon) | Phase 1: nhập/bán theo đơn vị cơ bản (lon/chai). | Phase 2 — thêm bảng `product_units (product_id, unit_name, conversion_rate, sale_price, barcode)`. 1 SP nhiều đơn vị tính, tồn kho chỉ theo đơn vị cơ bản. Pattern: KiotViet/Sapo. |
