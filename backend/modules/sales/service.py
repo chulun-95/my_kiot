@@ -115,12 +115,39 @@ async def _lock_inventory_rows(
     return by_pid
 
 
-def _compute_line(
-    item, product: Product
-) -> tuple[Decimal, Decimal]:
-    unit_price = (
-        item.unit_price if item.unit_price is not None else product.sale_price
+async def _get_product_unit_if_given(
+    db: AsyncSession, tenant_id: int, product_id: int, unit_id: int | None
+):
+    if unit_id is None:
+        return None
+    from backend.modules.product.models import ProductUnit
+    unit = await db.scalar(
+        select(ProductUnit).where(
+            ProductUnit.id == unit_id,
+            ProductUnit.tenant_id == tenant_id,
+            ProductUnit.product_id == product_id,
+        )
     )
+    if not unit:
+        raise AppError(
+            404,
+            "UNIT_NOT_FOUND",
+            f"Đơn vị id={unit_id} không tồn tại hoặc không thuộc sản phẩm này",
+        )
+    return unit
+
+
+def _compute_line(
+    item, product: Product, unit=None
+) -> tuple[Decimal, Decimal]:
+    if item.unit_price is not None:
+        unit_price = item.unit_price
+    elif unit is not None and unit.sale_price is not None:
+        unit_price = unit.sale_price
+    elif unit is not None:
+        unit_price = (product.sale_price * unit.conversion_rate).quantize(Decimal("0.01"))
+    else:
+        unit_price = product.sale_price
     line_subtotal = unit_price * item.quantity
     line_total = (line_subtotal - item.discount_amount).quantize(Decimal("0.01"))
     if line_total < 0:
@@ -159,18 +186,21 @@ async def create_invoice(
         products = await _validate_products(db, tenant_id, product_ids)
         for it in payload.items:
             p = products[it.product_id]
-            unit_price, line_total = _compute_line(it, p)
+            unit = await _get_product_unit_if_given(db, tenant_id, p.id, it.unit_id)
+            unit_price, line_total = _compute_line(it, p, unit)
             invoice.items.append(
                 InvoiceItem(
                     product_id=p.id,
                     product_name=p.name,
                     product_sku=p.sku,
-                    unit=p.unit,
+                    unit=unit.unit_name if unit else p.unit,
                     quantity=it.quantity,
                     unit_price=unit_price,
                     cost_price=p.cost_price,
                     discount_amount=it.discount_amount,
                     line_total=line_total,
+                    unit_id=unit.id if unit else None,
+                    conversion_rate=unit.conversion_rate if unit else None,
                 )
             )
             subtotal += line_total
@@ -232,18 +262,21 @@ async def update_invoice(
         subtotal = Decimal("0")
         for it in payload.items:
             p = products[it.product_id]
-            unit_price, line_total = _compute_line(it, p)
+            unit = await _get_product_unit_if_given(db, tenant_id, p.id, it.unit_id)
+            unit_price, line_total = _compute_line(it, p, unit)
             invoice.items.append(
                 InvoiceItem(
                     product_id=p.id,
                     product_name=p.name,
                     product_sku=p.sku,
-                    unit=p.unit,
+                    unit=unit.unit_name if unit else p.unit,
                     quantity=it.quantity,
                     unit_price=unit_price,
                     cost_price=p.cost_price,
                     discount_amount=it.discount_amount,
                     line_total=line_total,
+                    unit_id=unit.id if unit else None,
+                    conversion_rate=unit.conversion_rate if unit else None,
                 )
             )
             subtotal += line_total
@@ -311,13 +344,15 @@ async def complete_invoice(
     products = await _validate_products(db, tenant_id, product_ids)
     inv_by_pid = await _lock_inventory_rows(db, tenant_id, product_ids)
 
-    # 3. Kiểm tra tồn — gom toàn bộ thiếu
-    qty_needed: dict[int, Decimal] = {}
+    # 3. Kiểm tra tồn — gom base_qty (quantity × conversion_rate)
+    base_qty_needed: dict[int, Decimal] = {}
     for item in invoice.items:
-        qty_needed[item.product_id] = qty_needed.get(item.product_id, Decimal("0")) + item.quantity
+        rate = item.conversion_rate if item.conversion_rate else Decimal("1")
+        base_qty = (item.quantity * rate).quantize(Decimal("0.001"))
+        base_qty_needed[item.product_id] = base_qty_needed.get(item.product_id, Decimal("0")) + base_qty
 
     shortages = []
-    for pid, need in qty_needed.items():
+    for pid, need in base_qty_needed.items():
         product = products[pid]
         have = inv_by_pid[pid].quantity
         if have < need and not product.allow_negative:
@@ -340,7 +375,9 @@ async def complete_invoice(
     for item in invoice.items:
         p = products[item.product_id]
         item.cost_price = p.cost_price
-        cost_total += (item.cost_price * item.quantity).quantize(Decimal("0.01"))
+        rate = item.conversion_rate if item.conversion_rate else Decimal("1")
+        base_qty = (item.quantity * rate).quantize(Decimal("0.001"))
+        cost_total += (p.cost_price * base_qty).quantize(Decimal("0.01"))
     invoice.cost_total = cost_total
 
     # 5. Trạng thái + tiền
@@ -355,22 +392,21 @@ async def complete_invoice(
             Payment(method=p.method, amount=p.amount, note=p.note)
         )
 
-    # 7. Trừ tồn + ghi kardex
-    for pid in sorted(qty_needed.keys()):
+    # 7. Trừ tồn + ghi kardex (dùng base_qty)
+    for pid in sorted(base_qty_needed.keys()):
         inv = inv_by_pid[pid]
-        qty = qty_needed[pid]
-        new_balance = inv.quantity - qty
+        base_qty = base_qty_needed[pid]
+        new_balance = inv.quantity - base_qty
         inv.quantity = new_balance
         inv.updated_at = datetime.now(tz=timezone.utc)
 
-        # Tìm cost của line tương ứng (xấp xỉ — dùng snapshot product hiện tại)
         unit_cost = products[pid].cost_price
 
         db.add(
             StockMovement(
                 tenant_id=tenant_id,
                 product_id=pid,
-                quantity=-qty,
+                quantity=-base_qty,
                 unit_cost=unit_cost,
                 type="SALE",
                 ref_type="INVOICE",
@@ -440,24 +476,26 @@ async def cancel_invoice(
         await db.commit()
         return await _get_invoice(db, tenant_id, invoice.id)
 
-    # COMPLETED → bút toán ngược
+    # COMPLETED → bút toán ngược (dùng conversion_rate snapshot từ invoice_item)
     product_ids = list({it.product_id for it in invoice.items})
     inv_by_pid = await _lock_inventory_rows(db, tenant_id, product_ids)
 
-    qty_by_pid: dict[int, Decimal] = {}
+    base_qty_by_pid: dict[int, Decimal] = {}
     for it in invoice.items:
-        qty_by_pid[it.product_id] = qty_by_pid.get(it.product_id, Decimal("0")) + it.quantity
+        rate = it.conversion_rate if it.conversion_rate else Decimal("1")
+        base_qty = (it.quantity * rate).quantize(Decimal("0.001"))
+        base_qty_by_pid[it.product_id] = base_qty_by_pid.get(it.product_id, Decimal("0")) + base_qty
 
-    for pid in sorted(qty_by_pid.keys()):
+    for pid in sorted(base_qty_by_pid.keys()):
         inv = inv_by_pid[pid]
-        qty = qty_by_pid[pid]
-        new_balance = inv.quantity + qty
+        base_qty = base_qty_by_pid[pid]
+        new_balance = inv.quantity + base_qty
         inv.quantity = new_balance
         db.add(
             StockMovement(
                 tenant_id=tenant_id,
                 product_id=pid,
-                quantity=qty,
+                quantity=base_qty,
                 type="CANCEL_SALE",
                 ref_type="INVOICE",
                 ref_id=invoice.id,

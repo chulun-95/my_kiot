@@ -516,8 +516,31 @@ async def list_inventory(
     base = base.order_by(Product.name).offset((page - 1) * limit).limit(limit)
     rows = (await db.execute(base)).all()
 
-    items = [
-        {
+    # Load product units for breakdown
+    from backend.modules.product.models import ProductUnit
+    product_ids_page = [product.id for _, product in rows]
+    units_by_pid: dict[int, list] = {}
+    if product_ids_page:
+        unit_rows = (await db.execute(
+            select(ProductUnit).where(
+                ProductUnit.tenant_id == tenant_id,
+                ProductUnit.product_id.in_(product_ids_page),
+            ).order_by(ProductUnit.product_id, ProductUnit.unit_name)
+        )).scalars().all()
+        for u in unit_rows:
+            units_by_pid.setdefault(u.product_id, []).append(u)
+
+    items = []
+    for inv, product in rows:
+        breakdown = [
+            {
+                "unit_name": u.unit_name,
+                "conversion_rate": u.conversion_rate,
+                "quantity_in_unit": (inv.quantity / u.conversion_rate).quantize(Decimal("0.001")),
+            }
+            for u in units_by_pid.get(product.id, [])
+        ]
+        items.append({
             "product_id": product.id,
             "product_sku": product.sku,
             "product_name": product.name,
@@ -526,9 +549,8 @@ async def list_inventory(
             "min_stock": product.min_stock,
             "cost_price": product.cost_price,
             "sale_price": product.sale_price,
-        }
-        for inv, product in rows
-    ]
+            "units_breakdown": breakdown,
+        })
     return {
         "items": items,
         "pagination": {
