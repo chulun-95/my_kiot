@@ -46,6 +46,28 @@ async def _validate_supplier(
     return s
 
 
+async def _get_product_unit_if_given(
+    db: AsyncSession, tenant_id: int, product_id: int, unit_id: int | None
+):
+    if unit_id is None:
+        return None
+    from backend.modules.product.models import ProductUnit
+    unit = await db.scalar(
+        select(ProductUnit).where(
+            ProductUnit.id == unit_id,
+            ProductUnit.tenant_id == tenant_id,
+            ProductUnit.product_id == product_id,
+        )
+    )
+    if not unit:
+        raise AppError(
+            404,
+            "UNIT_NOT_FOUND",
+            f"Đơn vị id={unit_id} không tồn tại hoặc không thuộc sản phẩm này",
+        )
+    return unit
+
+
 async def _validate_products(
     db: AsyncSession, tenant_id: int, product_ids: list[int]
 ) -> dict[int, Product]:
@@ -133,10 +155,14 @@ async def create_goods_receipt(
     total = Decimal("0")
     items_to_add: list[GoodsReceiptItem] = []
     for item in payload.items:
+        unit = await _get_product_unit_if_given(db, tenant_id, item.product_id, item.unit_id)
         line_total = (item.quantity * item.cost_price).quantize(Decimal("0.01"))
         items_to_add.append(
             GoodsReceiptItem(
                 product_id=item.product_id,
+                unit_id=unit.id if unit else None,
+                unit_name=unit.unit_name if unit else None,
+                conversion_rate=unit.conversion_rate if unit else None,
                 quantity=item.quantity,
                 cost_price=item.cost_price,
                 line_total=line_total,
@@ -217,10 +243,14 @@ async def update_goods_receipt(
 
         total = Decimal("0")
         for it in payload.items:
+            unit = await _get_product_unit_if_given(db, tenant_id, it.product_id, it.unit_id)
             line_total = (it.quantity * it.cost_price).quantize(Decimal("0.01"))
             receipt.items.append(
                 GoodsReceiptItem(
                     product_id=it.product_id,
+                    unit_id=unit.id if unit else None,
+                    unit_name=unit.unit_name if unit else None,
+                    conversion_rate=unit.conversion_rate if unit else None,
                     quantity=it.quantity,
                     cost_price=it.cost_price,
                     line_total=line_total,
@@ -269,41 +299,37 @@ async def complete_goods_receipt(
     products = await _validate_products(db, tenant_id, product_ids)
     inv_by_pid = await _lock_inventory_rows(db, tenant_id, product_ids)
 
-    # Cộng dồn quantity theo product_id (1 phiếu có thể có 2 dòng cùng SP)
-    qty_by_pid: dict[int, Decimal] = {}
-    cost_by_pid: dict[int, Decimal] = {}
-    for it in receipt.items:
-        qty_by_pid[it.product_id] = qty_by_pid.get(it.product_id, Decimal("0")) + it.quantity
-        # Lấy giá vốn của line gần nhất (xấp xỉ — tốt hơn nên tính weighted)
-        if it.product_id not in cost_by_pid:
-            cost_by_pid[it.product_id] = it.cost_price
-
     receipt.status = "COMPLETED"
     receipt.completed_at = datetime.now(tz=timezone.utc)
 
-    for pid in sorted(qty_by_pid.keys()):
+    for pid in sorted(set(it.product_id for it in receipt.items)):
         inv = inv_by_pid[pid]
         product = products[pid]
 
         old_stock = inv.quantity
         old_cost = product.cost_price
-        qty = qty_by_pid[pid]
-        # Weighted average cost: ưu tiên line đầu tiên, fallback an toàn
-        # Tính chính xác: tổng cost-value / tổng qty của các dòng
-        sum_value = Decimal("0")
-        sum_qty = Decimal("0")
+
+        # Aggregate base_qty and cost_value across all lines for this product
+        # Using conversion_rate snapshot from each item
+        sum_cost_value = Decimal("0")
+        sum_base_qty = Decimal("0")
         for it in receipt.items:
             if it.product_id == pid:
-                sum_value += it.cost_price * it.quantity
-                sum_qty += it.quantity
-        in_cost = sum_value / sum_qty if sum_qty > 0 else cost_by_pid[pid]
+                rate = Decimal(it.conversion_rate or 1)
+                base_qty_line = it.quantity * rate
+                cost_per_base = (it.cost_price / rate).quantize(Decimal("0.000001"))
+                sum_cost_value += cost_per_base * base_qty_line
+                sum_base_qty += base_qty_line
 
-        denom = old_stock + qty
-        if denom <= 0:
+        in_cost = (sum_cost_value / sum_base_qty).quantize(Decimal("0.01")) if sum_base_qty > 0 else old_cost
+
+        # BUG FIX: use old_stock <= 0, not denom <= 0
+        if old_stock <= 0:
             new_cost = in_cost
         else:
+            denom = old_stock + sum_base_qty
             new_cost = (
-                (old_stock * old_cost + qty * in_cost) / denom
+                (old_stock * old_cost + sum_base_qty * in_cost) / denom
             ).quantize(Decimal("0.01"))
 
         if new_cost != old_cost:
@@ -320,7 +346,7 @@ async def complete_goods_receipt(
             )
             product.cost_price = new_cost
 
-        new_balance = old_stock + qty
+        new_balance = old_stock + sum_base_qty
         inv.quantity = new_balance
         inv.updated_at = datetime.now(tz=timezone.utc)
 
@@ -328,7 +354,7 @@ async def complete_goods_receipt(
             StockMovement(
                 tenant_id=tenant_id,
                 product_id=pid,
-                quantity=qty,
+                quantity=sum_base_qty,
                 unit_cost=in_cost,
                 type="RECEIPT",
                 ref_type="GOODS_RECEIPT",
@@ -390,7 +416,9 @@ async def cancel_goods_receipt(
 
     qty_by_pid: dict[int, Decimal] = {}
     for it in receipt.items:
-        qty_by_pid[it.product_id] = qty_by_pid.get(it.product_id, Decimal("0")) + it.quantity
+        rate = Decimal(it.conversion_rate or 1)
+        base_qty = it.quantity * rate
+        qty_by_pid[it.product_id] = qty_by_pid.get(it.product_id, Decimal("0")) + base_qty
 
     for pid in sorted(qty_by_pid.keys()):
         inv = inv_by_pid[pid]
