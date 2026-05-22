@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database import get_db
-from backend.dependencies import get_current_user
+from backend.dependencies import get_current_user, require_role
 from backend.modules.auth.models import User
 from backend.modules.product import service as product_service
 from backend.shared.settings import can_see_cost
@@ -22,6 +22,9 @@ from backend.modules.product.schemas import (
     ProductResponse,
     ProductSearchResponse,
     ProductUpdateRequest,
+    ProductUnitCreateRequest,
+    ProductUnitResponse,
+    ProductUnitUpdateRequest,
 )
 
 
@@ -120,11 +123,12 @@ def _to_product_response(p, user: User) -> ProductResponse:
         "category_name": p.category.name if p.category else None,
         "created_at": p.created_at,
         "updated_at": p.updated_at,
+        "units": [ProductUnitResponse.model_validate(u) for u in (p.units or [])],
     }
     return ProductResponse(**data)
 
 
-def _to_brief_response(p, user: User) -> ProductBriefResponse:
+def _to_brief_response(p, user: User, matched_unit=None) -> ProductBriefResponse:
     show_cost = can_see_cost(getattr(user, "_tenant", None), user.role)
     return ProductBriefResponse(
         id=p.id,
@@ -137,6 +141,8 @@ def _to_brief_response(p, user: User) -> ProductBriefResponse:
         image_url=p.image_url,
         allow_negative=p.allow_negative,
         status=p.status,
+        units=[ProductUnitResponse.model_validate(u) for u in (p.units or [])],
+        matched_unit=ProductUnitResponse.model_validate(matched_unit) if matched_unit else None,
     )
 
 
@@ -186,10 +192,10 @@ async def get_by_barcode(
     user: Annotated[User, Depends(get_current_user)],
     code: str = Path(..., min_length=1, max_length=50),
 ):
-    product = await product_service.get_by_barcode(
+    product, matched_unit = await product_service.get_by_barcode(
         db, user.current_tenant_id, code
     )
-    return _to_brief_response(product, user)
+    return _to_brief_response(product, user, matched_unit=matched_unit)
 
 
 @product_router.get("/{product_id}", response_model=ProductResponse)
@@ -247,3 +253,67 @@ async def delete_product(
         db, user.current_tenant_id, user.id, product_id
     )
     return MessageResponse(message="Đã ngừng bán sản phẩm")
+
+
+# ====================================================================
+# PRODUCT UNITS
+# ====================================================================
+
+@product_router.get("/{product_id}/units", response_model=list[ProductUnitResponse])
+async def list_units(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+    product_id: int = Path(..., ge=1),
+):
+    return await product_service.list_product_units(db, user.current_tenant_id, product_id)
+
+
+@product_router.post(
+    "/{product_id}/units",
+    response_model=ProductUnitResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_role("OWNER"))],
+)
+async def create_unit(
+    payload: ProductUnitCreateRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+    product_id: int = Path(..., ge=1),
+):
+    return await product_service.create_product_unit(
+        db, user.current_tenant_id, user.id, product_id, payload
+    )
+
+
+@product_router.put(
+    "/{product_id}/units/{unit_id}",
+    response_model=ProductUnitResponse,
+    dependencies=[Depends(require_role("OWNER"))],
+)
+async def update_unit(
+    payload: ProductUnitUpdateRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+    product_id: int = Path(..., ge=1),
+    unit_id: int = Path(..., ge=1),
+):
+    return await product_service.update_product_unit(
+        db, user.current_tenant_id, user.id, product_id, unit_id, payload
+    )
+
+
+@product_router.delete(
+    "/{product_id}/units/{unit_id}",
+    response_model=MessageResponse,
+    dependencies=[Depends(require_role("OWNER"))],
+)
+async def delete_unit(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+    product_id: int = Path(..., ge=1),
+    unit_id: int = Path(..., ge=1),
+):
+    await product_service.delete_product_unit(
+        db, user.current_tenant_id, user.id, product_id, unit_id
+    )
+    return MessageResponse(message="Xóa đơn vị thành công")
