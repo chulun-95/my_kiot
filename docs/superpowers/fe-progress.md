@@ -3,7 +3,7 @@ build_id: fe-build-2026-05-22
 created_at: 2026-05-22T14:31:40+07:00
 cron_id: null  # CronCreate unreliable in this env; switching to ScheduleWakeup chain (1h between phases)
 total_phases: 7
-completed_phases: 1
+completed_phases: 2
 status: in_progress
 ---
 
@@ -44,15 +44,34 @@ status: in_progress
 - done: true
 
 ## Phase 1 — Auth & Staff
-- status: pending
-- started_at: null
-- finished_at: null
-- attempts: 0
-- spec_file: null
-- plan_file: null
-- output_files: []
-- notes: []
-- done: false
+- status: done
+- started_at: 2026-05-22T16:00:00+07:00
+- finished_at: 2026-05-22T16:15:00+07:00
+- attempts: 1
+- spec_file: docs/superpowers/specs/2026-05-22-fe-phase1-auth-design.md
+- plan_file: docs/superpowers/plans/fe-phase1-auth-plan.md
+- output_files:
+  - frontend/src/api/auth.ts
+  - frontend/src/api/staff.ts
+  - frontend/src/api/__tests__/auth.test.ts
+  - frontend/src/pages/auth/Login.tsx
+  - frontend/src/pages/auth/Register.tsx
+  - frontend/src/pages/auth/ChangePassword.tsx
+  - frontend/src/pages/auth/__tests__/Login.test.tsx
+  - frontend/src/pages/auth/__tests__/Register.test.tsx
+  - frontend/src/pages/staff/StaffList.tsx
+  - frontend/src/pages/staff/StaffForm.tsx
+  - frontend/src/pages/staff/__tests__/StaffList.test.tsx
+  - frontend/src/stores/authStore.ts
+  - frontend/src/stores/__tests__/authStore.test.ts
+  - frontend/src/App.tsx
+  - frontend/src/components/AppLayout.tsx
+  - frontend/src/__tests__/setup.ts
+  - frontend/src/__tests__/mocks/handlers.ts
+- notes:
+  - tsc --noEmit passed (exit 0)
+  - vitest --run passed 36/36 tests across 7 files
+- done: true
 
 ## Phase 2 — Master Data (Products + Categories + Customers + Suppliers)
 - status: pending
@@ -117,3 +136,4 @@ status: in_progress
 - 2026-05-22T15:34:00+07:00 | reschedule | cancelled a4edf560 (:13); created 7a8dd8be (:36) — first tick ~15:36, then hourly
 - 2026-05-22T15:39:00+07:00 | reschedule | 7a8dd8be (:36) didn't fire by 15:39; cancelled and created 24b44b52 (:43) — first tick ~15:43, then hourly
 - 2026-05-22T15:46:00+07:00 | fallback | 24b44b52 (:43) also didn't fire; CronCreate unreliable. Cancelled cron. Plan: dispatch Phase 1 immediately, then chain Phase 2-6 via ScheduleWakeup (3600s each) for hourly spacing.
+- 2026-05-22T16:15:00+07:00 | phase 1 | done (attempts=1) — 36/36 tests pass, tsc clean

@@ -1,7 +1,7 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 
-const navItems: Array<{ to: string; label: string }> = [
+const baseNav: Array<{ to: string; label: string }> = [
   { to: '/dashboard', label: 'Tổng quan' },
   { to: '/pos', label: 'Bán hàng (POS)' },
   { to: '/products', label: 'Sản phẩm' },
@@ -16,11 +16,16 @@ const navItems: Array<{ to: string; label: string }> = [
 export default function AppLayout() {
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
-  const logout = useAuthStore((s) => s.logout);
+  const doLogout = useAuthStore((s) => s.doLogout);
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
+  const navItems =
+    user?.role === 'OWNER'
+      ? [...baseNav, { to: '/staff', label: 'Nhân viên' }]
+      : baseNav;
+
+  const handleLogout = async () => {
+    await doLogout();
     navigate('/login', { replace: true });
   };
 
@@ -49,6 +54,9 @@ export default function AppLayout() {
           <div className="text-sm text-slate-600">{tenant?.name ?? 'Chưa chọn shop'}</div>
           <div className="flex items-center gap-3 text-sm">
             <span className="text-slate-700">{user?.full_name ?? 'Khách'}</span>
+            <Link to="/me/change-password" className="text-slate-700 underline">
+              Đổi mật khẩu
+            </Link>
             <button
               onClick={handleLogout}
               className="px-3 py-1 rounded bg-slate-100 hover:bg-slate-200 border border-slate-200"

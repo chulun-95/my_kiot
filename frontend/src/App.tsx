@@ -2,31 +2,14 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AppLayout from './components/AppLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
+import RoleGate from './components/RoleGate';
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import ChangePassword from './pages/auth/ChangePassword';
+import StaffList from './pages/staff/StaffList';
 
 function Placeholder({ title }: { title: string }) {
   return <h1 className="text-2xl font-semibold">{title}</h1>;
-}
-
-function LoginPage() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="w-full max-w-sm p-6 bg-white rounded shadow border border-slate-200">
-        <h1 className="text-xl font-semibold mb-2">Đăng nhập</h1>
-        <p className="text-sm text-slate-600">Form đăng nhập sẽ được triển khai ở Phase 1.</p>
-      </div>
-    </div>
-  );
-}
-
-function RegisterPage() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="w-full max-w-md p-6 bg-white rounded shadow border border-slate-200">
-        <h1 className="text-xl font-semibold mb-2">Đăng ký shop</h1>
-        <p className="text-sm text-slate-600">Form đăng ký sẽ được triển khai ở Phase 1.</p>
-      </div>
-    </div>
-  );
 }
 
 function NotFound() {
@@ -42,8 +25,8 @@ export default function App() {
     <ErrorBoundary>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route index element={<Navigate to="/dashboard" replace />} />
@@ -55,7 +38,24 @@ export default function App() {
               <Route path="/suppliers" element={<Placeholder title="Nhà cung cấp" />} />
               <Route path="/inventory" element={<Placeholder title="Tồn kho" />} />
               <Route path="/invoices" element={<Placeholder title="Hóa đơn" />} />
-              <Route path="/reports/revenue" element={<Placeholder title="Báo cáo doanh thu" />} />
+              <Route
+                path="/reports/revenue"
+                element={<Placeholder title="Báo cáo doanh thu" />}
+              />
+              <Route path="/me/change-password" element={<ChangePassword />} />
+              <Route
+                path="/staff"
+                element={
+                  <RoleGate
+                    allow={['OWNER']}
+                    fallback={
+                      <h1 className="text-2xl font-semibold">Không có quyền truy cập</h1>
+                    }
+                  >
+                    <StaffList />
+                  </RoleGate>
+                }
+              />
             </Route>
           </Route>
           <Route path="*" element={<NotFound />} />
