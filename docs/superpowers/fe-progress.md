@@ -3,7 +3,7 @@ build_id: fe-build-2026-05-22
 created_at: 2026-05-22T14:31:40+07:00
 cron_id: null  # CronCreate unreliable in this env; switching to ScheduleWakeup chain (1h between phases)
 total_phases: 7
-completed_phases: 6
+completed_phases: 7
 status: complete
 ---
 
