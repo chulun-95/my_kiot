@@ -8,6 +8,8 @@ import type {
 } from '../../api/invoice';
 import { formatVND, formatDate } from '../../utils/format';
 import { toFriendlyMessage } from '../../utils/errors';
+import EmptyState from '../../components/EmptyState';
+import { SkeletonRow } from '../../components/Skeleton';
 
 const STATUS_LABEL: Record<InvoiceStatus, string> = {
   DRAFT: 'Nháp',
@@ -90,14 +92,17 @@ export default function InvoiceList() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
-                  Đang tải...
+                <td colSpan={5} className="px-3 py-6">
+                  <SkeletonRow count={5} />
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
-                  Chưa có hóa đơn
+                <td colSpan={5} className="px-3 py-6">
+                  <EmptyState
+                    title="Chưa có hóa đơn"
+                    description="Mở POS để bắt đầu bán hàng."
+                  />
                 </td>
               </tr>
             ) : (

@@ -4,6 +4,8 @@ import * as customerApi from '../../api/customer';
 import type { Pagination, CustomerResponse } from '../../api/customer';
 import { formatVND, formatDate } from '../../utils/format';
 import { toFriendlyMessage } from '../../utils/errors';
+import EmptyState from '../../components/EmptyState';
+import { SkeletonRow } from '../../components/Skeleton';
 
 export default function CustomerList() {
   const [items, setItems] = useState<CustomerResponse[]>([]);
@@ -86,14 +88,17 @@ export default function CustomerList() {
           <tbody>
             {loading && items.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-slate-500">
-                  Đang tải...
+                <td colSpan={7} className="px-3 py-6">
+                  <SkeletonRow count={5} />
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-slate-500">
-                  Chưa có khách hàng
+                <td colSpan={7} className="px-3 py-6">
+                  <EmptyState
+                    title="Chưa có khách hàng"
+                    description="Bấm 'Thêm khách hàng' để tạo hồ sơ mới."
+                  />
                 </td>
               </tr>
             ) : (

@@ -3,8 +3,8 @@ build_id: fe-build-2026-05-22
 created_at: 2026-05-22T14:31:40+07:00
 cron_id: null  # CronCreate unreliable in this env; switching to ScheduleWakeup chain (1h between phases)
 total_phases: 7
-completed_phases: 5
-status: in_progress
+completed_phases: 6
+status: complete
 ---
 
 # FE Build Progress
@@ -218,16 +218,44 @@ status: in_progress
 - done: true
 
 ## Phase 6 — Polish
-- status: design_failed
-- started_at: 2026-05-23T13:00:00+07:00
-- finished_at: null
-- attempts: 1
+- status: done
+- started_at: 2026-05-23T14:00:00+07:00
+- finished_at: 2026-05-23T20:00:00+07:00
+- attempts: 2
 - spec_file: docs/superpowers/specs/2026-05-22-fe-phase6-polish-design.md
-- plan_file: null
-- output_files: []
+- plan_file: docs/superpowers/plans/fe-phase6-polish-plan.md
+- output_files:
+  - frontend/src/components/EmptyState.tsx
+  - frontend/src/components/Skeleton.tsx
+  - frontend/src/hooks/useKeyboardShortcuts.ts
+  - frontend/public/manifest.webmanifest
+  - frontend/public/icon.svg
+  - frontend/index.html
+  - frontend/src/components/__tests__/EmptyState.test.tsx
+  - frontend/src/components/__tests__/Skeleton.test.tsx
+  - frontend/src/hooks/__tests__/useKeyboardShortcuts.test.ts
+  - frontend/src/__tests__/pwa.test.ts
+  - frontend/src/pages/products/ProductList.tsx
+  - frontend/src/pages/customers/CustomerList.tsx
+  - frontend/src/pages/suppliers/SupplierList.tsx
+  - frontend/src/pages/goodsReceipts/GoodsReceiptList.tsx
+  - frontend/src/pages/inventory/InventoryList.tsx
+  - frontend/src/pages/inventory/LowStock.tsx
+  - frontend/src/pages/invoices/InvoiceList.tsx
+  - frontend/src/pages/dashboard/Dashboard.tsx
+  - frontend/src/pages/reports/RevenuePage.tsx
+  - frontend/src/pages/reports/TopProductsPage.tsx
+  - frontend/src/pages/reports/StockSummaryPage.tsx
+  - frontend/src/pages/pos/POSScreen.tsx
+  - frontend/src/pages/inventory/__tests__/LowStock.test.tsx
 - notes:
   - first attempt: socket dropped after design spec written; writing-plans + code + tests not done. Retrying.
-- done: false
+  - attempt 2: reusing existing spec; skipped brainstorming/design; produced plan + code + tests
+  - tsc --noEmit passed (exit 0)
+  - vitest --run passed 184/184 tests across 45 files (14 new tests in Phase 6)
+  - ErrorBoundary already wired in App.tsx around BrowserRouter; main.tsx untouched
+  - LowStock test updated to match new EmptyState copy ("Không có sản phẩm sắp hết")
+- done: true
 
 # Run Log
 - 2026-05-22T14:31:40+07:00 | bootstrap | progress file initialized; cron not yet scheduled
@@ -244,3 +272,5 @@ status: in_progress
 - 2026-05-23T07:40:00+07:00 | phase 4 | done (attempts=1) — 153/153 tests pass, tsc clean
 - 2026-05-23T12:21:00+07:00 | phase 5 | done (attempts=1) — 170/170 tests pass, tsc clean
 - 2026-05-23T13:23:00+07:00 | phase 6 attempt 1 | design_failed — subagent socket dropped after Step 1 (spec written, no plan/code/tests, no commit); reset and retry
+- 2026-05-23T20:00:00+07:00 | phase 6 attempt 2 | done — 184/184 tests pass, tsc clean; EmptyState/Skeleton/useKeyboardShortcuts/PWA shipped across 11 list pages + POS shortcuts wired
+- 2026-05-23T20:00:00+07:00 | termination | BUILD COMPLETE — all 7 phases done

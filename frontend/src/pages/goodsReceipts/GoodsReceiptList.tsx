@@ -6,6 +6,8 @@ import type { GoodsReceiptBrief, Pagination, ReceiptStatus } from '../../api/goo
 import type { SupplierResponse } from '../../api/supplier';
 import { formatVND, formatDate } from '../../utils/format';
 import { toFriendlyMessage } from '../../utils/errors';
+import EmptyState from '../../components/EmptyState';
+import { SkeletonRow } from '../../components/Skeleton';
 
 function StatusBadge({ status }: { status: ReceiptStatus }) {
   if (status === 'COMPLETED') {
@@ -144,14 +146,17 @@ export default function GoodsReceiptList() {
           <tbody>
             {loading && items.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-3 py-6 text-center text-slate-500">
-                  Đang tải...
+                <td colSpan={8} className="px-3 py-6">
+                  <SkeletonRow count={5} />
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-3 py-6 text-center text-slate-500">
-                  Chưa có phiếu nhập
+                <td colSpan={8} className="px-3 py-6">
+                  <EmptyState
+                    title="Chưa có phiếu nhập"
+                    description="Bấm 'Nhập hàng mới' để tạo phiếu."
+                  />
                 </td>
               </tr>
             ) : (

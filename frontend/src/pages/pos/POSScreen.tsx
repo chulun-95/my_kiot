@@ -11,6 +11,7 @@ import PaymentDialog from './PaymentDialog';
 import DraftHoldList from './DraftHoldList';
 import ReceiptPrint from './ReceiptPrint';
 import useBarcodeListener from '../../hooks/useBarcodeListener';
+import useKeyboardShortcuts from '../../hooks/useKeyboardShortcuts';
 import { formatVND } from '../../utils/format';
 import { toFriendlyMessage } from '../../utils/errors';
 import type { PaymentInput } from '../../api/invoice';
@@ -71,6 +72,31 @@ export default function POSScreen() {
   const onCancelCart = () => {
     usePosStore.getState().reset();
   };
+
+  const anyModalOpen = paymentOpen || draftPanelOpen || receiptOpen;
+  useKeyboardShortcuts(
+    {
+      F2: () => {
+        const el = document.querySelector<HTMLInputElement>(
+          'input[type="search"], input[placeholder*="sản phẩm"]',
+        );
+        el?.focus();
+        if (el && typeof el.select === 'function') el.select();
+      },
+      F4: () => {
+        if (!anyModalOpen) void onHold();
+      },
+      F9: () => {
+        if (!anyModalOpen && items.length > 0) setPaymentOpen(true);
+      },
+      Escape: () => {
+        if (receiptOpen) setReceiptOpen(false);
+        else if (paymentOpen) setPaymentOpen(false);
+        else if (draftPanelOpen) setDraftPanelOpen(false);
+      },
+    },
+    { enabled: true },
+  );
 
   const onComplete = async (payments: PaymentInput[], allowDebt: boolean) => {
     try {

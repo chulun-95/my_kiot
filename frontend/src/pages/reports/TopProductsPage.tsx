@@ -15,6 +15,8 @@ import * as reportApi from '../../api/report';
 import type { TopProductsResponse } from '../../api/report';
 import { formatVND, formatQty } from '../../utils/format';
 import { toFriendlyMessage } from '../../utils/errors';
+import EmptyState from '../../components/EmptyState';
+import { SkeletonCard } from '../../components/Skeleton';
 
 const LIMIT_OPTIONS = [5, 10, 20, 50];
 
@@ -100,9 +102,9 @@ export default function TopProductsPage() {
         className="rounded border border-slate-200 bg-white p-4 overflow-x-auto"
       >
         {loading ? (
-          <div className="text-slate-500">Đang tải...</div>
+          <SkeletonCard />
         ) : chartData.length === 0 ? (
-          <div className="text-slate-500">Không có dữ liệu</div>
+          <EmptyState title="Chưa có dữ liệu" />
         ) : (
           <BarChart width={700} height={300} data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -128,8 +130,8 @@ export default function TopProductsPage() {
           <tbody>
             {(data?.items ?? []).length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
-                  Chưa có dữ liệu
+                <td colSpan={5} className="px-3 py-6">
+                  <EmptyState title="Chưa có dữ liệu" />
                 </td>
               </tr>
             ) : (

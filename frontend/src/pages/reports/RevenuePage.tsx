@@ -15,6 +15,8 @@ import * as reportApi from '../../api/report';
 import type { RevenueResponse, RevenueGroupBy } from '../../api/report';
 import { formatVND } from '../../utils/format';
 import { toFriendlyMessage } from '../../utils/errors';
+import EmptyState from '../../components/EmptyState';
+import { SkeletonCard } from '../../components/Skeleton';
 
 export default function RevenuePage() {
   const [range, setRange] = useState<DateRange>(() => defaultRangeLast30());
@@ -120,11 +122,12 @@ export default function RevenuePage() {
         className="rounded border border-slate-200 bg-white p-4 overflow-x-auto"
       >
         {loading ? (
-          <div className="text-slate-500">Đang tải...</div>
+          <SkeletonCard />
         ) : chartData.length === 0 ? (
-          <div className="text-slate-500">
-            Không có dữ liệu trong khoảng thời gian này
-          </div>
+          <EmptyState
+            title="Không có dữ liệu"
+            description="Không có dữ liệu trong khoảng thời gian này"
+          />
         ) : (
           <LineChart width={700} height={300} data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />

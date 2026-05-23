@@ -4,6 +4,8 @@ import * as supplierApi from '../../api/supplier';
 import type { Pagination, SupplierResponse } from '../../api/supplier';
 import { formatVND } from '../../utils/format';
 import { toFriendlyMessage } from '../../utils/errors';
+import EmptyState from '../../components/EmptyState';
+import { SkeletonRow } from '../../components/Skeleton';
 
 export default function SupplierList() {
   const [items, setItems] = useState<SupplierResponse[]>([]);
@@ -95,14 +97,17 @@ export default function SupplierList() {
           <tbody>
             {loading && items.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
-                  Đang tải...
+                <td colSpan={6} className="px-3 py-6">
+                  <SkeletonRow count={5} />
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
-                  Chưa có nhà cung cấp
+                <td colSpan={6} className="px-3 py-6">
+                  <EmptyState
+                    title="Chưa có nhà cung cấp"
+                    description="Bấm 'Thêm nhà cung cấp' để bắt đầu."
+                  />
                 </td>
               </tr>
             ) : (

@@ -4,6 +4,8 @@ import * as reportApi from '../../api/report';
 import type { StockSummaryResponse } from '../../api/report';
 import { formatVND, formatDate } from '../../utils/format';
 import { toFriendlyMessage } from '../../utils/errors';
+import EmptyState from '../../components/EmptyState';
+import { SkeletonCard } from '../../components/Skeleton';
 
 interface TileProps {
   label: string;
@@ -56,7 +58,16 @@ export default function StockSummaryPage() {
   }, []);
 
   if (loading) {
-    return <div className="text-slate-500">Đang tải...</div>;
+    return (
+      <div className="space-y-4">
+        <h1 className="text-2xl font-semibold">Tổng quan tồn kho</h1>
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      </div>
+    );
   }
   if (error) {
     return (
@@ -66,7 +77,7 @@ export default function StockSummaryPage() {
     );
   }
   if (!data) {
-    return <div className="text-slate-500">Chưa có dữ liệu</div>;
+    return <EmptyState title="Chưa có dữ liệu" />;
   }
 
   return (

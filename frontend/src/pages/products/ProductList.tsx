@@ -10,6 +10,8 @@ import type {
 import type { CategoryNode } from '../../api/category';
 import { formatVND } from '../../utils/format';
 import { toFriendlyMessage } from '../../utils/errors';
+import EmptyState from '../../components/EmptyState';
+import { SkeletonRow } from '../../components/Skeleton';
 
 function flattenCategories(nodes: CategoryNode[], depth = 0): Array<{ id: number; label: string }> {
   const out: Array<{ id: number; label: string }> = [];
@@ -148,14 +150,17 @@ export default function ProductList() {
           <tbody>
             {loading && items.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-3 py-6 text-center text-slate-500">
-                  Đang tải...
+                <td colSpan={8} className="px-3 py-6">
+                  <SkeletonRow count={5} />
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-3 py-6 text-center text-slate-500">
-                  Chưa có sản phẩm
+                <td colSpan={8} className="px-3 py-6">
+                  <EmptyState
+                    title="Chưa có sản phẩm"
+                    description="Bấm 'Thêm sản phẩm' để bắt đầu nhập danh mục."
+                  />
                 </td>
               </tr>
             ) : (

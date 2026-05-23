@@ -4,6 +4,8 @@ import * as inventoryApi from '../../api/inventory';
 import type { InventoryItem, Pagination } from '../../api/inventory';
 import { formatVND, formatQty } from '../../utils/format';
 import { toFriendlyMessage } from '../../utils/errors';
+import EmptyState from '../../components/EmptyState';
+import { SkeletonRow } from '../../components/Skeleton';
 
 function isLowStock(item: InventoryItem): boolean {
   if (item.min_stock <= 0) return false;
@@ -108,14 +110,17 @@ export default function InventoryList() {
           <tbody>
             {loading && items.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-3 py-6 text-center text-slate-500">
-                  Đang tải...
+                <td colSpan={8} className="px-3 py-6">
+                  <SkeletonRow count={5} />
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-3 py-6 text-center text-slate-500">
-                  Chưa có dữ liệu tồn kho
+                <td colSpan={8} className="px-3 py-6">
+                  <EmptyState
+                    title="Chưa có dữ liệu tồn kho"
+                    description="Tồn kho sẽ xuất hiện sau khi nhập hàng hoặc bán hàng."
+                  />
                 </td>
               </tr>
             ) : (

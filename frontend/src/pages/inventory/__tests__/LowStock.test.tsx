@@ -27,7 +27,7 @@ describe('LowStock page', () => {
       </MemoryRouter>,
     );
     expect(
-      await screen.findByText(/Không có sản phẩm nào sắp hết/),
+      await screen.findByText(/Không có sản phẩm sắp hết/),
     ).toBeInTheDocument();
   });
 });

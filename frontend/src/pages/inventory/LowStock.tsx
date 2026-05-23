@@ -4,6 +4,8 @@ import * as inventoryApi from '../../api/inventory';
 import type { LowStockItem } from '../../api/inventory';
 import { formatQty } from '../../utils/format';
 import { toFriendlyMessage } from '../../utils/errors';
+import EmptyState from '../../components/EmptyState';
+import { SkeletonRow } from '../../components/Skeleton';
 
 export default function LowStock() {
   const [items, setItems] = useState<LowStockItem[]>([]);
@@ -55,14 +57,17 @@ export default function LowStock() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
-                  Đang tải...
+                <td colSpan={6} className="px-3 py-6">
+                  <SkeletonRow count={5} />
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
-                  Không có sản phẩm nào sắp hết hàng.
+                <td colSpan={6} className="px-3 py-6">
+                  <EmptyState
+                    title="Không có sản phẩm sắp hết"
+                    description="Tất cả SP đều trên ngưỡng tồn tối thiểu."
+                  />
                 </td>
               </tr>
             ) : (
