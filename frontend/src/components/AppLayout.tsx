@@ -8,6 +8,7 @@ const baseNav: Array<{ to: string; label: string }> = [
   { to: '/categories', label: 'Nhóm hàng' },
   { to: '/customers', label: 'Khách hàng' },
   { to: '/suppliers', label: 'Nhà cung cấp' },
+  { to: '/goods-receipts', label: 'Nhập kho' },
   { to: '/inventory', label: 'Tồn kho' },
   { to: '/invoices', label: 'Hóa đơn' },
   { to: '/reports/revenue', label: 'Báo cáo' },
@@ -21,7 +22,11 @@ export default function AppLayout() {
 
   const navItems =
     user?.role === 'OWNER'
-      ? [...baseNav, { to: '/staff', label: 'Nhân viên' }]
+      ? [
+          ...baseNav,
+          { to: '/inventory/adjustments', label: 'Điều chỉnh kho' },
+          { to: '/staff', label: 'Nhân viên' },
+        ]
       : baseNav;
 
   const handleLogout = async () => {

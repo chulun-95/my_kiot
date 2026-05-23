@@ -547,4 +547,292 @@ export const handlers = [
   http.delete('*/suppliers/:id', () =>
     HttpResponse.json({ message: 'Đã xóa nhà cung cấp' }),
   ),
+
+  // ---------- GOODS RECEIPTS ----------
+  http.get('*/goods-receipts', ({ request }) => {
+    const url = new URL(request.url);
+    const status = url.searchParams.get('status');
+    const items =
+      status === 'EMPTY'
+        ? []
+        : [
+            {
+              id: 1,
+              code: 'NK20260520-001',
+              supplier_id: 1,
+              supplier_name: 'NCC Acecook',
+              total: 350000,
+              paid_amount: 350000,
+              status: 'COMPLETED',
+              completed_at: '2026-05-20T10:00:00Z',
+              created_at: '2026-05-20T09:00:00Z',
+            },
+            {
+              id: 2,
+              code: 'NK20260521-001',
+              supplier_id: null,
+              supplier_name: null,
+              total: 0,
+              paid_amount: 0,
+              status: 'DRAFT',
+              completed_at: null,
+              created_at: '2026-05-21T08:30:00Z',
+            },
+          ];
+    return HttpResponse.json({
+      items,
+      pagination: {
+        page: 1,
+        limit: 20,
+        total: items.length,
+        total_pages: items.length ? 1 : 0,
+      },
+    });
+  }),
+  http.get('*/goods-receipts/:id', ({ params }) => {
+    const id = Number(params.id);
+    const isDraft = id === 2;
+    return HttpResponse.json({
+      id,
+      code: isDraft ? 'NK20260521-001' : 'NK20260520-001',
+      supplier_id: isDraft ? null : 1,
+      supplier_name: isDraft ? null : 'NCC Acecook',
+      total: isDraft ? 0 : 350000,
+      paid_amount: isDraft ? 0 : 350000,
+      status: isDraft ? 'DRAFT' : 'COMPLETED',
+      note: null,
+      completed_at: isDraft ? null : '2026-05-20T10:00:00Z',
+      created_at: isDraft ? '2026-05-21T08:30:00Z' : '2026-05-20T09:00:00Z',
+      items: isDraft
+        ? []
+        : [
+            {
+              id: 10,
+              product_id: 1,
+              product_name: 'Mì tôm Hảo Hảo',
+              product_sku: 'SP000001',
+              quantity: 100,
+              cost_price: 3500,
+              line_total: 350000,
+            },
+          ],
+    });
+  }),
+  http.post('*/goods-receipts', async ({ request }) => {
+    const body = (await request.json()) as {
+      supplier_id?: number | null;
+      items: Array<{ product_id: number; quantity: number; cost_price: number }>;
+      paid_amount?: number;
+      note?: string;
+    };
+    const total = body.items.reduce(
+      (s, it) => s + it.quantity * it.cost_price,
+      0,
+    );
+    return HttpResponse.json(
+      {
+        id: 99,
+        code: 'NK20260523-001',
+        supplier_id: body.supplier_id ?? null,
+        supplier_name: body.supplier_id ? 'NCC' : null,
+        total,
+        paid_amount: body.paid_amount ?? 0,
+        status: 'DRAFT',
+        note: body.note ?? null,
+        completed_at: null,
+        created_at: '2026-05-23T08:00:00Z',
+        items: body.items.map((it, idx) => ({
+          id: idx + 1,
+          product_id: it.product_id,
+          product_name: `SP ${it.product_id}`,
+          product_sku: `SP${String(it.product_id).padStart(6, '0')}`,
+          quantity: it.quantity,
+          cost_price: it.cost_price,
+          line_total: it.quantity * it.cost_price,
+        })),
+      },
+      { status: 201 },
+    );
+  }),
+  http.put('*/goods-receipts/:id', async ({ request, params }) => {
+    const body = (await request.json()) as {
+      items?: Array<{ product_id: number; quantity: number; cost_price: number }>;
+      paid_amount?: number;
+      note?: string;
+    };
+    const items = body.items ?? [];
+    const total = items.reduce((s, it) => s + it.quantity * it.cost_price, 0);
+    return HttpResponse.json({
+      id: Number(params.id),
+      code: 'NK20260521-001',
+      supplier_id: null,
+      supplier_name: null,
+      total,
+      paid_amount: body.paid_amount ?? 0,
+      status: 'DRAFT',
+      note: body.note ?? null,
+      completed_at: null,
+      created_at: '2026-05-21T08:30:00Z',
+      items: items.map((it, idx) => ({
+        id: idx + 1,
+        product_id: it.product_id,
+        product_name: `SP ${it.product_id}`,
+        product_sku: `SP${String(it.product_id).padStart(6, '0')}`,
+        quantity: it.quantity,
+        cost_price: it.cost_price,
+        line_total: it.quantity * it.cost_price,
+      })),
+    });
+  }),
+  http.post('*/goods-receipts/:id/complete', ({ params }) =>
+    HttpResponse.json({
+      id: Number(params.id),
+      code: 'NK20260521-001',
+      supplier_id: null,
+      supplier_name: null,
+      total: 0,
+      paid_amount: 0,
+      status: 'COMPLETED',
+      note: null,
+      completed_at: '2026-05-23T08:30:00Z',
+      created_at: '2026-05-21T08:30:00Z',
+      items: [],
+    }),
+  ),
+  http.post('*/goods-receipts/:id/cancel', ({ params }) =>
+    HttpResponse.json({
+      id: Number(params.id),
+      code: 'NK20260521-001',
+      supplier_id: null,
+      supplier_name: null,
+      total: 0,
+      paid_amount: 0,
+      status: 'CANCELLED',
+      note: null,
+      completed_at: null,
+      created_at: '2026-05-21T08:30:00Z',
+      items: [],
+    }),
+  ),
+
+  // ---------- INVENTORY ----------
+  http.get('*/inventory/low-stock', () =>
+    HttpResponse.json({
+      items: [
+        {
+          product_id: 1,
+          product_sku: 'SP000001',
+          product_name: 'Mì tôm Hảo Hảo',
+          unit: 'gói',
+          quantity: 3,
+          min_stock: 10,
+        },
+      ],
+    }),
+  ),
+  http.get('*/inventory/adjustments', () =>
+    HttpResponse.json({
+      items: [
+        {
+          id: 5,
+          product_id: 1,
+          product_name: 'Mì tôm Hảo Hảo',
+          product_sku: 'SP000001',
+          quantity: -2,
+          balance_after: 8,
+          note: 'Kiểm kê tháng',
+          created_at: '2026-05-22T10:00:00Z',
+          created_by: 1,
+        },
+      ],
+      pagination: { page: 1, limit: 50, total: 1, total_pages: 1 },
+    }),
+  ),
+  http.post('*/inventory/adjustments', async ({ request }) => {
+    const body = (await request.json()) as {
+      items: Array<{ product_id: number; new_quantity: number; reason?: string }>;
+    };
+    return HttpResponse.json(
+      {
+        items: body.items.map((it, idx) => ({
+          product_id: it.product_id,
+          product_name: `SP ${it.product_id}`,
+          product_sku: `SP${String(it.product_id).padStart(6, '0')}`,
+          old_quantity: 10,
+          new_quantity: it.new_quantity,
+          delta: it.new_quantity - 10,
+          movement_id: 100 + idx,
+        })),
+      },
+      { status: 201 },
+    );
+  }),
+  http.get('*/inventory/:productId/movements', ({ params }) =>
+    HttpResponse.json({
+      items: [
+        {
+          id: 1,
+          quantity: 100,
+          unit_cost: 3500,
+          type: 'RECEIPT',
+          ref_type: 'GOODS_RECEIPT',
+          ref_id: 1,
+          balance_after: 100,
+          note: null,
+          created_at: '2026-05-20T10:00:00Z',
+        },
+        {
+          id: 2,
+          quantity: -2,
+          unit_cost: 3500,
+          type: 'SALE',
+          ref_type: 'INVOICE',
+          ref_id: 5,
+          balance_after: 98,
+          note: null,
+          created_at: '2026-05-21T11:00:00Z',
+        },
+      ],
+      pagination: { page: 1, limit: 50, total: 2, total_pages: 1 },
+      product_id: Number(params.productId),
+    }),
+  ),
+  http.get('*/inventory', ({ request }) => {
+    const url = new URL(request.url);
+    const search = url.searchParams.get('search');
+    const items =
+      search === 'EMPTY'
+        ? []
+        : [
+            {
+              product_id: 1,
+              product_sku: 'SP000001',
+              product_name: 'Mì tôm Hảo Hảo',
+              unit: 'gói',
+              quantity: 3,
+              min_stock: 10,
+              cost_price: 3500,
+              sale_price: 4500,
+            },
+            {
+              product_id: 2,
+              product_sku: 'SP000002',
+              product_name: 'Coca 330ml',
+              unit: 'lon',
+              quantity: 50,
+              min_stock: 12,
+              cost_price: 6000,
+              sale_price: 8000,
+            },
+          ];
+    return HttpResponse.json({
+      items,
+      pagination: {
+        page: 1,
+        limit: 20,
+        total: items.length,
+        total_pages: items.length ? 1 : 0,
+      },
+    });
+  }),
 ];

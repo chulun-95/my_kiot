@@ -3,7 +3,7 @@ build_id: fe-build-2026-05-22
 created_at: 2026-05-22T14:31:40+07:00
 cron_id: null  # CronCreate unreliable in this env; switching to ScheduleWakeup chain (1h between phases)
 total_phases: 7
-completed_phases: 3
+completed_phases: 4
 status: in_progress
 ---
 
@@ -115,15 +115,39 @@ status: in_progress
 - done: true
 
 ## Phase 3 — Inventory & Goods Receipts
-- status: pending
-- started_at: null
-- finished_at: null
-- attempts: 0
-- spec_file: null
-- plan_file: null
-- output_files: []
-- notes: []
-- done: false
+- status: done
+- started_at: 2026-05-23T08:00:00+07:00
+- finished_at: 2026-05-23T07:24:00+07:00
+- attempts: 1
+- spec_file: docs/superpowers/specs/2026-05-22-fe-phase3-inventory-design.md
+- plan_file: docs/superpowers/plans/fe-phase3-inventory-plan.md
+- output_files:
+  - frontend/src/api/goodsReceipt.ts
+  - frontend/src/api/inventory.ts
+  - frontend/src/api/__tests__/goodsReceipt.test.ts
+  - frontend/src/api/__tests__/inventory.test.ts
+  - frontend/src/pages/goodsReceipts/GoodsReceiptList.tsx
+  - frontend/src/pages/goodsReceipts/GoodsReceiptForm.tsx
+  - frontend/src/pages/goodsReceipts/GoodsReceiptDetail.tsx
+  - frontend/src/pages/goodsReceipts/__tests__/GoodsReceiptList.test.tsx
+  - frontend/src/pages/goodsReceipts/__tests__/GoodsReceiptForm.test.tsx
+  - frontend/src/pages/inventory/InventoryList.tsx
+  - frontend/src/pages/inventory/LowStock.tsx
+  - frontend/src/pages/inventory/Kardex.tsx
+  - frontend/src/pages/inventory/AdjustmentList.tsx
+  - frontend/src/pages/inventory/AdjustmentForm.tsx
+  - frontend/src/pages/inventory/__tests__/InventoryList.test.tsx
+  - frontend/src/pages/inventory/__tests__/LowStock.test.tsx
+  - frontend/src/pages/inventory/__tests__/Kardex.test.tsx
+  - frontend/src/pages/inventory/__tests__/AdjustmentForm.test.tsx
+  - frontend/src/App.tsx
+  - frontend/src/components/AppLayout.tsx
+  - frontend/src/__tests__/mocks/handlers.ts
+- notes:
+  - tsc --noEmit passed (exit 0)
+  - vitest --run passed 114/114 tests across 26 files
+  - GoodsReceiptForm is create-only for MVP; edit-draft via PUT defers to Phase 4 polish if needed
+- done: true
 
 ## Phase 4 — POS Sales
 - status: pending
@@ -169,3 +193,4 @@ status: in_progress
 - 2026-05-22T16:15:00+07:00 | phase 1 | done (attempts=1) — 36/36 tests pass, tsc clean
 - 2026-05-22T23:30:00+07:00 | schedule | ScheduleWakeup(3600s) accepted — Phase 2 dispatch wake in ~1h (mechanism untested; first real validation pending)
 - 2026-05-23T07:10:00+07:00 | phase 2 | done (attempts=1) — 85/85 tests pass, tsc clean
+- 2026-05-23T07:24:00+07:00 | phase 3 | done (attempts=1) — 114/114 tests pass, tsc clean

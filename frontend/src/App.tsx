@@ -16,6 +16,14 @@ import CustomerForm from './pages/customers/CustomerForm';
 import CustomerDetail from './pages/customers/CustomerDetail';
 import SupplierList from './pages/suppliers/SupplierList';
 import SupplierForm from './pages/suppliers/SupplierForm';
+import GoodsReceiptList from './pages/goodsReceipts/GoodsReceiptList';
+import GoodsReceiptForm from './pages/goodsReceipts/GoodsReceiptForm';
+import GoodsReceiptDetail from './pages/goodsReceipts/GoodsReceiptDetail';
+import InventoryList from './pages/inventory/InventoryList';
+import LowStock from './pages/inventory/LowStock';
+import Kardex from './pages/inventory/Kardex';
+import AdjustmentList from './pages/inventory/AdjustmentList';
+import AdjustmentForm from './pages/inventory/AdjustmentForm';
 
 function Placeholder({ title }: { title: string }) {
   return <h1 className="text-2xl font-semibold">{title}</h1>;
@@ -26,6 +34,17 @@ function NotFound() {
     <div className="p-6">
       <h1 className="text-2xl font-semibold">404 — Không tìm thấy trang</h1>
     </div>
+  );
+}
+
+function OwnerOnly({ children }: { children: React.ReactNode }) {
+  return (
+    <RoleGate
+      allow={['OWNER']}
+      fallback={<h1 className="text-2xl font-semibold">Không có quyền truy cập</h1>}
+    >
+      {children}
+    </RoleGate>
   );
 }
 
@@ -57,7 +76,33 @@ export default function App() {
               <Route path="/suppliers/new" element={<SupplierForm />} />
               <Route path="/suppliers/:id/edit" element={<SupplierForm />} />
 
-              <Route path="/inventory" element={<Placeholder title="Tồn kho" />} />
+              <Route path="/goods-receipts" element={<GoodsReceiptList />} />
+              <Route path="/goods-receipts/new" element={<GoodsReceiptForm />} />
+              <Route path="/goods-receipts/:id" element={<GoodsReceiptDetail />} />
+
+              <Route path="/inventory" element={<InventoryList />} />
+              <Route path="/inventory/low-stock" element={<LowStock />} />
+              <Route
+                path="/inventory/:productId/movements"
+                element={<Kardex />}
+              />
+              <Route
+                path="/inventory/adjustments"
+                element={
+                  <OwnerOnly>
+                    <AdjustmentList />
+                  </OwnerOnly>
+                }
+              />
+              <Route
+                path="/inventory/adjustments/new"
+                element={
+                  <OwnerOnly>
+                    <AdjustmentForm />
+                  </OwnerOnly>
+                }
+              />
+
               <Route path="/invoices" element={<Placeholder title="Hóa đơn" />} />
               <Route
                 path="/reports/revenue"
@@ -67,14 +112,9 @@ export default function App() {
               <Route
                 path="/staff"
                 element={
-                  <RoleGate
-                    allow={['OWNER']}
-                    fallback={
-                      <h1 className="text-2xl font-semibold">Không có quyền truy cập</h1>
-                    }
-                  >
+                  <OwnerOnly>
                     <StaffList />
-                  </RoleGate>
+                  </OwnerOnly>
                 }
               />
             </Route>
