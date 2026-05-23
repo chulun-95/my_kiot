@@ -3,7 +3,7 @@ build_id: fe-build-2026-05-22
 created_at: 2026-05-22T14:31:40+07:00
 cron_id: null  # CronCreate unreliable in this env; switching to ScheduleWakeup chain (1h between phases)
 total_phases: 7
-completed_phases: 6
+completed_phases: 5
 status: in_progress
 ---
 
@@ -218,14 +218,15 @@ status: in_progress
 - done: true
 
 ## Phase 6 — Polish
-- status: pending
-- started_at: null
+- status: design_failed
+- started_at: 2026-05-23T13:00:00+07:00
 - finished_at: null
-- attempts: 0
-- spec_file: null
+- attempts: 1
+- spec_file: docs/superpowers/specs/2026-05-22-fe-phase6-polish-design.md
 - plan_file: null
 - output_files: []
-- notes: []
+- notes:
+  - first attempt: socket dropped after design spec written; writing-plans + code + tests not done. Retrying.
 - done: false
 
 # Run Log
@@ -242,3 +243,4 @@ status: in_progress
 - 2026-05-23T07:24:00+07:00 | phase 3 | done (attempts=1) — 114/114 tests pass, tsc clean
 - 2026-05-23T07:40:00+07:00 | phase 4 | done (attempts=1) — 153/153 tests pass, tsc clean
 - 2026-05-23T12:21:00+07:00 | phase 5 | done (attempts=1) — 170/170 tests pass, tsc clean
+- 2026-05-23T13:23:00+07:00 | phase 6 attempt 1 | design_failed — subagent socket dropped after Step 1 (spec written, no plan/code/tests, no commit); reset and retry
