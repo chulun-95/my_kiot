@@ -3,7 +3,7 @@ build_id: fe-build-2026-05-22
 created_at: 2026-05-22T14:31:40+07:00
 cron_id: null  # CronCreate unreliable in this env; switching to ScheduleWakeup chain (1h between phases)
 total_phases: 7
-completed_phases: 4
+completed_phases: 5
 status: in_progress
 ---
 
@@ -150,15 +150,40 @@ status: in_progress
 - done: true
 
 ## Phase 4 — POS Sales
-- status: pending
-- started_at: null
-- finished_at: null
-- attempts: 0
-- spec_file: null
-- plan_file: null
-- output_files: []
-- notes: []
-- done: false
+- status: done
+- started_at: 2026-05-23T08:00:00+07:00
+- finished_at: 2026-05-23T07:40:00+07:00
+- attempts: 1
+- spec_file: docs/superpowers/specs/2026-05-22-fe-phase4-pos-sales-design.md
+- plan_file: docs/superpowers/plans/fe-phase4-pos-sales-plan.md
+- output_files:
+  - frontend/src/api/invoice.ts
+  - frontend/src/api/__tests__/invoice.test.ts
+  - frontend/src/stores/posStore.ts
+  - frontend/src/stores/__tests__/posStore.test.ts
+  - frontend/src/hooks/useBarcodeListener.ts
+  - frontend/src/hooks/__tests__/useBarcodeListener.test.ts
+  - frontend/src/pages/pos/POSScreen.tsx
+  - frontend/src/pages/pos/CartLine.tsx
+  - frontend/src/pages/pos/PaymentDialog.tsx
+  - frontend/src/pages/pos/DraftHoldList.tsx
+  - frontend/src/pages/pos/CustomerSelectBox.tsx
+  - frontend/src/pages/pos/ReceiptPrint.tsx
+  - frontend/src/pages/pos/__tests__/POSScreen.test.tsx
+  - frontend/src/pages/pos/__tests__/PaymentDialog.test.tsx
+  - frontend/src/pages/pos/__tests__/DraftHoldList.test.tsx
+  - frontend/src/pages/invoices/InvoiceList.tsx
+  - frontend/src/pages/invoices/InvoiceDetail.tsx
+  - frontend/src/pages/invoices/__tests__/InvoiceList.test.tsx
+  - frontend/src/pages/invoices/__tests__/InvoiceDetail.test.tsx
+  - frontend/src/App.tsx
+  - frontend/src/__tests__/mocks/handlers.ts
+- notes:
+  - tsc --noEmit passed (exit 0)
+  - vitest --run passed 153/153 tests across 34 files (39 new tests in Phase 4)
+  - /pos route mounted OUTSIDE AppLayout (full-screen), /invoices and /invoices/:id INSIDE AppLayout
+  - Reused ProductPicker + CustomerQuickSearch from Phase 2
+- done: true
 
 ## Phase 5 — Reports
 - status: pending
@@ -194,3 +219,4 @@ status: in_progress
 - 2026-05-22T23:30:00+07:00 | schedule | ScheduleWakeup(3600s) accepted — Phase 2 dispatch wake in ~1h (mechanism untested; first real validation pending)
 - 2026-05-23T07:10:00+07:00 | phase 2 | done (attempts=1) — 85/85 tests pass, tsc clean
 - 2026-05-23T07:24:00+07:00 | phase 3 | done (attempts=1) — 114/114 tests pass, tsc clean
+- 2026-05-23T07:40:00+07:00 | phase 4 | done (attempts=1) — 153/153 tests pass, tsc clean

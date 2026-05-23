@@ -797,6 +797,321 @@ export const handlers = [
       product_id: Number(params.productId),
     }),
   ),
+  // ---------- INVOICES ----------
+  http.get('*/invoices/drafts', () =>
+    HttpResponse.json({
+      items: [
+        {
+          id: 70,
+          code: 'HD20260523-001',
+          customer_id: null,
+          customer_name: null,
+          cashier_id: 1,
+          total: 50000,
+          paid_amount: 0,
+          status: 'DRAFT',
+          completed_at: null,
+          created_at: '2026-05-23T08:00:00Z',
+        },
+      ],
+    }),
+  ),
+  http.get('*/invoices/:id', ({ params }) => {
+    const id = Number(params.id);
+    if (id === 0) {
+      return HttpResponse.json(
+        { error: { code: 'NOT_FOUND', message: 'Không tìm thấy' } },
+        { status: 404 },
+      );
+    }
+    return HttpResponse.json({
+      id,
+      code: 'HD20260523-001',
+      customer_id: 1,
+      customer_name: 'Nguyễn Văn A',
+      cashier_id: 1,
+      cashier_name: 'Chủ shop',
+      subtotal: 100000,
+      discount_amount: 0,
+      total: 100000,
+      cost_total: 70000,
+      paid_amount: 100000,
+      change_amount: 0,
+      status: 'COMPLETED',
+      note: null,
+      completed_at: '2026-05-23T09:00:00Z',
+      cancelled_at: null,
+      cancel_reason: null,
+      created_at: '2026-05-23T08:55:00Z',
+      items: [
+        {
+          id: 1,
+          product_id: 1,
+          product_name: 'Mì tôm Hảo Hảo',
+          product_sku: 'SP000001',
+          unit: 'gói',
+          quantity: 10,
+          unit_price: 10000,
+          cost_price: 7000,
+          discount_amount: 0,
+          line_total: 100000,
+        },
+      ],
+      payments: [
+        {
+          id: 1,
+          method: 'CASH',
+          amount: 100000,
+          note: null,
+          created_at: '2026-05-23T09:00:00Z',
+        },
+      ],
+    });
+  }),
+  http.get('*/invoices', ({ request }) => {
+    const url = new URL(request.url);
+    const status = url.searchParams.get('status');
+    const items =
+      status === 'EMPTY'
+        ? []
+        : [
+            {
+              id: 11,
+              code: 'HD20260523-001',
+              customer_id: 1,
+              customer_name: 'Nguyễn Văn A',
+              cashier_id: 1,
+              total: 100000,
+              paid_amount: 100000,
+              status: 'COMPLETED',
+              completed_at: '2026-05-23T09:00:00Z',
+              created_at: '2026-05-23T08:55:00Z',
+            },
+            {
+              id: 12,
+              code: 'HD20260523-002',
+              customer_id: null,
+              customer_name: null,
+              cashier_id: 1,
+              total: 50000,
+              paid_amount: 0,
+              status: 'DRAFT',
+              completed_at: null,
+              created_at: '2026-05-23T10:00:00Z',
+            },
+          ];
+    return HttpResponse.json({
+      items,
+      pagination: {
+        page: 1,
+        limit: 20,
+        total: items.length,
+        total_pages: items.length ? 1 : 0,
+      },
+    });
+  }),
+  http.post('*/invoices', async ({ request }) => {
+    const body = (await request.json()) as {
+      customer_id?: number | null;
+      items?: Array<{
+        product_id: number;
+        quantity: number;
+        unit_price?: number;
+        discount_amount?: number;
+      }>;
+      discount_amount?: number;
+      note?: string | null;
+    };
+    const items = body.items ?? [];
+    const subtotal = items.reduce(
+      (s, it) => s + (it.unit_price ?? 10000) * it.quantity,
+      0,
+    );
+    return HttpResponse.json(
+      {
+        id: 200,
+        code: 'HD20260523-NEW',
+        customer_id: body.customer_id ?? null,
+        customer_name: body.customer_id ? 'KH' : null,
+        cashier_id: 1,
+        cashier_name: 'Chủ shop',
+        subtotal,
+        discount_amount: body.discount_amount ?? 0,
+        total: subtotal - (body.discount_amount ?? 0),
+        cost_total: 0,
+        paid_amount: 0,
+        change_amount: 0,
+        status: 'DRAFT',
+        note: body.note ?? null,
+        completed_at: null,
+        cancelled_at: null,
+        cancel_reason: null,
+        created_at: '2026-05-23T08:00:00Z',
+        items: items.map((it, idx) => ({
+          id: idx + 1,
+          product_id: it.product_id,
+          product_name: `SP ${it.product_id}`,
+          product_sku: `SP${String(it.product_id).padStart(6, '0')}`,
+          unit: 'cái',
+          quantity: it.quantity,
+          unit_price: it.unit_price ?? 10000,
+          cost_price: 0,
+          discount_amount: it.discount_amount ?? 0,
+          line_total: (it.unit_price ?? 10000) * it.quantity,
+        })),
+        payments: [],
+      },
+      { status: 201 },
+    );
+  }),
+  http.put('*/invoices/:id', async ({ request, params }) => {
+    const body = (await request.json()) as {
+      customer_id?: number | null;
+      items?: Array<{
+        product_id: number;
+        quantity: number;
+        unit_price?: number;
+        discount_amount?: number;
+      }>;
+      discount_amount?: number | null;
+      note?: string | null;
+    };
+    const items = body.items ?? [];
+    const subtotal = items.reduce(
+      (s, it) => s + (it.unit_price ?? 10000) * it.quantity,
+      0,
+    );
+    return HttpResponse.json({
+      id: Number(params.id),
+      code: 'HD20260523-001',
+      customer_id: body.customer_id ?? null,
+      customer_name: null,
+      cashier_id: 1,
+      cashier_name: 'Chủ shop',
+      subtotal,
+      discount_amount: body.discount_amount ?? 0,
+      total: subtotal - (Number(body.discount_amount) || 0),
+      cost_total: 0,
+      paid_amount: 0,
+      change_amount: 0,
+      status: 'DRAFT',
+      note: body.note ?? null,
+      completed_at: null,
+      cancelled_at: null,
+      cancel_reason: null,
+      created_at: '2026-05-23T08:00:00Z',
+      items: items.map((it, idx) => ({
+        id: idx + 1,
+        product_id: it.product_id,
+        product_name: `SP ${it.product_id}`,
+        product_sku: `SP${String(it.product_id).padStart(6, '0')}`,
+        unit: 'cái',
+        quantity: it.quantity,
+        unit_price: it.unit_price ?? 10000,
+        cost_price: 0,
+        discount_amount: it.discount_amount ?? 0,
+        line_total: (it.unit_price ?? 10000) * it.quantity,
+      })),
+      payments: [],
+    });
+  }),
+  http.post('*/invoices/:id/complete', async ({ request, params }) => {
+    const body = (await request.json()) as {
+      payments: Array<{ method: string; amount: number }>;
+      allow_debt?: boolean;
+    };
+    if (Number(params.id) === 9999) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: 'INSUFFICIENT_STOCK',
+            message: 'Không đủ tồn kho',
+            details: {
+              shortages: [
+                {
+                  product_id: 1,
+                  product_name: 'Mì tôm Hảo Hảo',
+                  need: '20',
+                  have: '5',
+                },
+              ],
+            },
+          },
+        },
+        { status: 400 },
+      );
+    }
+    const paid = body.payments.reduce((s, p) => s + Number(p.amount), 0);
+    return HttpResponse.json({
+      id: Number(params.id),
+      code: 'HD20260523-001',
+      customer_id: null,
+      customer_name: null,
+      cashier_id: 1,
+      cashier_name: 'Chủ shop',
+      subtotal: 100000,
+      discount_amount: 0,
+      total: 100000,
+      cost_total: 70000,
+      paid_amount: paid,
+      change_amount: Math.max(0, paid - 100000),
+      status: 'COMPLETED',
+      note: null,
+      completed_at: '2026-05-23T09:00:00Z',
+      cancelled_at: null,
+      cancel_reason: null,
+      created_at: '2026-05-23T08:55:00Z',
+      items: [
+        {
+          id: 1,
+          product_id: 1,
+          product_name: 'Mì tôm Hảo Hảo',
+          product_sku: 'SP000001',
+          unit: 'gói',
+          quantity: 10,
+          unit_price: 10000,
+          cost_price: 7000,
+          discount_amount: 0,
+          line_total: 100000,
+        },
+      ],
+      payments: body.payments.map((p, idx) => ({
+        id: idx + 1,
+        method: p.method,
+        amount: p.amount,
+        note: null,
+        created_at: '2026-05-23T09:00:00Z',
+      })),
+    });
+  }),
+  http.post('*/invoices/:id/cancel', async ({ request, params }) => {
+    const body = (await request.json().catch(() => ({}))) as {
+      reason?: string;
+    };
+    return HttpResponse.json({
+      id: Number(params.id),
+      code: 'HD20260523-001',
+      customer_id: null,
+      customer_name: null,
+      cashier_id: 1,
+      cashier_name: 'Chủ shop',
+      subtotal: 100000,
+      discount_amount: 0,
+      total: 100000,
+      cost_total: 70000,
+      paid_amount: 0,
+      change_amount: 0,
+      status: 'CANCELLED',
+      note: null,
+      completed_at: null,
+      cancelled_at: '2026-05-23T09:30:00Z',
+      cancel_reason: body.reason ?? null,
+      created_at: '2026-05-23T08:55:00Z',
+      items: [],
+      payments: [],
+    });
+  }),
+
   http.get('*/inventory', ({ request }) => {
     const url = new URL(request.url);
     const search = url.searchParams.get('search');

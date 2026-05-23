@@ -24,6 +24,9 @@ import LowStock from './pages/inventory/LowStock';
 import Kardex from './pages/inventory/Kardex';
 import AdjustmentList from './pages/inventory/AdjustmentList';
 import AdjustmentForm from './pages/inventory/AdjustmentForm';
+import POSScreen from './pages/pos/POSScreen';
+import InvoiceList from './pages/invoices/InvoiceList';
+import InvoiceDetail from './pages/invoices/InvoiceDetail';
 
 function Placeholder({ title }: { title: string }) {
   return <h1 className="text-2xl font-semibold">{title}</h1>;
@@ -56,10 +59,10 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route element={<ProtectedRoute />}>
+            <Route path="/pos" element={<POSScreen />} />
             <Route element={<AppLayout />}>
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Placeholder title="Tổng quan" />} />
-              <Route path="/pos" element={<Placeholder title="Bán hàng (POS)" />} />
 
               <Route path="/products" element={<ProductList />} />
               <Route path="/products/new" element={<ProductForm />} />
@@ -103,7 +106,8 @@ export default function App() {
                 }
               />
 
-              <Route path="/invoices" element={<Placeholder title="Hóa đơn" />} />
+              <Route path="/invoices" element={<InvoiceList />} />
+              <Route path="/invoices/:id" element={<InvoiceDetail />} />
               <Route
                 path="/reports/revenue"
                 element={<Placeholder title="Báo cáo doanh thu" />}
