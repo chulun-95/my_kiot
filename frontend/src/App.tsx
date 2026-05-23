@@ -27,10 +27,11 @@ import AdjustmentForm from './pages/inventory/AdjustmentForm';
 import POSScreen from './pages/pos/POSScreen';
 import InvoiceList from './pages/invoices/InvoiceList';
 import InvoiceDetail from './pages/invoices/InvoiceDetail';
-
-function Placeholder({ title }: { title: string }) {
-  return <h1 className="text-2xl font-semibold">{title}</h1>;
-}
+import Dashboard from './pages/dashboard/Dashboard';
+import RevenuePage from './pages/reports/RevenuePage';
+import TopProductsPage from './pages/reports/TopProductsPage';
+import ProfitPage from './pages/reports/ProfitPage';
+import StockSummaryPage from './pages/reports/StockSummaryPage';
 
 function NotFound() {
   return (
@@ -62,7 +63,7 @@ export default function App() {
             <Route path="/pos" element={<POSScreen />} />
             <Route element={<AppLayout />}>
               <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<Placeholder title="Tổng quan" />} />
+              <Route path="/dashboard" element={<Dashboard />} />
 
               <Route path="/products" element={<ProductList />} />
               <Route path="/products/new" element={<ProductForm />} />
@@ -108,10 +109,25 @@ export default function App() {
 
               <Route path="/invoices" element={<InvoiceList />} />
               <Route path="/invoices/:id" element={<InvoiceDetail />} />
+
+              <Route path="/reports/revenue" element={<RevenuePage />} />
               <Route
-                path="/reports/revenue"
-                element={<Placeholder title="Báo cáo doanh thu" />}
+                path="/reports/top-products"
+                element={<TopProductsPage />}
               />
+              <Route
+                path="/reports/profit"
+                element={
+                  <OwnerOnly>
+                    <ProfitPage />
+                  </OwnerOnly>
+                }
+              />
+              <Route
+                path="/reports/stock-summary"
+                element={<StockSummaryPage />}
+              />
+
               <Route path="/me/change-password" element={<ChangePassword />} />
               <Route
                 path="/staff"

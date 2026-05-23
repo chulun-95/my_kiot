@@ -11,7 +11,9 @@ const baseNav: Array<{ to: string; label: string }> = [
   { to: '/goods-receipts', label: 'Nhập kho' },
   { to: '/inventory', label: 'Tồn kho' },
   { to: '/invoices', label: 'Hóa đơn' },
-  { to: '/reports/revenue', label: 'Báo cáo' },
+  { to: '/reports/revenue', label: 'Doanh thu' },
+  { to: '/reports/top-products', label: 'Top SP' },
+  { to: '/reports/stock-summary', label: 'Tồn kho TQ' },
 ];
 
 export default function AppLayout() {
@@ -24,6 +26,7 @@ export default function AppLayout() {
     user?.role === 'OWNER'
       ? [
           ...baseNav,
+          { to: '/reports/profit', label: 'Lợi nhuận' },
           { to: '/inventory/adjustments', label: 'Điều chỉnh kho' },
           { to: '/staff', label: 'Nhân viên' },
         ]

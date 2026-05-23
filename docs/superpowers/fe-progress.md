@@ -3,7 +3,7 @@ build_id: fe-build-2026-05-22
 created_at: 2026-05-22T14:31:40+07:00
 cron_id: null  # CronCreate unreliable in this env; switching to ScheduleWakeup chain (1h between phases)
 total_phases: 7
-completed_phases: 5
+completed_phases: 6
 status: in_progress
 ---
 
@@ -186,15 +186,36 @@ status: in_progress
 - done: true
 
 ## Phase 5 — Reports
-- status: pending
-- started_at: null
-- finished_at: null
-- attempts: 0
-- spec_file: null
-- plan_file: null
-- output_files: []
-- notes: []
-- done: false
+- status: done
+- started_at: 2026-05-23T08:00:00+07:00
+- finished_at: 2026-05-23T12:21:00+07:00
+- attempts: 1
+- spec_file: docs/superpowers/specs/2026-05-22-fe-phase5-reports-design.md
+- plan_file: docs/superpowers/plans/fe-phase5-reports-plan.md
+- output_files:
+  - frontend/src/api/report.ts
+  - frontend/src/api/__tests__/report.test.ts
+  - frontend/src/components/DateRangePicker.tsx
+  - frontend/src/components/__tests__/DateRangePicker.test.tsx
+  - frontend/src/pages/dashboard/Dashboard.tsx
+  - frontend/src/pages/dashboard/__tests__/Dashboard.test.tsx
+  - frontend/src/pages/reports/RevenuePage.tsx
+  - frontend/src/pages/reports/TopProductsPage.tsx
+  - frontend/src/pages/reports/ProfitPage.tsx
+  - frontend/src/pages/reports/StockSummaryPage.tsx
+  - frontend/src/pages/reports/__tests__/RevenuePage.test.tsx
+  - frontend/src/pages/reports/__tests__/TopProductsPage.test.tsx
+  - frontend/src/pages/reports/__tests__/ProfitPage.test.tsx
+  - frontend/src/pages/reports/__tests__/StockSummaryPage.test.tsx
+  - frontend/src/App.tsx
+  - frontend/src/components/AppLayout.tsx
+  - frontend/src/__tests__/mocks/handlers.ts
+- notes:
+  - tsc --noEmit passed (exit 0)
+  - vitest --run passed 170/170 tests across 41 files (17 new in Phase 5)
+  - group_by limited to day/month per backend support (week not implemented)
+  - ProfitPage gated at router via OwnerOnly; CASHIER-block test renders RoleGate around page directly
+- done: true
 
 ## Phase 6 — Polish
 - status: pending
@@ -220,3 +241,4 @@ status: in_progress
 - 2026-05-23T07:10:00+07:00 | phase 2 | done (attempts=1) — 85/85 tests pass, tsc clean
 - 2026-05-23T07:24:00+07:00 | phase 3 | done (attempts=1) — 114/114 tests pass, tsc clean
 - 2026-05-23T07:40:00+07:00 | phase 4 | done (attempts=1) — 153/153 tests pass, tsc clean
+- 2026-05-23T12:21:00+07:00 | phase 5 | done (attempts=1) — 170/170 tests pass, tsc clean

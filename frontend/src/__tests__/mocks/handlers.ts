@@ -1150,4 +1150,101 @@ export const handlers = [
       },
     });
   }),
+
+  // ---------- REPORTS ----------
+  http.get('*/reports/dashboard', () =>
+    HttpResponse.json({
+      today_revenue: 1500000,
+      today_invoices: 12,
+      today_profit: 450000,
+      today_customers: 8,
+      pending_drafts: 2,
+      low_stock_count: 3,
+      inventory_value: 25000000,
+    }),
+  ),
+  http.get('*/reports/revenue', ({ request }) => {
+    const url = new URL(request.url);
+    const from = url.searchParams.get('from') ?? '2026-04-23';
+    const to = url.searchParams.get('to') ?? '2026-05-23';
+    const groupBy = (url.searchParams.get('group_by') ?? 'day') as
+      | 'day'
+      | 'month';
+    return HttpResponse.json({
+      from_date: from,
+      to_date: to,
+      group_by: groupBy,
+      total_revenue: 3000000,
+      total_profit: 900000,
+      total_invoices: 25,
+      series: [
+        {
+          period: '2026-05-21',
+          revenue: 1000000,
+          invoices: 10,
+          profit: 300000,
+        },
+        {
+          period: '2026-05-22',
+          revenue: 1200000,
+          invoices: 8,
+          profit: 360000,
+        },
+        {
+          period: '2026-05-23',
+          revenue: 800000,
+          invoices: 7,
+          profit: 240000,
+        },
+      ],
+    });
+  }),
+  http.get('*/reports/top-products', ({ request }) => {
+    const url = new URL(request.url);
+    const from = url.searchParams.get('from') ?? '2026-04-23';
+    const to = url.searchParams.get('to') ?? '2026-05-23';
+    return HttpResponse.json({
+      from_date: from,
+      to_date: to,
+      items: [
+        {
+          product_id: 1,
+          product_sku: 'SP000001',
+          product_name: 'Mì tôm Hảo Hảo',
+          quantity_sold: 120,
+          revenue: 600000,
+          profit: 180000,
+        },
+        {
+          product_id: 2,
+          product_sku: 'SP000002',
+          product_name: 'Coca 330ml',
+          quantity_sold: 80,
+          revenue: 560000,
+          profit: 140000,
+        },
+      ],
+    });
+  }),
+  http.get('*/reports/profit', ({ request }) => {
+    const url = new URL(request.url);
+    return HttpResponse.json({
+      from_date: url.searchParams.get('from') ?? '2026-04-23',
+      to_date: url.searchParams.get('to') ?? '2026-05-23',
+      total_revenue: 3000000,
+      total_cost: 2100000,
+      gross_profit: 900000,
+      invoices: 25,
+    });
+  }),
+  http.get('*/reports/stock-summary', () =>
+    HttpResponse.json({
+      total_products: 50,
+      products_in_stock: 45,
+      products_out_of_stock: 5,
+      low_stock_count: 3,
+      total_inventory_value: 25000000,
+      last_updated: '2026-05-23T09:00:00Z',
+    }),
+  ),
 ];
