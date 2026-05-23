@@ -16,6 +16,25 @@ from backend.config import settings  # noqa: E402
 from backend.shared.models import Base  # noqa: E402
 from backend.modules.tenant.models import Tenant  # noqa: F401,E402
 from backend.modules.auth.models import User, RefreshToken  # noqa: F401,E402
+from backend.modules.product.models import (  # noqa: F401,E402
+    Category,
+    Product,
+    ProductImage,
+)
+from backend.modules.customer.models import Customer, Supplier  # noqa: F401,E402
+from backend.modules.inventory.models import (  # noqa: F401,E402
+    GoodsReceipt,
+    GoodsReceiptItem,
+    Inventory,
+    StockMovement,
+)
+from backend.modules.sales.models import (  # noqa: F401,E402
+    Invoice,
+    InvoiceItem,
+    Payment,
+)
+from backend.modules.system.models import AuditLog, PriceHistory  # noqa: F401,E402
+from backend.shared.code_generator import CodeSequence  # noqa: F401,E402
 
 
 config = context.config
