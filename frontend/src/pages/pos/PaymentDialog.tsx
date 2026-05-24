@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { PaymentMethod, PaymentInput } from '../../api/invoice';
 import { formatVND } from '../../utils/format';
 import { toFriendlyMessage } from '../../utils/errors';
+import MoneyInput from '../../components/MoneyInput';
 
 interface Props {
   open: boolean;
@@ -38,7 +39,7 @@ export default function PaymentDialog({
 
   useEffect(() => {
     if (open) {
-      setRows([{ method: 'CASH', amount: total }]);
+      setRows([{ method: 'CASH', amount: Math.round(total) }]);
       setAllowDebt(false);
       setError(null);
     }
@@ -107,15 +108,11 @@ export default function PaymentDialog({
                   </option>
                 ))}
               </select>
-              <input
-                type="number"
-                min="0"
+              <MoneyInput
                 value={r.amount}
-                onChange={(e) =>
-                  updateRow(idx, { amount: Number(e.target.value) })
-                }
+                onChange={(v) => updateRow(idx, { amount: v })}
                 aria-label={`Số tiền ${idx + 1}`}
-                className="flex-1 px-2 py-2 border border-slate-300 rounded text-right"
+                className="flex-1 px-2 py-2 border border-slate-300 rounded"
               />
               {rows.length > 1 && (
                 <button

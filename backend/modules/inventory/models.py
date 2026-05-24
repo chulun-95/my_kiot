@@ -1,3 +1,4 @@
+from typing import Optional
 from datetime import datetime
 from decimal import Decimal
 
@@ -33,7 +34,7 @@ class GoodsReceipt(Base, AuditMixin):
         FKType, ForeignKey("tenants.id"), nullable=False, index=True
     )
     code: Mapped[str] = mapped_column(String(30), nullable=False)
-    supplier_id: Mapped[int | None] = mapped_column(
+    supplier_id: Mapped[Optional[int]] = mapped_column(
         FKType, ForeignKey("suppliers.id"), nullable=True
     )
     total: Mapped[Decimal] = mapped_column(
@@ -45,11 +46,11 @@ class GoodsReceipt(Base, AuditMixin):
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="DRAFT", server_default="DRAFT"
     )
-    note: Mapped[str | None] = mapped_column(Text, nullable=True)
-    completed_at: Mapped[datetime | None] = mapped_column(
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    created_by: Mapped[int | None] = mapped_column(
+    created_by: Mapped[Optional[int]] = mapped_column(
         FKType, ForeignKey("users.id"), nullable=True
     )
 
@@ -76,6 +77,13 @@ class GoodsReceiptItem(Base):
     quantity: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False)
     cost_price: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
     line_total: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
+    unit_id: Mapped[Optional[int]] = mapped_column(
+        FKType,
+        ForeignKey("product_units.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    unit_name: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    conversion_rate: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 3), nullable=True)
 
     receipt: Mapped["GoodsReceipt"] = relationship(
         "GoodsReceipt", back_populates="items"
@@ -103,14 +111,14 @@ class StockMovement(Base):
         FKType, ForeignKey("products.id"), nullable=False
     )
     quantity: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False)
-    unit_cost: Mapped[Decimal | None] = mapped_column(
+    unit_cost: Mapped[Optional[Decimal]] = mapped_column(
         Numeric(15, 2), nullable=True
     )
     type: Mapped[str] = mapped_column(String(20), nullable=False)
     ref_type: Mapped[str] = mapped_column(String(20), nullable=False)
     ref_id: Mapped[int] = mapped_column(FKType, nullable=False)
     balance_after: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False)
-    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

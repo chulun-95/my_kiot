@@ -3,19 +3,19 @@ import { formatVND, formatDate, formatQty } from '../format';
 
 describe('formatVND', () => {
   it('formats integer with vi-VN thousand separator', () => {
-    expect(formatVND(1234567)).toBe('1.234.567 đ');
+    expect(formatVND(1234567)).toBe('1.234.567 VNĐ');
   });
   it('handles zero, null, undefined, empty string', () => {
-    expect(formatVND(0)).toBe('0 đ');
-    expect(formatVND(null)).toBe('0 đ');
-    expect(formatVND(undefined)).toBe('0 đ');
-    expect(formatVND('')).toBe('0 đ');
+    expect(formatVND(0)).toBe('0 VNĐ');
+    expect(formatVND(null)).toBe('0 VNĐ');
+    expect(formatVND(undefined)).toBe('0 VNĐ');
+    expect(formatVND('')).toBe('0 VNĐ');
   });
   it('accepts decimal string and rounds', () => {
-    expect(formatVND('1500.50')).toBe('1.501 đ');
+    expect(formatVND('1500.50')).toBe('1.501 VNĐ');
   });
-  it('returns 0 đ for non-numeric', () => {
-    expect(formatVND('abc')).toBe('0 đ');
+  it('returns 0 VNĐ for non-numeric', () => {
+    expect(formatVND('abc')).toBe('0 VNĐ');
   });
 });
 

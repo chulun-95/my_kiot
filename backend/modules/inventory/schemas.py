@@ -1,3 +1,4 @@
+from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 from typing import Literal
@@ -12,6 +13,7 @@ ReceiptStatus = Literal["DRAFT", "COMPLETED", "CANCELLED"]
 
 class GoodsReceiptItemInput(BaseModel):
     product_id: int = Field(ge=1)
+    unit_id: int | None = None
     quantity: Decimal = Field(gt=0)
     cost_price: Decimal = Field(ge=0)
 
@@ -44,6 +46,9 @@ class GoodsReceiptItemResponse(BaseModel):
     product_id: int
     product_name: str | None = None
     product_sku: str | None = None
+    unit_id: int | None = None
+    unit_name: str | None = None
+    conversion_rate: Decimal | None = None
     quantity: Decimal
     cost_price: Decimal
     line_total: Decimal
@@ -87,6 +92,12 @@ class GoodsReceiptCancelRequest(BaseModel):
 
 # ---------- Inventory ----------
 
+class UnitBreakdownItem(BaseModel):
+    unit_name: str
+    conversion_rate: Decimal
+    quantity_in_unit: Decimal
+
+
 class InventoryItemResponse(BaseModel):
     product_id: int
     product_sku: str
@@ -96,6 +107,7 @@ class InventoryItemResponse(BaseModel):
     min_stock: int
     cost_price: Decimal
     sale_price: Decimal
+    units_breakdown: list[UnitBreakdownItem] = []
 
 
 class StockMovementResponse(BaseModel):

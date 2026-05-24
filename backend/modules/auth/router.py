@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Union
 
 from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -47,7 +47,7 @@ async def register(
 
 @router.post(
     "/login",
-    response_model=LoginSuccessResponse | LoginTenantSelectionResponse,
+    response_model=Union[LoginSuccessResponse, LoginTenantSelectionResponse],
 )
 @limiter.limit("5/5minute")
 async def login(

@@ -1,3 +1,4 @@
+from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 from typing import Literal
@@ -13,6 +14,7 @@ PaymentMethod = Literal["CASH", "BANK_TRANSFER", "MOMO", "VNPAY", "OTHER"]
 
 class InvoiceItemInput(BaseModel):
     product_id: int = Field(ge=1)
+    unit_id: int | None = None
     quantity: Decimal = Field(gt=0)
     unit_price: Decimal | None = Field(default=None, ge=0)
     discount_amount: Decimal = Field(default=Decimal("0"), ge=0)
@@ -55,6 +57,8 @@ class InvoiceItemResponse(BaseModel):
     product_name: str
     product_sku: str
     unit: str | None
+    unit_id: int | None = None
+    conversion_rate: Decimal | None = None
     quantity: Decimal
     unit_price: Decimal
     cost_price: Decimal

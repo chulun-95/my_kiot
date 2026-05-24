@@ -30,9 +30,9 @@ describe('ProfitPage', () => {
 
     expect(await screen.findByText('Báo cáo lợi nhuận')).toBeInTheDocument();
     expect(await screen.findByText('Tổng doanh thu')).toBeInTheDocument();
-    expect(screen.getByText('3.000.000 đ')).toBeInTheDocument();
-    expect(screen.getByText('2.100.000 đ')).toBeInTheDocument();
-    expect(screen.getByText('900.000 đ')).toBeInTheDocument();
+    expect(screen.getByText('3.000.000 VNĐ')).toBeInTheDocument();
+    expect(screen.getByText('2.100.000 VNĐ')).toBeInTheDocument();
+    expect(screen.getByText('900.000 VNĐ')).toBeInTheDocument();
     expect(screen.getByText('30.00 %')).toBeInTheDocument();
   });
 

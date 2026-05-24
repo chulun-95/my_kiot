@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import * as categoryApi from '../../api/category';
 import type { CategoryNode } from '../../api/category';
 import { toFriendlyMessage } from '../../utils/errors';
+import FieldHint from '../../components/FieldHint';
 
 interface FormState {
   mode: 'create' | 'edit';
@@ -70,6 +71,7 @@ function CategoryForm({
         </h2>
         <label className="block">
           <span className="text-sm text-slate-700">Tên nhóm</span>
+          <FieldHint text="Tên nhóm hàng để gom các SP cùng loại (ví dụ: Đồ uống, Bánh kẹo). Hiển thị trong dropdown khi tạo SP và dùng để lọc danh sách." />
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -81,6 +83,7 @@ function CategoryForm({
         </label>
         <label className="block">
           <span className="text-sm text-slate-700">Thứ tự hiển thị</span>
+          <FieldHint text="Số nhỏ hơn xuất hiện trước. Dùng để sắp xếp thứ tự nhóm trong danh sách và trên màn POS. Để 0 nếu chưa cần ưu tiên." />
           <input
             type="number"
             value={sortOrder}

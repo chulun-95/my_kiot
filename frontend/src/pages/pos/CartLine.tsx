@@ -1,5 +1,6 @@
 import { formatVND } from '../../utils/format';
 import { computeCartLineTotal, type CartItem } from '../../stores/posStore';
+import MoneyInput from '../../components/MoneyInput';
 
 interface Props {
   item: CartItem;
@@ -35,15 +36,14 @@ export default function CartLine({
       </td>
       <td className="px-2 py-2 text-right">{formatVND(item.unit_price)}</td>
       <td className="px-2 py-2 text-right">
-        <input
-          type="number"
-          step="1"
-          min="0"
-          value={item.discount_amount}
-          onChange={(e) => onChangeDiscount(Number(e.target.value))}
-          className="w-24 px-2 py-1 border border-slate-300 rounded text-right"
-          aria-label={`Giảm giá ${item.product_name}`}
-        />
+        <div className="w-32 inline-block">
+          <MoneyInput
+            value={item.discount_amount}
+            onChange={(v) => onChangeDiscount(v)}
+            className="w-full px-2 py-1 border border-slate-300 rounded"
+            aria-label={`Giảm giá ${item.product_name}`}
+          />
+        </div>
       </td>
       <td className="px-2 py-2 text-right font-medium">{formatVND(lineTotal)}</td>
       <td className="px-2 py-2 text-right">

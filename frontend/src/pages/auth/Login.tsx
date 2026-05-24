@@ -13,6 +13,7 @@ export default function Login() {
   const [tenantId, setTenantId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -58,9 +59,21 @@ export default function Login() {
           />
         </label>
 
-        <label className="block">
-          <span className="text-sm text-slate-700">Mật khẩu</span>
+        <div>
+          <div className="flex items-center justify-between">
+            <label htmlFor="login-password" className="text-sm text-slate-700">
+              Mật khẩu
+            </label>
+            <button
+              type="button"
+              onClick={() => setForgotOpen(true)}
+              className="text-xs text-slate-600 underline hover:text-slate-900"
+            >
+              Quên mật khẩu?
+            </button>
+          </div>
           <input
+            id="login-password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -68,7 +81,7 @@ export default function Login() {
             minLength={6}
             className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
           />
-        </label>
+        </div>
 
         {tenants && tenants.length > 0 && (
           <fieldset className="space-y-2">
@@ -109,6 +122,49 @@ export default function Login() {
           </Link>
         </div>
       </form>
+
+      {forgotOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Lấy lại mật khẩu"
+          className="fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50 p-4"
+          onClick={() => setForgotOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm bg-white rounded shadow-lg p-5 space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold">Lấy lại mật khẩu</h2>
+            <p className="text-sm text-slate-700">
+              Vui lòng liên hệ admin để được hỗ trợ đặt lại mật khẩu.
+            </p>
+            <a
+              href="https://zalo.me/0392368532"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-3 rounded bg-sky-600 text-white font-medium hover:bg-sky-700"
+            >
+              Liên hệ qua Zalo
+            </a>
+            <a
+              href="https://www.facebook.com/profile.php?id=61579076336752&sk=directory_personal_details"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-3 rounded bg-blue-700 text-white font-medium hover:bg-blue-800"
+            >
+              Liên hệ qua Facebook
+            </a>
+            <button
+              type="button"
+              onClick={() => setForgotOpen(false)}
+              className="w-full py-2 rounded border border-slate-300 text-sm"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

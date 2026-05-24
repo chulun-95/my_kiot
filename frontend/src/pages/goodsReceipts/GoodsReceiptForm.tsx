@@ -7,6 +7,7 @@ import ProductPicker from '../../components/ProductPicker';
 import type { ProductBrief } from '../../api/product';
 import { formatVND } from '../../utils/format';
 import { toFriendlyMessage } from '../../utils/errors';
+import MoneyInput from '../../components/MoneyInput';
 
 interface LineItem {
   product_id: number;
@@ -184,17 +185,14 @@ export default function GoodsReceiptForm() {
                     />
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <input
-                      type="number"
-                      step="1"
-                      min="0"
-                      value={l.cost_price}
-                      onChange={(e) =>
-                        updateLine(idx, { cost_price: Number(e.target.value) })
-                      }
-                      className="w-32 px-2 py-1 border border-slate-300 rounded text-right"
-                      aria-label={`Giá nhập ${l.product_name}`}
-                    />
+                    <div className="w-36 inline-block">
+                      <MoneyInput
+                        value={l.cost_price}
+                        onChange={(v) => updateLine(idx, { cost_price: v })}
+                        className="w-full px-2 py-1 border border-slate-300 rounded"
+                        aria-label={`Giá nhập ${l.product_name}`}
+                      />
+                    </div>
                   </td>
                   <td className="px-3 py-2 text-right">
                     {formatVND(l.quantity * l.cost_price)}
@@ -220,13 +218,14 @@ export default function GoodsReceiptForm() {
           <span className="font-semibold text-lg">{formatVND(total)}</span>
         </div>
         <div>
-          <label className="block text-sm text-slate-600 mb-1">Đã thanh toán</label>
-          <input
-            type="number"
-            min="0"
+          <label htmlFor="gr-paid-amount" className="block text-sm text-slate-600 mb-1">
+            Đã thanh toán
+          </label>
+          <MoneyInput
+            id="gr-paid-amount"
             value={paidAmount}
-            onChange={(e) => setPaidAmount(Number(e.target.value))}
-            className="w-full px-3 py-2 border border-slate-300 rounded text-right"
+            onChange={(v) => setPaidAmount(v)}
+            className="w-full px-3 py-2 border border-slate-300 rounded"
             aria-label="Đã thanh toán"
           />
         </div>

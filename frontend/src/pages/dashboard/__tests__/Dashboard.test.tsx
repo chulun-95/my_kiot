@@ -13,10 +13,10 @@ describe('Dashboard page', () => {
 
     expect(await screen.findByText('Tổng quan')).toBeInTheDocument();
     expect(screen.getByText('Doanh thu hôm nay')).toBeInTheDocument();
-    expect(screen.getByText('1.500.000 đ')).toBeInTheDocument();
+    expect(screen.getByText('1.500.000 VNĐ')).toBeInTheDocument();
     expect(screen.getByText('Số hóa đơn hôm nay')).toBeInTheDocument();
     expect(screen.getByText('12')).toBeInTheDocument();
     expect(screen.getByText('Giá trị tồn kho')).toBeInTheDocument();
-    expect(screen.getByText('25.000.000 đ')).toBeInTheDocument();
+    expect(screen.getByText('25.000.000 VNĐ')).toBeInTheDocument();
   });
 });

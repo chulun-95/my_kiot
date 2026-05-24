@@ -9,10 +9,10 @@ const TZ = 'Asia/Ho_Chi_Minh';
 const vndFormatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
 
 export function formatVND(amount: number | string | null | undefined): string {
-  if (amount === null || amount === undefined || amount === '') return '0 đ';
+  if (amount === null || amount === undefined || amount === '') return '0 VNĐ';
   const n = typeof amount === 'string' ? Number(amount) : amount;
-  if (!Number.isFinite(n)) return '0 đ';
-  return `${vndFormatter.format(Math.round(n))} đ`;
+  if (!Number.isFinite(n)) return '0 VNĐ';
+  return `${vndFormatter.format(Math.round(n))} VNĐ`;
 }
 
 export function formatDate(

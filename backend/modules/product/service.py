@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Any
 
 from sqlalchemy import asc, func, or_, select
@@ -6,12 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.exceptions import AppError
-from backend.modules.product.models import Category, Product, ProductImage
+from backend.modules.product.models import Category, Product, ProductImage, ProductUnit
 from backend.modules.product.schemas import (
     CategoryCreateRequest,
     CategoryUpdateRequest,
     ProductCreateRequest,
     ProductUpdateRequest,
+    ProductUnitCreateRequest,
+    ProductUnitUpdateRequest,
 )
 from backend.shared import audit as audit_helper
 from backend.shared.code_generator import generate_code
@@ -353,7 +356,7 @@ async def get_product(
             Product.tenant_id == tenant_id,
             Product.deleted_at.is_(None),
         )
-        .options(selectinload(Product.category))
+        .options(selectinload(Product.category), selectinload(Product.units))
     )
     if not product:
         raise AppError(404, "PRODUCT_NOT_FOUND", "Sản phẩm không tồn tại")
@@ -547,14 +550,230 @@ async def search_products(
 
 async def get_by_barcode(
     db: AsyncSession, tenant_id: int, barcode: str
-) -> Product:
+) -> tuple[Product, ProductUnit | None]:
+    # 1. Check products.barcode first
     product = await db.scalar(
-        select(Product).where(
+        select(Product)
+        .where(
             Product.tenant_id == tenant_id,
             Product.barcode == barcode,
             Product.deleted_at.is_(None),
         )
+        .options(selectinload(Product.category), selectinload(Product.units))
     )
-    if not product:
-        raise AppError(404, "PRODUCT_NOT_FOUND", "Không có sản phẩm với barcode này")
-    return product
+    if product:
+        return product, None
+
+    # 2. Check product_units.barcode
+    unit = await db.scalar(
+        select(ProductUnit).where(
+            ProductUnit.tenant_id == tenant_id,
+            ProductUnit.barcode == barcode,
+        )
+    )
+    if unit:
+        product = await get_product(db, tenant_id, unit.product_id)
+        return product, unit
+
+    raise AppError(404, "PRODUCT_NOT_FOUND", "Không có sản phẩm với barcode này")
+
+
+# ====================================================================
+# PRODUCT UNITS
+# ====================================================================
+
+async def _get_unit(
+    db: AsyncSession, tenant_id: int, product_id: int, unit_id: int
+) -> ProductUnit:
+    unit = await db.scalar(
+        select(ProductUnit).where(
+            ProductUnit.id == unit_id,
+            ProductUnit.tenant_id == tenant_id,
+            ProductUnit.product_id == product_id,
+        )
+    )
+    if not unit:
+        raise AppError(404, "UNIT_NOT_FOUND", "Đơn vị không tồn tại")
+    return unit
+
+
+async def list_product_units(
+    db: AsyncSession, tenant_id: int, product_id: int
+) -> list[ProductUnit]:
+    await get_product(db, tenant_id, product_id)
+    rows = (
+        await db.execute(
+            select(ProductUnit)
+            .where(
+                ProductUnit.tenant_id == tenant_id,
+                ProductUnit.product_id == product_id,
+            )
+            .order_by(ProductUnit.unit_name)
+        )
+    ).scalars().all()
+    return list(rows)
+
+
+async def create_product_unit(
+    db: AsyncSession,
+    tenant_id: int,
+    user_id: int,
+    product_id: int,
+    payload: ProductUnitCreateRequest,
+) -> ProductUnit:
+    await get_product(db, tenant_id, product_id)
+
+    if payload.barcode:
+        existing = await db.scalar(
+            select(ProductUnit.id).where(
+                ProductUnit.tenant_id == tenant_id,
+                ProductUnit.barcode == payload.barcode,
+            )
+        )
+        if existing:
+            raise AppError(409, "BARCODE_EXISTS", f"Barcode '{payload.barcode}' đã tồn tại")
+
+    unit = ProductUnit(
+        tenant_id=tenant_id,
+        product_id=product_id,
+        unit_name=payload.unit_name,
+        conversion_rate=payload.conversion_rate,
+        sale_price=payload.sale_price,
+        barcode=payload.barcode,
+    )
+    db.add(unit)
+    try:
+        await db.flush()
+    except IntegrityError:
+        await db.rollback()
+        raise AppError(409, "UNIT_EXISTS", f"Đơn vị '{payload.unit_name}' đã tồn tại cho sản phẩm này")
+
+    await audit_helper.write_audit(
+        db,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        action=audit_helper.CREATE_PRODUCT_UNIT,
+        entity_type="product_unit",
+        entity_id=unit.id,
+        new_data={
+            "product_id": product_id,
+            "unit_name": unit.unit_name,
+            "conversion_rate": unit.conversion_rate,
+            "sale_price": unit.sale_price,
+            "barcode": unit.barcode,
+        },
+    )
+    await db.commit()
+    await db.refresh(unit)
+    return unit
+
+
+async def update_product_unit(
+    db: AsyncSession,
+    tenant_id: int,
+    user_id: int,
+    product_id: int,
+    unit_id: int,
+    payload: ProductUnitUpdateRequest,
+) -> ProductUnit:
+    unit = await _get_unit(db, tenant_id, product_id, unit_id)
+
+    old_snapshot = {
+        "unit_name": unit.unit_name,
+        "conversion_rate": unit.conversion_rate,
+        "sale_price": unit.sale_price,
+        "barcode": unit.barcode,
+    }
+
+    new_barcode = payload.barcode
+    if new_barcode and new_barcode != unit.barcode:
+        existing = await db.scalar(
+            select(ProductUnit.id).where(
+                ProductUnit.tenant_id == tenant_id,
+                ProductUnit.barcode == new_barcode,
+                ProductUnit.id != unit_id,
+            )
+        )
+        if existing:
+            raise AppError(409, "BARCODE_EXISTS", f"Barcode '{new_barcode}' đã tồn tại")
+
+    data = payload.model_dump(exclude_unset=True)
+    for k, v in data.items():
+        if v is not None:
+            setattr(unit, k, v)
+
+    new_values = {k: getattr(unit, k) for k in old_snapshot}
+    old_diff, new_diff = audit_helper.diff_changes(old_snapshot, new_values)
+
+    try:
+        if new_diff:
+            await audit_helper.write_audit(
+                db,
+                tenant_id=tenant_id,
+                user_id=user_id,
+                action=audit_helper.UPDATE_PRODUCT_UNIT,
+                entity_type="product_unit",
+                entity_id=unit.id,
+                old_data=old_diff,
+                new_data=new_diff,
+            )
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise AppError(409, "UNIT_EXISTS", "Tên đơn vị hoặc barcode đã tồn tại")
+
+    await db.refresh(unit)
+    return unit
+
+
+async def delete_product_unit(
+    db: AsyncSession,
+    tenant_id: int,
+    user_id: int,
+    product_id: int,
+    unit_id: int,
+) -> None:
+    from backend.modules.inventory.models import GoodsReceipt, GoodsReceiptItem
+    from backend.modules.sales.models import Invoice, InvoiceItem
+
+    unit = await _get_unit(db, tenant_id, product_id, unit_id)
+
+    draft_receipt = await db.scalar(
+        select(GoodsReceiptItem.id)
+        .join(GoodsReceipt, GoodsReceipt.id == GoodsReceiptItem.receipt_id)
+        .where(
+            GoodsReceiptItem.unit_id == unit_id,
+            GoodsReceipt.status == "DRAFT",
+        )
+        .limit(1)
+    )
+    if draft_receipt:
+        raise AppError(409, "UNIT_IN_USE", "Đơn vị đang được dùng trong phiếu nhập nháp")
+
+    draft_invoice = await db.scalar(
+        select(InvoiceItem.id)
+        .join(Invoice, Invoice.id == InvoiceItem.invoice_id)
+        .where(
+            InvoiceItem.unit_id == unit_id,
+            Invoice.status == "DRAFT",
+        )
+        .limit(1)
+    )
+    if draft_invoice:
+        raise AppError(409, "UNIT_IN_USE", "Đơn vị đang được dùng trong hóa đơn nháp")
+
+    await audit_helper.write_audit(
+        db,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        action=audit_helper.DELETE_PRODUCT_UNIT,
+        entity_type="product_unit",
+        entity_id=unit.id,
+        old_data={
+            "product_id": product_id,
+            "unit_name": unit.unit_name,
+            "conversion_rate": unit.conversion_rate,
+        },
+    )
+    await db.delete(unit)
+    await db.commit()

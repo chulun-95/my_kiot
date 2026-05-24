@@ -110,7 +110,7 @@ export default function TopProductsPage() {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />
             <YAxis />
-            <Tooltip formatter={(v: number | string) => formatVND(Number(v))} />
+            <Tooltip formatter={(v) => formatVND(Number(v ?? 0))} />
             <Bar dataKey="revenue" fill="#0f172a" name="Doanh thu" />
           </BarChart>
         )}

@@ -18,6 +18,6 @@ describe('StockSummaryPage', () => {
     expect(screen.getByText('45')).toBeInTheDocument();
     expect(screen.getByText('SP hết hàng')).toBeInTheDocument();
     expect(screen.getByText('Giá trị tồn kho')).toBeInTheDocument();
-    expect(screen.getByText('25.000.000 đ')).toBeInTheDocument();
+    expect(screen.getByText('25.000.000 VNĐ')).toBeInTheDocument();
   });
 });

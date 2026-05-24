@@ -25,7 +25,7 @@ describe('PaymentDialog', () => {
       />,
     );
     const input = screen.getByLabelText('Số tiền 1') as HTMLInputElement;
-    expect(input.value).toBe('50000');
+    expect(input.value).toBe('50.000');
   });
 
   it('shows change when overpaying', () => {

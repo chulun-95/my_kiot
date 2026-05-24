@@ -263,6 +263,21 @@ CREATE TABLE product_images (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Đơn vị quy đổi: 1 SP nhiều đơn vị (thùng/lốc → lon). Tồn kho luôn theo đơn vị cơ bản.
+-- conversion_rate > 1 (VD: thùng=24 lon). Barcode riêng mỗi đơn vị (quét thùng vẫn ra đúng SP).
+CREATE TABLE product_units (
+    id              BIGSERIAL PRIMARY KEY,
+    tenant_id       BIGINT NOT NULL REFERENCES tenants(id),
+    product_id      BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    unit_name       VARCHAR(30) NOT NULL,
+    conversion_rate DECIMAL(10,3) NOT NULL,          -- số đơn vị cơ bản trong 1 đơn vị này
+    sale_price      DECIMAL(15,2),                   -- NULL = tính tự động từ sale_price × rate
+    barcode         VARCHAR(50),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (tenant_id, product_id, unit_name)
+    -- PARTIAL UNIQUE: (tenant_id, barcode) WHERE barcode IS NOT NULL — xem Phần 8
+);
+
 CREATE TABLE customers (
     id              BIGSERIAL PRIMARY KEY,
     tenant_id       BIGINT NOT NULL REFERENCES tenants(id),
@@ -334,7 +349,9 @@ CREATE TABLE invoice_items (
     unit_price      DECIMAL(15,2) NOT NULL,
     cost_price      DECIMAL(15,2) NOT NULL,          -- snapshot giá vốn tại thời điểm bán
     discount_amount DECIMAL(15,2) NOT NULL DEFAULT 0,
-    line_total      DECIMAL(15,2) NOT NULL
+    line_total      DECIMAL(15,2) NOT NULL,
+    unit_id         BIGINT REFERENCES product_units(id) ON DELETE SET NULL,  -- NULL nếu bán đơn vị cơ bản
+    conversion_rate DECIMAL(10,3)                   -- snapshot rate tại thời điểm bán
 );
 
 CREATE TABLE payments (
@@ -372,7 +389,10 @@ CREATE TABLE goods_receipt_items (
     product_id      BIGINT NOT NULL REFERENCES products(id),
     quantity        DECIMAL(10,3) NOT NULL,
     cost_price      DECIMAL(15,2) NOT NULL,
-    line_total      DECIMAL(15,2) NOT NULL
+    line_total      DECIMAL(15,2) NOT NULL,
+    unit_id         BIGINT REFERENCES product_units(id) ON DELETE SET NULL,  -- NULL = nhập đơn vị cơ bản
+    unit_name       VARCHAR(30),                     -- snapshot tên đơn vị
+    conversion_rate DECIMAL(10,3)                   -- snapshot rate (tồn kho += quantity × rate)
 );
 ```
 
@@ -575,8 +595,13 @@ POST   /api/v1/products                    Tạo SP mới
 PUT    /api/v1/products/{id}               Sửa SP
 DELETE /api/v1/products/{id}               Ngừng bán (soft delete)
 GET    /api/v1/products/search?q=          Tìm nhanh cho POS (tên/SKU/barcode)
-GET    /api/v1/products/barcode/{code}     Tìm chính xác theo barcode
+GET    /api/v1/products/barcode/{code}     Tìm chính xác theo barcode (trả matched_unit nếu là barcode đơn vị)
 POST   /api/v1/products/import             Import từ Excel
+
+GET    /api/v1/products/{id}/units         DS đơn vị quy đổi của SP
+POST   /api/v1/products/{id}/units         Thêm đơn vị (OWNER only)
+PUT    /api/v1/products/{id}/units/{uid}   Sửa đơn vị (OWNER only)
+DELETE /api/v1/products/{id}/units/{uid}   Xóa đơn vị (OWNER only, chặn nếu DRAFT dùng)
 
 GET    /api/v1/categories                  DS nhóm hàng (dạng cây)
 POST   /api/v1/categories                  Tạo nhóm
@@ -671,6 +696,20 @@ async def complete_invoice(db, tenant_id, invoice_id, payments, cashier_id):
         # 3. Lock tồn kho — LOCK THEO product_id ASC để tránh deadlock
         #    (2 hóa đơn cùng SP A+B nhưng đảo thứ tự cart sẽ deadlock nếu không sort)
         product_ids = sorted({item.product_id for item in invoice.items})
+
+        # 3a. BẮT BUỘC: Upsert inventory row trước khi lock (PostgreSQL-level, không phải Python-level)
+        #     Vấn đề: 2 POS cùng bán SP allow_negative chưa có inventory row →
+        #       cả 2 SELECT FOR UPDATE thấy rỗng → cả 2 INSERT → Unique Violation
+        #     Fix: INSERT ON CONFLICT DO NOTHING (atomic ở DB) → đảm bảo row tồn tại trước khi lock
+        #     Chỉ cần thiết cho SP allow_negative=True, nhưng apply cho tất cả để code đơn giản hơn.
+        for pid in product_ids:
+            await db.execute(
+                insert(Inventory)
+                .values(tenant_id=tenant_id, product_id=pid, quantity=0)
+                .on_conflict_do_nothing(index_elements=["tenant_id", "product_id"])
+            )
+        await db.flush()
+
         inv_rows = (await db.execute(
             select(Inventory)
             .where(Inventory.tenant_id == tenant_id, Inventory.product_id.in_(product_ids))
@@ -679,12 +718,16 @@ async def complete_invoice(db, tenant_id, invoice_id, payments, cashier_id):
         )).scalars().all()
         inv_by_pid = {r.product_id: r for r in inv_rows}
 
-        # 4. Kiểm tra đủ tồn (gom toàn bộ thiếu để báo 1 lần, UX tốt hơn)
-        shortages = []
+        # 4. Kiểm tra đủ tồn — gom base_qty (quantity × conversion_rate)
+        base_qty_needed = {}
         for item in invoice.items:
-            current = inv_by_pid[item.product_id].quantity if item.product_id in inv_by_pid else 0
-            if current < item.quantity and not item.product.allow_negative:
-                shortages.append({'product_id': item.product_id, 'need': item.quantity, 'have': current})
+            rate = item.conversion_rate or 1
+            base_qty_needed[item.product_id] = base_qty_needed.get(item.product_id, 0) + item.quantity * rate
+        shortages = []
+        for pid, need in base_qty_needed.items():
+            current = inv_by_pid[pid].quantity if pid in inv_by_pid else 0
+            if current < need and not item.product.allow_negative:
+                shortages.append({'product_id': pid, 'need': need, 'have': current})
         if shortages:
             raise AppException('INSUFFICIENT_STOCK', details=shortages)
 
@@ -695,19 +738,24 @@ async def complete_invoice(db, tenant_id, invoice_id, payments, cashier_id):
         invoice.change_amount = max(0, total_paid - invoice.total)
         for item in invoice.items:
             item.cost_price = item.product.cost_price   # snapshot ngay tại đây
-        invoice.cost_total = sum(item.quantity * item.cost_price for item in invoice.items)
+        # cost_total tính theo base_qty (đơn vị cơ bản × giá vốn)
+        invoice.cost_total = sum(
+            (item.quantity * (item.conversion_rate or 1)) * item.cost_price
+            for item in invoice.items
+        )
 
         # 6. Tạo payments
         for p in payments:
             db.add(Payment(invoice_id=invoice.id, method=p.method, amount=p.amount))
 
-        # 7. Trừ tồn: ghi kardex (append-only) + update cache (inventory)
-        for item in invoice.items:
-            inv = inv_by_pid[item.product_id]
-            new_balance = inv.quantity - item.quantity
+        # 7. Trừ tồn: ghi kardex (append-only) + update cache (inventory) — luôn theo đơn vị cơ bản
+        for pid in sorted(base_qty_needed.keys()):
+            inv = inv_by_pid[pid]
+            base_qty = base_qty_needed[pid]
+            new_balance = inv.quantity - base_qty
             db.add(StockMovement(
-                tenant_id=tenant_id, product_id=item.product_id,
-                quantity=-item.quantity, unit_cost=item.cost_price,
+                tenant_id=tenant_id, product_id=pid,
+                quantity=-base_qty, unit_cost=products[pid].cost_price,
                 type='SALE', ref_type='INVOICE', ref_id=invoice.id,
                 balance_after=new_balance, created_by=cashier_id,
             ))
@@ -748,19 +796,34 @@ async def complete_goods_receipt(db, tenant_id, receipt_id, user_id):
         receipt.status = 'COMPLETED'
         receipt.completed_at = now()
 
+        # Gom base_qty và cost_value theo product_id (1 SP có thể nhiều dòng, nhiều đơn vị)
+        # base_qty = quantity × conversion_rate (nếu có unit), cost_per_base = cost_price / rate
+        qty_map: dict[int, Decimal] = {}   # product_id → sum_base_qty
+        cost_map: dict[int, Decimal] = {}  # product_id → sum_cost_value
         for item in receipt.items:
-            inv = inv_by_pid[item.product_id]
-            product = await get_product_for_update(db, tenant_id, item.product_id)
+            rate = item.conversion_rate if item.conversion_rate else Decimal('1')
+            base_qty = item.quantity * rate
+            cost_per_base = item.cost_price / rate
+            qty_map[item.product_id] = qty_map.get(item.product_id, Decimal('0')) + base_qty
+            cost_map[item.product_id] = cost_map.get(item.product_id, Decimal('0')) + cost_per_base * base_qty
+
+        for pid in sorted(qty_map.keys()):
+            inv = inv_by_pid[pid]
+            product = await get_product_for_update(db, tenant_id, pid)
+            sum_base_qty = qty_map[pid]
+            in_cost = cost_map[pid] / sum_base_qty  # giá vốn trung bình của lô nhập này
 
             old_stock = inv.quantity
             old_cost = product.cost_price
-            denom = old_stock + item.quantity
 
-            # Giá vốn bình quân — phòng chia 0 / âm khi allow_negative
-            if denom <= 0:
-                new_cost = item.cost_price          # fallback: dùng giá nhập lần này
+            # Giá vốn bình quân — chỉ tính khi old_stock > 0
+            # BẮT BUỘC: nếu old_stock <= 0 (âm do allow_negative hoặc = 0), dùng giá nhập mới
+            # Lý do: old_stock âm trong công thức tạo ra new_cost lớn hơn giá nhập thực → sai lệch lợi nhuận
+            # Ví dụ: old_stock=-2, old_cost=10, base_qty=5, in_cost=20 → (−20+100)/3 = 26.67 (sai) vs 20.00 (đúng)
+            if old_stock <= 0:
+                new_cost = in_cost
             else:
-                new_cost = (old_stock * old_cost + item.quantity * item.cost_price) / denom
+                new_cost = (old_stock * old_cost + sum_base_qty * in_cost) / (old_stock + sum_base_qty)
 
             # Ghi lịch sử giá nếu cost thay đổi
             if new_cost != old_cost:
@@ -771,11 +834,11 @@ async def complete_goods_receipt(db, tenant_id, receipt_id, user_id):
                 ))
                 product.cost_price = new_cost
 
-            # Ghi kardex + cộng tồn
-            new_balance = old_stock + item.quantity
+            # Ghi kardex + cộng tồn (luôn theo đơn vị cơ bản)
+            new_balance = old_stock + sum_base_qty
             db.add(StockMovement(
                 tenant_id=tenant_id, product_id=product.id,
-                quantity=+item.quantity, unit_cost=item.cost_price,
+                quantity=+sum_base_qty, unit_cost=in_cost,
                 type='RECEIPT', ref_type='GOODS_RECEIPT', ref_id=receipt.id,
                 balance_after=new_balance, created_by=user_id,
             ))

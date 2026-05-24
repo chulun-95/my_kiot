@@ -15,6 +15,7 @@ import useKeyboardShortcuts from '../../hooks/useKeyboardShortcuts';
 import { formatVND } from '../../utils/format';
 import { toFriendlyMessage } from '../../utils/errors';
 import type { PaymentInput } from '../../api/invoice';
+import MoneyInput from '../../components/MoneyInput';
 
 export default function POSScreen() {
   const user = useAuthStore((s) => s.user);
@@ -217,19 +218,17 @@ export default function POSScreen() {
               <span className="text-slate-600">Tạm tính</span>
               <span>{formatVND(subtotal)}</span>
             </div>
-            <label className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-sm gap-2">
               <span className="text-slate-600">Giảm hóa đơn</span>
-              <input
-                type="number"
-                min="0"
-                value={discount}
-                onChange={(e) =>
-                  usePosStore.getState().applyDiscount(Number(e.target.value))
-                }
-                className="w-28 px-2 py-1 border border-slate-300 rounded text-right"
-                aria-label="Giảm giá toàn hóa đơn"
-              />
-            </label>
+              <div className="w-36">
+                <MoneyInput
+                  value={discount}
+                  onChange={(v) => usePosStore.getState().applyDiscount(v)}
+                  className="w-full px-2 py-1 border border-slate-300 rounded"
+                  aria-label="Giảm giá toàn hóa đơn"
+                />
+              </div>
+            </div>
             <div className="flex justify-between text-base font-semibold">
               <span>Tổng</span>
               <span>{formatVND(total)}</span>

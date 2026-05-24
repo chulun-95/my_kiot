@@ -6,6 +6,8 @@ import type { ProductStatus } from '../../api/product';
 import type { CategoryNode } from '../../api/category';
 import { useAuthStore } from '../../stores/authStore';
 import { toFriendlyMessage } from '../../utils/errors';
+import FieldHint from '../../components/FieldHint';
+import MoneyInput from '../../components/MoneyInput';
 
 function flattenCategories(nodes: CategoryNode[], depth = 0): Array<{ id: number; label: string }> {
   const out: Array<{ id: number; label: string }> = [];
@@ -126,6 +128,7 @@ export default function ProductForm() {
       <form onSubmit={onSubmit} className="space-y-3 bg-white p-5 rounded border border-slate-200">
         <label className="block">
           <span className="text-sm text-slate-700">Tên sản phẩm *</span>
+          <FieldHint text="Tên hiển thị của SP trên POS, hóa đơn và báo cáo. Nên ngắn gọn, dễ tìm (ví dụ: Coca-Cola lon 330ml)." />
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -138,6 +141,7 @@ export default function ProductForm() {
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
             <span className="text-sm text-slate-700">SKU (để trống = tự sinh)</span>
+            <FieldHint text="Mã định danh nội bộ của SP trong shop. Nhập tay nếu có sẵn (vd COCA330) hoặc bỏ trống để hệ thống tự sinh dạng SP000001." />
             <input
               value={sku}
               onChange={(e) => setSku(e.target.value)}
@@ -147,6 +151,7 @@ export default function ProductForm() {
           </label>
           <label className="block">
             <span className="text-sm text-slate-700">Mã vạch</span>
+            <FieldHint text="Mã EAN-13 in trên bao bì để máy quét đọc tại POS. Bỏ trống nếu SP không có mã (hàng tự đóng gói, bán cân...)." />
             <input
               value={barcode}
               onChange={(e) => setBarcode(e.target.value)}
@@ -157,6 +162,7 @@ export default function ProductForm() {
         </div>
         <label className="block">
           <span className="text-sm text-slate-700">Nhóm hàng</span>
+          <FieldHint text="Phân loại SP để dễ tìm và lọc/báo cáo. Có thể chọn nhóm cha hoặc nhóm con (2 cấp). Có thể bỏ trống nếu chưa cần." />
           <select
             value={categoryId}
             onChange={(e) =>
@@ -174,6 +180,7 @@ export default function ProductForm() {
         </label>
         <label className="block">
           <span className="text-sm text-slate-700">Mô tả</span>
+          <FieldHint text="Ghi chú thêm về SP (thành phần, xuất xứ, lưu ý...). Chỉ xem trong màn quản lý, không in trên hóa đơn." />
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -184,6 +191,7 @@ export default function ProductForm() {
         <div className="grid grid-cols-3 gap-3">
           <label className="block">
             <span className="text-sm text-slate-700">Đơn vị</span>
+            <FieldHint text="Đơn vị tính khi bán: cái, gói, chai, lon, kg, lít, thùng... Hiển thị trên giỏ hàng POS và bill in." />
             <input
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
@@ -194,32 +202,35 @@ export default function ProductForm() {
           {isOwner && (
             <label className="block">
               <span className="text-sm text-slate-700">Giá vốn</span>
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                value={costPrice}
-                onChange={(e) => setCostPrice(e.target.value)}
-                className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
-              />
+              <FieldHint text="Giá nhập trung bình (bình quân gia quyền) — dùng để tính lợi nhuận. Hệ thống tự cập nhật mỗi lần nhập kho. Cashier không thấy giá vốn." />
+              <div className="mt-1">
+                <MoneyInput
+                  value={costPrice}
+                  onChange={(v) => setCostPrice(String(v))}
+                  className="w-full px-3 py-2 border border-slate-300 rounded"
+                  aria-label="Giá vốn"
+                />
+              </div>
             </label>
           )}
           <label className="block">
             <span className="text-sm text-slate-700">Giá bán *</span>
-            <input
-              type="number"
-              min={0}
-              step="0.01"
-              value={salePrice}
-              onChange={(e) => setSalePrice(e.target.value)}
-              required
-              className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
-            />
+            <FieldHint text="Giá mặc định khi thêm SP vào giỏ POS. Có thể chỉnh tay trên từng dòng hóa đơn nếu cần khuyến mãi/giảm giá." />
+            <div className="mt-1">
+              <MoneyInput
+                value={salePrice}
+                onChange={(v) => setSalePrice(String(v))}
+                className="w-full px-3 py-2 border border-slate-300 rounded"
+                aria-label="Giá bán"
+                required
+              />
+            </div>
           </label>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
             <span className="text-sm text-slate-700">Tồn tối thiểu (cảnh báo)</span>
+            <FieldHint text="Ngưỡng cảnh báo 'sắp hết hàng'. Khi tồn thực tế ≤ giá trị này, SP sẽ hiện trong báo cáo hàng cần nhập bổ sung. Để 0 = không cảnh báo." />
             <input
               type="number"
               min={0}
@@ -230,6 +241,7 @@ export default function ProductForm() {
           </label>
           <label className="block">
             <span className="text-sm text-slate-700">Trạng thái</span>
+            <FieldHint text="Đang bán = hiện trên POS. Ngừng bán = ẩn khỏi POS nhưng vẫn xem được lịch sử. Nháp = chưa public, dùng khi đang khai báo dở." />
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as ProductStatus)}
@@ -243,6 +255,7 @@ export default function ProductForm() {
         </div>
         <label className="block">
           <span className="text-sm text-slate-700">URL ảnh</span>
+          <FieldHint text="Đường dẫn ảnh SP để hiển thị trên POS và admin. Dán link ảnh từ web hoặc CDN. Bỏ trống sẽ dùng ảnh placeholder mặc định." />
           <input
             value={imageUrl}
             onChange={(e) => setImageUrl(e.target.value)}
@@ -257,6 +270,7 @@ export default function ProductForm() {
             onChange={(e) => setAllowNegative(e.target.checked)}
           />
           <span className="text-sm text-slate-700">Cho phép bán âm tồn</span>
+          <FieldHint text="Cho phép bán SP ngay cả khi tồn = 0 hoặc âm (ví dụ bán trước, nhập sau). Chỉ bật khi shop bạn thật sự cần — dễ sai lệch sổ kho." />
         </label>
 
         {error && (

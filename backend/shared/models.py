@@ -1,3 +1,4 @@
+from typing import Optional
 from datetime import datetime
 
 from sqlalchemy import DateTime, func
@@ -25,7 +26,7 @@ class TimestampMixin:
 
 
 class SoftDeleteMixin:
-    deleted_at: Mapped[datetime | None] = mapped_column(
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )

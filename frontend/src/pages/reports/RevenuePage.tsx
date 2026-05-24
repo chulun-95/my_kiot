@@ -133,9 +133,7 @@ export default function RevenuePage() {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="period" />
             <YAxis />
-            <Tooltip
-              formatter={(v: number | string) => formatVND(Number(v))}
-            />
+            <Tooltip formatter={(v) => formatVND(Number(v ?? 0))} />
             <Line
               type="monotone"
               dataKey="revenue"

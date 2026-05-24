@@ -18,7 +18,7 @@ describe('TopProductsPage', () => {
     expect(screen.getAllByText('Mì tôm Hảo Hảo').length).toBeGreaterThan(0);
     expect(screen.getByText('SP000002')).toBeInTheDocument();
     expect(screen.getAllByText('Coca 330ml').length).toBeGreaterThan(0);
-    expect(screen.getByText('600.000 đ')).toBeInTheDocument();
-    expect(screen.getByText('560.000 đ')).toBeInTheDocument();
+    expect(screen.getByText('600.000 VNĐ')).toBeInTheDocument();
+    expect(screen.getByText('560.000 VNĐ')).toBeInTheDocument();
   });
 });

@@ -13,9 +13,9 @@ describe('RevenuePage', () => {
     );
 
     expect(await screen.findByText('Tổng doanh thu')).toBeInTheDocument();
-    expect(screen.getAllByText('3.000.000 đ').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('3.000.000 VNĐ').length).toBeGreaterThan(0);
     expect(screen.getByText('Tổng lợi nhuận')).toBeInTheDocument();
-    expect(screen.getByText('900.000 đ')).toBeInTheDocument();
+    expect(screen.getByText('900.000 VNĐ')).toBeInTheDocument();
   });
 
   it('clicking "Xem báo cáo" re-fetches with current params', async () => {
