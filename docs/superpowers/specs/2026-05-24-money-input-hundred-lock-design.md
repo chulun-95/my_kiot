@@ -39,7 +39,7 @@ type Props = Omit<
 };
 ```
 
-**Thay đổi so với hiện tại:** bỏ prop `showZeroAsEmpty`. Hành vi mới luôn là "value=0 ⇒ input trống". Call site duy nhất đang dùng prop này là [POSScreen.tsx:231](../../frontend/src/pages/pos/POSScreen.tsx#L231) — cần xóa prop khi áp dụng.
+**Thay đổi so với hiện tại:** bỏ prop `showZeroAsEmpty`. Hành vi mới luôn là "value=0 ⇒ input trống". Call site duy nhất đang dùng prop này là [PaymentDialog.tsx:228](../../frontend/src/pages/pos/PaymentDialog.tsx#L228) — cần xóa prop khi áp dụng.
 
 ### Bất biến
 
@@ -130,9 +130,9 @@ User không cần — và không thể có nghĩa — đặt cursor giữa các 
 
 - [frontend/src/pages/products/ProductForm.tsx:207, 220](../../frontend/src/pages/products/ProductForm.tsx) — `cost_price`, `sale_price`
 - [frontend/src/pages/goodsReceipts/GoodsReceiptForm.tsx:190, 240](../../frontend/src/pages/goodsReceipts/GoodsReceiptForm.tsx) — item cost + paid total
-- [frontend/src/pages/pos/POSScreen.tsx:231](../../frontend/src/pages/pos/POSScreen.tsx) — tiền KH đưa. **Xóa prop `showZeroAsEmpty` ở đây.**
+- [frontend/src/pages/pos/POSScreen.tsx:231](../../frontend/src/pages/pos/POSScreen.tsx) — giảm giá toàn hóa đơn
 - [frontend/src/pages/pos/CartLine.tsx:38](../../frontend/src/pages/pos/CartLine.tsx) — override giá dòng
-- [frontend/src/pages/pos/PaymentDialog.tsx:219](../../frontend/src/pages/pos/PaymentDialog.tsx) — số tiền từng phương thức
+- [frontend/src/pages/pos/PaymentDialog.tsx:219](../../frontend/src/pages/pos/PaymentDialog.tsx) — số tiền từng phương thức (tiền KH đưa). **Xóa prop `showZeroAsEmpty` ở đây.**
 
 ### Backend / DB
 
