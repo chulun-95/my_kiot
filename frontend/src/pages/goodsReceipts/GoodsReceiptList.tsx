@@ -43,7 +43,7 @@ export default function GoodsReceiptList() {
   const [supplierId, setSupplierId] = useState<number | ''>('');
   const [suppliers, setSuppliers] = useState<SupplierResponse[]>([]);
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

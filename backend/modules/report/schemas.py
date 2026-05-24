@@ -16,8 +16,9 @@ class DashboardResponse(BaseModel):
     today_profit: Decimal
     today_customers: int
     pending_drafts: int
-    low_stock_count: int
-    inventory_value: Decimal  # tổng giá vốn tồn kho
+    low_stock_count: int       # gồm cả OUT_OF_STOCK + LOW
+    out_of_stock_count: int    # subset của low_stock_count: tồn ≤ 0
+    inventory_value: Decimal   # tổng giá vốn tồn kho
 
 
 # ---------- Revenue ----------

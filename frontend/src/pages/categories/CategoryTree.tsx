@@ -119,7 +119,7 @@ function CategoryForm({
 
 export default function CategoryTree() {
   const [items, setItems] = useState<CategoryNode[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<FormState | null>(null);
 

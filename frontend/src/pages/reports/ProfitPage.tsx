@@ -11,7 +11,7 @@ import { toFriendlyMessage } from '../../utils/errors';
 export default function ProfitPage() {
   const [range, setRange] = useState<DateRange>(() => defaultRangeLast30());
   const [data, setData] = useState<ProfitResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async (r: DateRange) => {

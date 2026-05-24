@@ -720,14 +720,31 @@ export const handlers = [
     HttpResponse.json({
       items: [
         {
+          product_id: 2,
+          product_sku: 'SP000002',
+          product_name: 'Coca 330ml',
+          unit: 'lon',
+          quantity: 0,
+          min_stock: 12,
+          severity: 'OUT_OF_STOCK',
+          shortage: 12,
+        },
+        {
           product_id: 1,
           product_sku: 'SP000001',
           product_name: 'Mì tôm Hảo Hảo',
           unit: 'gói',
           quantity: 3,
           min_stock: 10,
+          severity: 'LOW',
+          shortage: 7,
         },
       ],
+      summary: {
+        out_of_stock_count: 1,
+        low_count: 1,
+        total_count: 2,
+      },
     }),
   ),
   http.get('*/inventory/adjustments', () =>
@@ -1160,6 +1177,7 @@ export const handlers = [
       today_customers: 8,
       pending_drafts: 2,
       low_stock_count: 3,
+      out_of_stock_count: 1,
       inventory_value: 25000000,
     }),
   ),

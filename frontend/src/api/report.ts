@@ -7,6 +7,7 @@ export interface DashboardResponse {
   today_customers: number;
   pending_drafts: number;
   low_stock_count: number;
+  out_of_stock_count: number;
   inventory_value: number | string;
 }
 

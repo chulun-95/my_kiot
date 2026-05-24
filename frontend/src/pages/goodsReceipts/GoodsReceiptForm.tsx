@@ -8,6 +8,7 @@ import type { ProductBrief } from '../../api/product';
 import { formatVND } from '../../utils/format';
 import { toFriendlyMessage } from '../../utils/errors';
 import MoneyInput from '../../components/MoneyInput';
+import QtyInput from '../../components/QtyInput';
 
 interface LineItem {
   product_id: number;
@@ -24,6 +25,7 @@ export default function GoodsReceiptForm() {
   const [supplierId, setSupplierId] = useState<number | ''>('');
   const [lines, setLines] = useState<LineItem[]>([]);
   const [paidAmount, setPaidAmount] = useState<number>(0);
+  const [payFull, setPayFull] = useState(false);
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +45,10 @@ export default function GoodsReceiptForm() {
     () => lines.reduce((s, l) => s + l.quantity * l.cost_price, 0),
     [lines],
   );
+
+  useEffect(() => {
+    if (payFull) setPaidAmount(total);
+  }, [payFull, total]);
 
   const onPick = (p: ProductBrief) => {
     setLines((prev) => {
@@ -115,7 +121,7 @@ export default function GoodsReceiptForm() {
   };
 
   return (
-    <div className="space-y-4 max-w-5xl">
+    <div className="space-y-4">
       <h1 className="text-2xl font-semibold">Nhập hàng mới</h1>
 
       <div className="bg-white border border-slate-200 rounded p-4 space-y-3">
@@ -172,14 +178,9 @@ export default function GoodsReceiptForm() {
                   <td className="px-3 py-2">{l.product_name}</td>
                   <td className="px-3 py-2">{l.unit}</td>
                   <td className="px-3 py-2 text-right">
-                    <input
-                      type="number"
-                      step="0.001"
-                      min="0"
+                    <QtyInput
                       value={l.quantity}
-                      onChange={(e) =>
-                        updateLine(idx, { quantity: Number(e.target.value) })
-                      }
+                      onChange={(v) => updateLine(idx, { quantity: v })}
                       className="w-24 px-2 py-1 border border-slate-300 rounded text-right"
                       aria-label={`Số lượng ${l.product_name}`}
                     />
@@ -218,15 +219,34 @@ export default function GoodsReceiptForm() {
           <span className="font-semibold text-lg">{formatVND(total)}</span>
         </div>
         <div>
-          <label htmlFor="gr-paid-amount" className="block text-sm text-slate-600 mb-1">
-            Đã thanh toán
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label htmlFor="gr-paid-amount" className="text-sm text-slate-600">
+              Đã thanh toán
+            </label>
+            <label className="flex items-center gap-1.5 text-sm text-slate-600 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={payFull}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setPayFull(checked);
+                  if (checked) setPaidAmount(total);
+                }}
+                className="h-4 w-4"
+              />
+              Thanh toán đủ
+            </label>
+          </div>
           <MoneyInput
             id="gr-paid-amount"
             value={paidAmount}
-            onChange={(v) => setPaidAmount(v)}
-            className="w-full px-3 py-2 border border-slate-300 rounded"
+            onChange={(v) => {
+              setPaidAmount(v);
+              if (payFull && v !== total) setPayFull(false);
+            }}
+            className={`w-full px-3 py-2 border border-slate-300 rounded ${payFull ? 'bg-slate-50 text-slate-500' : ''}`}
             aria-label="Đã thanh toán"
+            disabled={payFull}
           />
         </div>
         <div>

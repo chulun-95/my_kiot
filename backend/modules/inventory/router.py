@@ -27,6 +27,7 @@ from backend.modules.inventory.schemas import (
     InventoryListResponse,
     LowStockItem,
     LowStockResponse,
+    LowStockSummary,
     MessageResponse,
     Pagination,
     StockMovementResponse,
@@ -225,10 +226,18 @@ async def list_inventory(
 @inventory_router.get("/low-stock", response_model=LowStockResponse)
 async def low_stock(
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
+    owner: Annotated[User, Depends(require_role("OWNER"))],
 ):
-    items = await inv_service.list_low_stock(db, user.current_tenant_id)
-    return LowStockResponse(items=[LowStockItem(**i) for i in items])
+    """Cảnh báo hàng sắp/hết — OWNER-only.
+
+    CASHIER không được xem để tránh phân tâm trong ca bán; chủ shop là người
+    chịu trách nhiệm đặt hàng và quyết định nhập kho.
+    """
+    data = await inv_service.list_low_stock(db, owner.current_tenant_id)
+    return LowStockResponse(
+        items=[LowStockItem(**i) for i in data["items"]],
+        summary=LowStockSummary(**data["summary"]),
+    )
 
 
 @inventory_router.post(

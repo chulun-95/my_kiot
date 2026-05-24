@@ -6,14 +6,19 @@ import { formatVND, formatQty } from '../../utils/format';
 import { toFriendlyMessage } from '../../utils/errors';
 import EmptyState from '../../components/EmptyState';
 import { SkeletonRow } from '../../components/Skeleton';
+import { useAuthStore } from '../../stores/authStore';
 
-function isLowStock(item: InventoryItem): boolean {
-  if (item.min_stock <= 0) return false;
+type LowStockTone = 'none' | 'low' | 'out';
+
+function lowStockTone(item: InventoryItem): LowStockTone {
+  if (item.min_stock <= 0) return 'none';
   const qty = Number(item.quantity);
-  return Number.isFinite(qty) && qty <= item.min_stock;
+  if (!Number.isFinite(qty) || qty > item.min_stock) return 'none';
+  return qty <= 0 ? 'out' : 'low';
 }
 
 export default function InventoryList() {
+  const isOwner = useAuthStore((s) => s.user?.role === 'OWNER');
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
@@ -24,7 +29,7 @@ export default function InventoryList() {
   const [search, setSearch] = useState('');
   const [onlyWithStock, setOnlyWithStock] = useState(false);
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -55,12 +60,14 @@ export default function InventoryList() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Tồn kho</h1>
-        <Link
-          to="/inventory/low-stock"
-          className="px-3 py-2 rounded border border-slate-300 text-sm"
-        >
-          Xem hàng sắp hết
-        </Link>
+        {isOwner && (
+          <Link
+            to="/inventory/low-stock"
+            className="px-3 py-2 rounded border border-rose-300 bg-rose-50 text-rose-700 text-sm font-medium hover:bg-rose-100"
+          >
+            Xem hàng sắp hết
+          </Link>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2 items-center">
@@ -131,7 +138,12 @@ export default function InventoryList() {
                   <td className="px-3 py-2">{it.unit}</td>
                   <td className="px-3 py-2 text-right">
                     <span className="font-medium">{formatQty(it.quantity as number)}</span>
-                    {isLowStock(it) && (
+                    {isOwner && lowStockTone(it) === 'out' && (
+                      <span className="ml-2 px-1.5 py-0.5 text-xs rounded bg-rose-100 text-rose-700 font-medium">
+                        Hết hàng
+                      </span>
+                    )}
+                    {isOwner && lowStockTone(it) === 'low' && (
                       <span className="ml-2 px-1.5 py-0.5 text-xs rounded bg-amber-100 text-amber-700">
                         Sắp hết
                       </span>

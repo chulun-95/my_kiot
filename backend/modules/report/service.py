@@ -64,9 +64,9 @@ async def dashboard(db: AsyncSession, tenant_id: int) -> dict[str, Any]:
     )
     pending_drafts = int(drafts_q.scalar() or 0)
 
-    # Low stock count
+    # Low stock — tách ra OUT_OF_STOCK (qty <= 0) vs LOW (0 < qty <= min)
     low_q = await db.execute(
-        select(func.count(Inventory.id))
+        select(Inventory.quantity)
         .join(Product, Product.id == Inventory.product_id)
         .where(
             Inventory.tenant_id == tenant_id,
@@ -76,7 +76,9 @@ async def dashboard(db: AsyncSession, tenant_id: int) -> dict[str, Any]:
             Inventory.quantity <= Product.min_stock,
         )
     )
-    low_stock_count = int(low_q.scalar() or 0)
+    low_rows = low_q.all()
+    out_of_stock_count = sum(1 for (q,) in low_rows if (q or 0) <= 0)
+    low_stock_count = len(low_rows)
 
     # Inventory value: sum(inventory.quantity * product.cost_price)
     inv_value_q = await db.execute(
@@ -100,6 +102,7 @@ async def dashboard(db: AsyncSession, tenant_id: int) -> dict[str, Any]:
         "today_customers": today_customers,
         "pending_drafts": pending_drafts,
         "low_stock_count": low_stock_count,
+        "out_of_stock_count": out_of_stock_count,
         "inventory_value": inventory_value,
     }
 

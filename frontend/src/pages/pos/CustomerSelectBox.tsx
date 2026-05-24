@@ -5,12 +5,14 @@ interface Props {
   customerId: number | null;
   customerName: string | null;
   onChange: (id: number | null, name: string | null) => void;
+  resetKey?: number;
 }
 
 export default function CustomerSelectBox({
   customerId,
   customerName,
   onChange,
+  resetKey = 0,
 }: Props) {
   const handle = (c: CustomerResponse | null) => {
     if (c) onChange(c.id, c.name);
@@ -19,12 +21,12 @@ export default function CustomerSelectBox({
 
   return (
     <div className="space-y-2">
-      <div className="text-sm text-slate-700">
-        {customerId
-          ? `Khách: ${customerName ?? 'Đã chọn'}`
-          : 'Khách lẻ (không gán)'}
-      </div>
-      <CustomerQuickSearch onPick={handle} allowGuest />
+      {customerId && (
+        <div className="text-sm text-slate-700">
+          Khách: {customerName ?? 'Đã chọn'}
+        </div>
+      )}
+      <CustomerQuickSearch key={resetKey} onPick={handle} allowGuest />
     </div>
   );
 }

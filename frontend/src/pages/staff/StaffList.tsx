@@ -13,7 +13,7 @@ export default function StaffList() {
     total_pages: 0,
   });
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modal, setModal] = useState<
     { mode: 'create' } | { mode: 'edit'; staff: StaffResponse } | null

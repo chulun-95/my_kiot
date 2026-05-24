@@ -23,7 +23,7 @@ export default function Kardex() {
     total_pages: 0,
   });
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {

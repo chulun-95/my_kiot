@@ -22,7 +22,7 @@ export default function RevenuePage() {
   const [range, setRange] = useState<DateRange>(() => defaultRangeLast30());
   const [groupBy, setGroupBy] = useState<RevenueGroupBy>('day');
   const [data, setData] = useState<RevenueResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(

@@ -146,6 +146,9 @@ class GoodsReceiptListResponse(BaseModel):
     pagination: Pagination
 
 
+LowStockSeverity = Literal["OUT_OF_STOCK", "LOW"]
+
+
 class LowStockItem(BaseModel):
     product_id: int
     product_sku: str
@@ -153,10 +156,19 @@ class LowStockItem(BaseModel):
     unit: str
     quantity: Decimal
     min_stock: int
+    severity: LowStockSeverity
+    shortage: Decimal  # min_stock - quantity (>= 0; > min_stock khi tồn âm)
+
+
+class LowStockSummary(BaseModel):
+    out_of_stock_count: int
+    low_count: int
+    total_count: int
 
 
 class LowStockResponse(BaseModel):
     items: list[LowStockItem]
+    summary: LowStockSummary
 
 
 # ---------- Stocktake / Adjustment ----------

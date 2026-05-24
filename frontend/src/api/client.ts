@@ -21,18 +21,25 @@ apiClient.interceptors.request.use((config) => {
 
 let refreshPromise: Promise<string | null> | null = null;
 
-async function refreshAccessToken(): Promise<string | null> {
+export async function refreshAccessToken(): Promise<string | null> {
   if (refreshPromise) return refreshPromise;
   refreshPromise = (async () => {
+    const rt = useAuthStore.getState().refreshToken;
+    if (!rt) return null;
     try {
       const res = await axios.post(
         `${baseURL}/auth/refresh`,
-        {},
+        { refresh_token: rt },
         { withCredentials: true, headers: { 'X-Requested-With': 'XMLHttpRequest' } },
       );
-      const token = (res.data?.access_token as string) || null;
-      if (token) useAuthStore.getState().setAccessToken(token);
-      return token;
+      const newAccess = (res.data?.access_token as string) || null;
+      const newRefresh = (res.data?.refresh_token as string) || null;
+      if (newAccess && newRefresh) {
+        useAuthStore.getState().setTokens(newAccess, newRefresh);
+      } else if (newAccess) {
+        useAuthStore.getState().setAccessToken(newAccess);
+      }
+      return newAccess;
     } catch {
       return null;
     } finally {

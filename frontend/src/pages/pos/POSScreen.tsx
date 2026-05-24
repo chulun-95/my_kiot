@@ -33,6 +33,7 @@ export default function POSScreen() {
   const [draftPanelOpen, setDraftPanelOpen] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
+  const [customerResetKey, setCustomerResetKey] = useState(0);
 
   const subtotal = usePosStore((s) => s.subtotal());
   const total = usePosStore((s) => s.total());
@@ -104,6 +105,7 @@ export default function POSScreen() {
       await usePosStore.getState().complete(payments, allowDebt);
       setPaymentOpen(false);
       setReceiptOpen(true);
+      setCustomerResetKey((k) => k + 1);
     } catch (err) {
       // shortages already set on store; surface message
       setPageError(toFriendlyMessage(err));
@@ -211,6 +213,7 @@ export default function POSScreen() {
             onChange={(id, name) =>
               usePosStore.getState().setCustomer(id, name)
             }
+            resetKey={customerResetKey}
           />
 
           <div className="space-y-2 border-t border-slate-100 pt-2">

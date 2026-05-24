@@ -24,7 +24,7 @@ export default function TopProductsPage() {
   const [range, setRange] = useState<DateRange>(() => defaultRangeLast30());
   const [limit, setLimit] = useState<number>(10);
   const [data, setData] = useState<TopProductsResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(

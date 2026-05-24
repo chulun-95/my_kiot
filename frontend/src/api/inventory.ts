@@ -23,6 +23,8 @@ export interface InventoryListResponse {
   pagination: Pagination;
 }
 
+export type LowStockSeverity = 'OUT_OF_STOCK' | 'LOW';
+
 export interface LowStockItem {
   product_id: number;
   product_sku: string;
@@ -30,10 +32,19 @@ export interface LowStockItem {
   unit: string;
   quantity: number | string;
   min_stock: number;
+  severity: LowStockSeverity;
+  shortage: number | string;
+}
+
+export interface LowStockSummary {
+  out_of_stock_count: number;
+  low_count: number;
+  total_count: number;
 }
 
 export interface LowStockResponse {
   items: LowStockItem[];
+  summary: LowStockSummary;
 }
 
 export type MovementType =

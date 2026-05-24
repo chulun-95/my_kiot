@@ -724,7 +724,12 @@ async def list_adjustments(
 
 async def list_low_stock(
     db: AsyncSession, tenant_id: int
-) -> list[dict[str, Any]]:
+) -> dict[str, Any]:
+    """Trả về SP tồn ≤ min_stock, kèm severity (OUT_OF_STOCK vs LOW) và summary.
+
+    OUT_OF_STOCK = đã hết hàng (quantity <= 0) → ưu tiên cao nhất.
+    LOW          = 0 < quantity <= min_stock.
+    """
     rows = (
         await db.execute(
             select(Inventory, Product)
@@ -740,14 +745,35 @@ async def list_low_stock(
         )
     ).all()
 
-    return [
-        {
-            "product_id": product.id,
-            "product_sku": product.sku,
-            "product_name": product.name,
-            "unit": product.unit,
-            "quantity": inv.quantity,
-            "min_stock": product.min_stock,
-        }
-        for inv, product in rows
-    ]
+    items: list[dict[str, Any]] = []
+    out_of_stock_count = 0
+    low_count = 0
+    for inv, product in rows:
+        qty = inv.quantity if inv.quantity is not None else Decimal("0")
+        if qty <= 0:
+            severity = "OUT_OF_STOCK"
+            out_of_stock_count += 1
+        else:
+            severity = "LOW"
+            low_count += 1
+        items.append(
+            {
+                "product_id": product.id,
+                "product_sku": product.sku,
+                "product_name": product.name,
+                "unit": product.unit,
+                "quantity": qty,
+                "min_stock": product.min_stock,
+                "severity": severity,
+                "shortage": Decimal(product.min_stock) - qty,
+            }
+        )
+
+    return {
+        "items": items,
+        "summary": {
+            "out_of_stock_count": out_of_stock_count,
+            "low_count": low_count,
+            "total_count": out_of_stock_count + low_count,
+        },
+    }

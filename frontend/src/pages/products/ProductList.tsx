@@ -35,7 +35,7 @@ export default function ProductList() {
   const [statusFilter, setStatusFilter] = useState<ProductStatus | ''>('');
   const [categories, setCategories] = useState<Array<{ id: number; label: string }>>([]);
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

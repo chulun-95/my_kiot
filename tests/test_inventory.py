@@ -279,20 +279,54 @@ async def test_inventory_movements_invalid_product(client, shop):
 @pytest.mark.asyncio
 async def test_low_stock_endpoint(client, registered_owner):
     h = _auth(registered_owner["access_token"])
-    p = (await client.post("/api/v1/products", json={
+    p_low = (await client.post("/api/v1/products", json={
         "name": "Low item", "sale_price": 1000, "min_stock": 10,
     }, headers=h)).json()
+    p_out = (await client.post("/api/v1/products", json={
+        "name": "Out item", "sale_price": 1000, "min_stock": 5,
+    }, headers=h)).json()
 
-    # nhập 5 (dưới min 10)
+    # nhập 5 cho p_low (dưới min 10 → LOW); p_out không nhập (tồn 0 → OUT_OF_STOCK)
     r = (await client.post("/api/v1/goods-receipts", json={
-        "items": [{"product_id": p["id"], "quantity": 5, "cost_price": 100}],
+        "items": [{"product_id": p_low["id"], "quantity": 5, "cost_price": 100}],
     }, headers=h)).json()
     await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
 
     low = await client.get("/api/v1/inventory/low-stock", headers=h)
     assert low.status_code == 200
-    items = low.json()["items"]
-    assert any(i["product_id"] == p["id"] for i in items)
+    body = low.json()
+    by_pid = {i["product_id"]: i for i in body["items"]}
+    assert by_pid[p_low["id"]]["severity"] == "LOW"
+    assert float(by_pid[p_low["id"]]["shortage"]) == 5.0
+    assert by_pid[p_out["id"]]["severity"] == "OUT_OF_STOCK"
+    assert float(by_pid[p_out["id"]]["shortage"]) == 5.0
+    assert body["summary"]["out_of_stock_count"] >= 1
+    assert body["summary"]["low_count"] >= 1
+    assert body["summary"]["total_count"] == (
+        body["summary"]["out_of_stock_count"] + body["summary"]["low_count"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_low_stock_endpoint_forbidden_for_cashier(client, registered_owner):
+    """CASHIER không được xem cảnh báo tồn — chỉ OWNER mới có quyền."""
+    owner_h = _auth(registered_owner["access_token"])
+    # Tạo CASHIER + login
+    await client.post(
+        "/api/v1/staff",
+        json={
+            "full_name": "Cashier", "phone": "0987111111", "password": "cashier123",
+        },
+        headers=owner_h,
+    )
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"phone": "0987111111", "password": "cashier123"},
+    )
+    cashier_h = _auth(login.json()["access_token"])
+
+    r = await client.get("/api/v1/inventory/low-stock", headers=cashier_h)
+    assert r.status_code == 403
 
 
 # ---------- List receipts ----------
