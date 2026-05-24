@@ -80,6 +80,21 @@ async def test_dashboard_low_stock(client, shop):
     r = await client.get("/api/v1/reports/dashboard", headers=h)
     body = r.json()
     assert body["low_stock_count"] >= 1
+    # tồn còn 4 > 0 → vẫn thuộc LOW, không tính OUT_OF_STOCK
+    assert "out_of_stock_count" in body
+    assert body["out_of_stock_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_dashboard_out_of_stock(client, shop):
+    h = shop["headers"]
+    # Bán hết toàn bộ tồn p1 → tồn = 0 → OUT_OF_STOCK
+    await _complete_invoice(client, h, shop["p1"]["id"], 100)
+
+    r = await client.get("/api/v1/reports/dashboard", headers=h)
+    body = r.json()
+    assert body["out_of_stock_count"] >= 1
+    assert body["low_stock_count"] >= body["out_of_stock_count"]
 
 
 @pytest.mark.asyncio

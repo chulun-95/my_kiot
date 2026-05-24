@@ -61,6 +61,7 @@ interface PosState {
   complete: (
     payments: PaymentInput[],
     allowDebt?: boolean,
+    payInFull?: boolean,
   ) => Promise<InvoiceResponse>;
   subtotal: () => number;
   total: () => number;
@@ -191,16 +192,25 @@ export const usePosStore = create<PosState>((set, get) => ({
     });
   },
 
-  complete: async (payments, allowDebt = false) => {
+  complete: async (payments, allowDebt = false, payInFull = false) => {
     set({ completing: true, shortages: null });
     try {
-      let draftId = get().draftId;
-      if (!draftId) {
-        const created = await get().hold();
-        draftId = created.id;
+      // Luôn sync draft với backend trước khi complete:
+      //  - Đảm bảo backend có items/discount mới nhất (vd: sửa giỏ sau khi restore).
+      //  - Lấy invoice.total chính chủ để dùng cho pay-in-full (không tin FE total).
+      const draft = await get().hold();
+      const draftId = draft.id;
+
+      let finalPayments = payments;
+      if (payInFull) {
+        const method = payments[0]?.method ?? 'CASH';
+        const backendTotal = Number(draft.total);
+        finalPayments =
+          backendTotal > 0 ? [{ method, amount: backendTotal }] : [];
       }
+
       const payload: InvoiceCompletePayload = {
-        payments,
+        payments: finalPayments,
         allow_debt: allowDebt,
       };
       try {

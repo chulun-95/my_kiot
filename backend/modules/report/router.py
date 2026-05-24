@@ -29,7 +29,7 @@ def _default_range(from_date: date | None, to_date: date | None) -> tuple[date, 
     f = from_date or (today - timedelta(days=30))
     t = to_date or today
     if f > t:
-        raise AppError(400, "INVALID_DATE_RANGE", "from > to")
+        raise AppError(400, "INVALID_DATE_RANGE", "Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc")
     return f, t
 
 

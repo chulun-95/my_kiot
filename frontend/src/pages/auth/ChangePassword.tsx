@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { changePassword } from '../../api/auth';
 import { toFriendlyMessage } from '../../utils/errors';
+import { viValidity } from '../../utils/validity';
 
 export default function ChangePassword() {
   const navigate = useNavigate();
@@ -58,6 +59,7 @@ export default function ChangePassword() {
             onChange={(e) => setCurrentPassword(e.target.value)}
             required
             className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            {...viValidity({ valueMissing: 'Vui lòng nhập mật khẩu hiện tại' })}
           />
         </label>
         <label className="block">
@@ -69,6 +71,10 @@ export default function ChangePassword() {
             required
             minLength={6}
             className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            {...viValidity({
+              valueMissing: 'Vui lòng nhập mật khẩu mới',
+              tooShort: 'Mật khẩu mới phải có ít nhất 6 ký tự',
+            })}
           />
         </label>
         <label className="block">
@@ -80,6 +86,10 @@ export default function ChangePassword() {
             required
             minLength={6}
             className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            {...viValidity({
+              valueMissing: 'Vui lòng xác nhận mật khẩu',
+              tooShort: 'Mật khẩu phải có ít nhất 6 ký tự',
+            })}
           />
         </label>
         {error && (

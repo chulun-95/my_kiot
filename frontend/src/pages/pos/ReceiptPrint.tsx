@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import type { InvoiceResponse } from '../../api/invoice';
 import type { Tenant } from '../../stores/authStore';
 import { formatVND, formatDate, formatQty } from '../../utils/format';
@@ -9,6 +10,23 @@ interface Props {
 }
 
 export default function ReceiptPrint({ invoice, tenant, onClose }: Props) {
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key === 'Enter' || e.key === 'p' || e.key === 'P') {
+        e.preventDefault();
+        window.print();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    }
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
   return (
     <div
       role="dialog"
@@ -113,19 +131,24 @@ export default function ReceiptPrint({ invoice, tenant, onClose }: Props) {
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 no-print">
-          <button
-            onClick={() => window.print()}
-            className="px-3 py-2 rounded bg-slate-900 text-white"
-          >
-            In ngay
-          </button>
-          <button
-            onClick={onClose}
-            className="px-3 py-2 rounded border border-slate-300"
-          >
-            Đóng
-          </button>
+        <div className="flex items-center justify-between gap-2 no-print">
+          <span className="text-[11px] text-slate-500">
+            Enter/P: In · Esc: Đóng
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => window.print()}
+              className="px-3 py-2 rounded bg-slate-900 text-white"
+            >
+              In ngay
+            </button>
+            <button
+              onClick={onClose}
+              className="px-3 py-2 rounded border border-slate-300"
+            >
+              Đóng
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState, type InputHTMLAttributes } from 'react';
+import { viValidity } from '../utils/validity';
 
 type Props = Omit<
   InputHTMLAttributes<HTMLInputElement>,
@@ -39,6 +40,11 @@ export default function QtyInput({
         if (text === '' || Number.isNaN(n)) setText(String(value));
       }}
       className={className}
+      {...viValidity({
+        rangeUnderflow: 'Số lượng không được nhỏ hơn 0',
+        typeMismatch: 'Vui lòng nhập số',
+        valueMissing: 'Vui lòng nhập số lượng',
+      })}
       {...rest}
     />
   );

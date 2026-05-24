@@ -925,6 +925,36 @@ stmt = select(Product).where(Product.tenant_id == request.query_params["tenant_i
 {"error": {"code": "INSUFFICIENT_STOCK", "message": "SP X chỉ còn 5, yêu cầu 10", "details": {...}}}
 ```
 
+### Ngôn ngữ thông báo — TIẾNG VIỆT (BẮT BUỘC)
+
+**Mọi thông báo lỗi / validation / toast hiển thị cho người dùng PHẢI bằng tiếng Việt.** Không có ngoại lệ.
+
+Áp dụng cho:
+- ✅ Backend: `AppException.message`, FastAPI `HTTPException.detail`, Pydantic validator error
+- ✅ Frontend: Zod/Yup schema messages, react-hook-form errors, toast/alert, label "required", placeholder
+- ✅ Native browser validation: dùng `setCustomValidity()` để override message tiếng Anh mặc định (vd: "Please fill out this field", "Please lengthen this text to 6 characters or more")
+- ✅ Catch error từ axios → map sang message tiếng Việt trước khi toast
+
+**Sai (KHÔNG được):**
+```tsx
+<input minLength={6} required />   // browser tự báo "Please lengthen this text..."
+z.string().min(6)                  // Zod tự báo "String must contain at least 6 character(s)"
+```
+
+**Đúng:**
+```tsx
+<input
+  minLength={6}
+  required
+  onInvalid={(e) => e.currentTarget.setCustomValidity('Mật khẩu phải có ít nhất 6 ký tự')}
+  onInput={(e) => e.currentTarget.setCustomValidity('')}
+/>
+
+z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự')
+```
+
+**Code lỗi (`error.code`) vẫn dùng tiếng Anh UPPER_SNAKE_CASE** (`INSUFFICIENT_STOCK`, `INVALID_PASSWORD`...) — chỉ `message` mới cần tiếng Việt.
+
 ### HTTP status codes
 
 200 (GET/PUT/PATCH OK), 201 (POST created), 400 (business rule fail), 401 (unauthenticated), 403 (forbidden), 404 (not found), 409 (conflict/duplicate), 422 (validation), 500 (server error)

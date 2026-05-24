@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as supplierApi from '../../api/supplier';
 import { toFriendlyMessage } from '../../utils/errors';
+import { viValidity } from '../../utils/validity';
 
 export default function SupplierForm() {
   const params = useParams<{ id?: string }>();
@@ -85,6 +86,10 @@ export default function SupplierForm() {
             minLength={1}
             maxLength={200}
             className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            {...viValidity({
+              valueMissing: 'Vui lòng nhập tên nhà cung cấp',
+              tooLong: 'Tên tối đa 200 ký tự',
+            })}
           />
         </label>
         <label className="block">
@@ -95,6 +100,7 @@ export default function SupplierForm() {
             onChange={(e) => setPhone(e.target.value)}
             maxLength={20}
             className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            {...viValidity({ tooLong: 'Số điện thoại tối đa 20 ký tự' })}
           />
         </label>
         <label className="block">
@@ -104,6 +110,7 @@ export default function SupplierForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            {...viValidity({ typeMismatch: 'Email không hợp lệ' })}
           />
         </label>
         <label className="block">
@@ -121,6 +128,7 @@ export default function SupplierForm() {
             onChange={(e) => setTaxCode(e.target.value)}
             maxLength={20}
             className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            {...viValidity({ tooLong: 'Mã số thuế tối đa 20 ký tự' })}
           />
         </label>
         <label className="block">

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import * as customerApi from '../../api/customer';
 import type { CustomerResponse } from '../../api/customer';
 import { toFriendlyMessage } from '../../utils/errors';
+import { viValidity } from '../../utils/validity';
 
 interface Props {
   mode: 'create' | 'edit';
@@ -65,6 +66,10 @@ export default function CustomerForm({ mode, initial, onSaved, onCancel }: Props
           minLength={1}
           maxLength={200}
           className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+          {...viValidity({
+            valueMissing: 'Vui lòng nhập tên khách hàng',
+            tooLong: 'Tên tối đa 200 ký tự',
+          })}
         />
       </label>
       <label className="block">
@@ -75,6 +80,7 @@ export default function CustomerForm({ mode, initial, onSaved, onCancel }: Props
           onChange={(e) => setPhone(e.target.value)}
           maxLength={20}
           className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+          {...viValidity({ tooLong: 'Số điện thoại tối đa 20 ký tự' })}
         />
         <span className="text-xs text-slate-500">
           Định dạng VN: bắt đầu 03/05/07/08/09, 10 chữ số
@@ -87,6 +93,7 @@ export default function CustomerForm({ mode, initial, onSaved, onCancel }: Props
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+          {...viValidity({ typeMismatch: 'Email không hợp lệ' })}
         />
       </label>
       <label className="block">

@@ -100,9 +100,13 @@ export default function POSScreen() {
     { enabled: true },
   );
 
-  const onComplete = async (payments: PaymentInput[], allowDebt: boolean) => {
+  const onComplete = async (
+    payments: PaymentInput[],
+    allowDebt: boolean,
+    payInFull: boolean,
+  ) => {
     try {
-      await usePosStore.getState().complete(payments, allowDebt);
+      await usePosStore.getState().complete(payments, allowDebt, payInFull);
       setPaymentOpen(false);
       setReceiptOpen(true);
       setCustomerResetKey((k) => k + 1);

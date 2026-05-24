@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import * as categoryApi from '../../api/category';
 import type { CategoryNode } from '../../api/category';
 import { toFriendlyMessage } from '../../utils/errors';
+import { viValidity } from '../../utils/validity';
 import FieldHint from '../../components/FieldHint';
 
 interface FormState {
@@ -79,6 +80,10 @@ function CategoryForm({
             minLength={1}
             maxLength={200}
             className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            {...viValidity({
+              valueMissing: 'Vui lòng nhập tên nhóm',
+              tooLong: 'Tên nhóm tối đa 200 ký tự',
+            })}
           />
         </label>
         <label className="block">
@@ -89,6 +94,7 @@ function CategoryForm({
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value)}
             className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            {...viValidity({ typeMismatch: 'Vui lòng nhập số' })}
           />
         </label>
         {error && (

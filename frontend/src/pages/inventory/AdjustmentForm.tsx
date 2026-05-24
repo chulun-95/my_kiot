@@ -6,6 +6,7 @@ import ProductPicker from '../../components/ProductPicker';
 import type { ProductBrief } from '../../api/product';
 import { formatQty } from '../../utils/format';
 import { toFriendlyMessage } from '../../utils/errors';
+import { viValidity } from '../../utils/validity';
 
 interface Row {
   product_id: number;
@@ -185,6 +186,10 @@ export default function AdjustmentForm() {
                       }
                       className="w-24 px-2 py-1 border border-slate-300 rounded text-right"
                       aria-label={`Tồn mới ${r.product_name}`}
+                      {...viValidity({
+                        rangeUnderflow: 'Tồn mới không được nhỏ hơn 0',
+                        typeMismatch: 'Vui lòng nhập số',
+                      })}
                     />
                   </td>
                   <td className="px-3 py-2">

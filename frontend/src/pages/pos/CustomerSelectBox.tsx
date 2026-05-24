@@ -19,13 +19,20 @@ export default function CustomerSelectBox({
     else onChange(null, null);
   };
 
+  const displayName = customerId ? customerName ?? 'Đã chọn' : 'Vãng lai';
+
   return (
     <div className="space-y-2">
-      {customerId && (
-        <div className="text-sm text-slate-700">
-          Khách: {customerName ?? 'Đã chọn'}
-        </div>
-      )}
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-slate-600">Khách:</span>
+        <span
+          className={`font-semibold ${
+            customerId ? 'text-slate-900' : 'text-slate-500 italic'
+          }`}
+        >
+          {displayName}
+        </span>
+      </div>
       <CustomerQuickSearch key={resetKey} onPick={handle} allowGuest />
     </div>
   );

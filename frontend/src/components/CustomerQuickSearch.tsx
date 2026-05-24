@@ -1,8 +1,9 @@
-import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import type { AxiosError } from 'axios';
 import * as customerApi from '../api/customer';
 import type { CustomerResponse } from '../api/customer';
 import { toFriendlyMessage } from '../utils/errors';
+import { viValidity } from '../utils/validity';
 
 interface Props {
   onPick: (customer: CustomerResponse | null) => void;
@@ -21,41 +22,58 @@ export default function CustomerQuickSearch({
   const [newName, setNewName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const lookupSeq = useRef(0);
 
   useEffect(() => {
     setNotFound(false);
     setPicked(null);
   }, [phone]);
 
-  const lookup = async () => {
+  const lookup = async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent ?? false;
     const p = phone.trim();
     if (!/^\d{9,11}$/.test(p)) {
-      setError('Số điện thoại không hợp lệ');
+      if (!silent) setError('Số điện thoại không hợp lệ');
       return;
     }
     setError(null);
     setLoading(true);
+    const seq = ++lookupSeq.current;
     try {
       const c = await customerApi.getCustomerByPhone(p);
+      if (seq !== lookupSeq.current) return;  // outdated response
       setPicked(c);
       onPick(c);
       setNotFound(false);
     } catch (err) {
+      if (seq !== lookupSeq.current) return;
       const ax = err as AxiosError;
       if (ax.response?.status === 404) {
-        setNotFound(true);
-      } else {
+        if (!silent) setNotFound(true);
+      } else if (!silent) {
         setError(toFriendlyMessage(err));
       }
     } finally {
-      setLoading(false);
+      if (seq === lookupSeq.current) setLoading(false);
     }
   };
+
+  // Auto-lookup khi vừa đủ 10 số (định dạng VN phổ biến): debounce nhẹ để gõ xong mới tra
+  useEffect(() => {
+    const p = phone.trim();
+    if (!/^\d{10}$/.test(p)) return;
+    if (picked && picked.phone === p) return;
+    const handle = setTimeout(() => {
+      void lookup({ silent: true });
+    }, 250);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phone]);
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      lookup();
+      void lookup();
     }
   };
 
@@ -87,7 +105,7 @@ export default function CustomerQuickSearch({
           onChange={(e) => setPhone(e.target.value)}
           onKeyDown={onKeyDown}
           onBlur={() => {
-            if (phone.trim() && !picked) lookup();
+            if (phone.trim() && !picked) void lookup();
           }}
           placeholder="SĐT khách hàng"
           aria-label="Số điện thoại khách hàng"
@@ -95,7 +113,7 @@ export default function CustomerQuickSearch({
         />
         <button
           type="button"
-          onClick={lookup}
+          onClick={() => void lookup()}
           disabled={loading}
           className="px-3 py-2 rounded border border-slate-300 disabled:opacity-50"
         >
@@ -142,6 +160,7 @@ export default function CustomerQuickSearch({
             placeholder="Tên khách hàng"
             required
             className="w-full px-3 py-2 border border-slate-300 rounded"
+            {...viValidity({ valueMissing: 'Vui lòng nhập tên khách hàng' })}
           />
           <button
             type="submit"

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { toFriendlyMessage } from '../../utils/errors';
+import { viValidity } from '../../utils/validity';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -54,6 +55,10 @@ export default function Register() {
             required
             minLength={2}
             className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            {...viValidity({
+              valueMissing: 'Vui lòng nhập tên shop',
+              tooShort: 'Tên shop phải có ít nhất 2 ký tự',
+            })}
           />
         </label>
 
@@ -65,6 +70,10 @@ export default function Register() {
             required
             minLength={2}
             className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            {...viValidity({
+              valueMissing: 'Vui lòng nhập tên chủ shop',
+              tooShort: 'Tên chủ shop phải có ít nhất 2 ký tự',
+            })}
           />
         </label>
 
@@ -76,6 +85,9 @@ export default function Register() {
             onChange={(e) => setPhone(e.target.value)}
             required
             className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            {...viValidity({
+              valueMissing: 'Vui lòng nhập số điện thoại',
+            })}
           />
         </label>
 
@@ -86,6 +98,9 @@ export default function Register() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            {...viValidity({
+              typeMismatch: 'Email không hợp lệ',
+            })}
           />
         </label>
 
@@ -98,6 +113,10 @@ export default function Register() {
             required
             minLength={6}
             className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            {...viValidity({
+              valueMissing: 'Vui lòng nhập mật khẩu',
+              tooShort: 'Mật khẩu phải có ít nhất 6 ký tự',
+            })}
           />
         </label>
 

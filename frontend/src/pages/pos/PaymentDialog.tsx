@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, type KeyboardEvent } from 'react';
 import type { PaymentMethod, PaymentInput } from '../../api/invoice';
-import { formatVND } from '../../utils/format';
 import { toFriendlyMessage } from '../../utils/errors';
 import MoneyInput from '../../components/MoneyInput';
 
@@ -8,7 +7,11 @@ interface Props {
   open: boolean;
   total: number;
   onClose: () => void;
-  onComplete: (payments: PaymentInput[], allowDebt: boolean) => Promise<void>;
+  onComplete: (
+    payments: PaymentInput[],
+    allowDebt: boolean,
+    payInFull: boolean,
+  ) => Promise<void>;
 }
 
 interface PaymentRow {
@@ -24,6 +27,9 @@ const METHODS: Array<{ value: PaymentMethod; label: string }> = [
   { value: 'OTHER', label: 'Khác' },
 ];
 
+const numFormatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
+const formatNumber = (n: number) => numFormatter.format(Math.round(Math.max(0, n)));
+
 export default function PaymentDialog({
   open,
   total,
@@ -31,15 +37,16 @@ export default function PaymentDialog({
   onComplete,
 }: Props) {
   const [rows, setRows] = useState<PaymentRow[]>([
-    { method: 'CASH', amount: total },
+    { method: 'CASH', amount: 0 },
   ]);
   const [allowDebt, setAllowDebt] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const completeBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (open) {
-      setRows([{ method: 'CASH', amount: Math.round(total) }]);
+      setRows([{ method: 'CASH', amount: 0 }]);
       setAllowDebt(false);
       setError(null);
     }
@@ -48,8 +55,10 @@ export default function PaymentDialog({
   if (!open) return null;
 
   const paid = rows.reduce((s, r) => s + (r.amount || 0), 0);
-  const change = Math.max(0, paid - total);
-  const missing = Math.max(0, total - paid);
+  const treatAsExact = paid === 0;
+  const effectivePaid = treatAsExact ? total : paid;
+  const change = Math.max(0, effectivePaid - total);
+  const missing = Math.max(0, total - effectivePaid);
 
   const updateRow = (idx: number, patch: Partial<PaymentRow>) => {
     setRows((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
@@ -62,16 +71,24 @@ export default function PaymentDialog({
   const handleComplete = async () => {
     if (submitting) return;
     if (missing > 0 && !allowDebt) {
-      setError('Số tiền thanh toán chưa đủ. Bật "Cho phép nợ" để tiếp tục.');
+      setError('Số tiền khách đưa chưa đủ. Bật "Cho phép nợ" để tiếp tục.');
       return;
     }
     setError(null);
     setSubmitting(true);
     try {
-      const payments = rows
-        .filter((r) => r.amount > 0)
-        .map<PaymentInput>((r) => ({ method: r.method, amount: r.amount }));
-      await onComplete(payments, allowDebt);
+      let payments: PaymentInput[];
+      if (treatAsExact) {
+        // Không tự chế số ở FE — đẩy cờ pay-in-full xuống store để dùng đúng
+        // invoice.total backend đã tính (tránh lệch precision/discount snapshot).
+        const method = rows[0]?.method ?? 'CASH';
+        payments = [{ method, amount: 0 }];
+      } else {
+        payments = rows
+          .filter((r) => r.amount > 0)
+          .map<PaymentInput>((r) => ({ method: r.method, amount: r.amount }));
+      }
+      await onComplete(payments, allowDebt, treatAsExact);
     } catch (err) {
       setError(toFriendlyMessage(err));
     } finally {
@@ -79,111 +96,272 @@ export default function PaymentDialog({
     }
   };
 
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'BUTTON') {
+      e.preventDefault();
+      void handleComplete();
+    }
+  };
+
   return (
     <div
       role="dialog"
       aria-label="Thanh toán"
-      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+      onKeyDown={handleKeyDown}
+      className="fixed inset-0 bg-slate-950/55 z-50 flex items-center justify-center p-4 backdrop-blur-[2px]"
     >
-      <div className="bg-white rounded shadow-lg w-full max-w-lg p-5 space-y-3">
-        <h2 className="text-lg font-semibold">Thanh toán</h2>
-        <div className="text-sm text-slate-600">
-          Tổng phải trả: <span className="font-semibold text-slate-900">{formatVND(total)}</span>
-        </div>
-
-        <div className="space-y-2">
-          {rows.map((r, idx) => (
-            <div key={idx} className="flex gap-2 items-center">
-              <select
-                value={r.method}
-                onChange={(e) =>
-                  updateRow(idx, { method: e.target.value as PaymentMethod })
-                }
-                aria-label={`Phương thức thanh toán ${idx + 1}`}
-                className="px-2 py-2 border border-slate-300 rounded"
-              >
-                {METHODS.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-              <MoneyInput
-                value={r.amount}
-                onChange={(v) => updateRow(idx, { amount: v })}
-                aria-label={`Số tiền ${idx + 1}`}
-                className="flex-1 px-2 py-2 border border-slate-300 rounded"
-              />
-              {rows.length > 1 && (
-                <button
-                  onClick={() => removeRow(idx)}
-                  className="px-2 py-1 rounded border border-rose-300 text-rose-700 text-xs"
-                  aria-label={`Xóa dòng thanh toán ${idx + 1}`}
-                >
-                  X
-                </button>
-              )}
-            </div>
-          ))}
+      <div
+        className="bg-white rounded-2xl shadow-[0_20px_60px_-15px_rgba(15,23,42,0.35)] ring-1 ring-slate-200/60 w-full max-w-md overflow-hidden"
+      >
+        {/* Header bar */}
+        <div className="flex items-center justify-between px-6 pt-5 pb-3">
+          <span className="text-[11px] font-semibold tracking-[0.22em] text-slate-500 uppercase">
+            Thanh toán
+          </span>
           <button
-            onClick={addRow}
-            className="text-sm text-slate-700 underline"
-            type="button"
+            onClick={onClose}
+            className="text-[10px] tracking-wider text-slate-400 hover:text-slate-700 transition-colors flex items-center gap-1.5"
+            aria-label="Đóng (Esc)"
           >
-            + Thêm phương thức
+            <kbd className="font-mono text-[10px] px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-500">
+              ESC
+            </kbd>
           </button>
         </div>
 
-        <div className="text-sm space-y-1 border-t border-slate-100 pt-3">
-          <div className="flex justify-between">
-            <span>Khách trả</span>
-            <span>{formatVND(paid)}</span>
+        {/* Total — hero */}
+        <div className="px-6 pb-5">
+          <div className="text-[10px] font-semibold tracking-[0.28em] text-slate-400 uppercase mb-2.5">
+            Tổng phải trả
           </div>
-          {change > 0 && (
-            <div className="flex justify-between text-emerald-700">
-              <span>Tiền thừa</span>
-              <span>{formatVND(change)}</span>
-            </div>
-          )}
-          {missing > 0 && (
-            <div className="space-y-1">
-              <div className="flex justify-between text-rose-700">
-                <span>Còn thiếu</span>
-                <span>{formatVND(missing)}</span>
-              </div>
-              <label className="flex items-center gap-2 text-xs">
-                <input
-                  type="checkbox"
-                  checked={allowDebt}
-                  onChange={(e) => setAllowDebt(e.target.checked)}
-                  aria-label="Cho phép nợ"
-                />
-                Cho phép nợ
-              </label>
-            </div>
-          )}
+          <div className="flex items-baseline gap-2 whitespace-nowrap">
+            <span
+              aria-hidden
+              className="text-3xl font-light text-slate-300 font-mono leading-none translate-y-[2px]"
+            >
+              ₫
+            </span>
+            <span className="text-[3.25rem] font-bold text-slate-900 tabular-nums leading-none tracking-[-0.02em] font-mono">
+              {formatNumber(total)}
+            </span>
+          </div>
         </div>
 
+        {/* Divider */}
+        <div className="h-px bg-slate-100" />
+
+        {/* Payment rows — ledger entries */}
+        <div className="px-6 py-4 space-y-3">
+          {rows.map((r, idx) => {
+            const isCash = r.method === 'CASH';
+            const rowNumber = (idx + 1).toString().padStart(2, '0');
+            return (
+              <div key={idx} className="flex items-start gap-3 group">
+                {/* Row number */}
+                <div className="pt-2 select-none">
+                  <span className="text-[10px] font-mono text-slate-300 tracking-wider tabular-nums">
+                    {rowNumber}
+                  </span>
+                </div>
+
+                {/* Method picker (full-width) + amount input stacked */}
+                <div className="flex-1 space-y-1.5 min-w-0">
+                  {/* Method picker — full width, standalone */}
+                  <label
+                    className="relative flex items-center gap-2 px-3 py-2 rounded-md bg-slate-50 ring-1 ring-slate-200 hover:ring-slate-300 hover:bg-slate-100/80 focus-within:ring-slate-900 focus-within:bg-white transition-all cursor-pointer group/method"
+                  >
+                    <span
+                      aria-hidden
+                      className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"
+                    />
+                    <select
+                      value={r.method}
+                      onChange={(e) =>
+                        updateRow(idx, {
+                          method: e.target.value as PaymentMethod,
+                        })
+                      }
+                      aria-label={`Phương thức thanh toán ${idx + 1}`}
+                      className="appearance-none bg-transparent flex-1 text-[11px] font-semibold tracking-[0.14em] uppercase text-slate-700 cursor-pointer focus:outline-none pr-5"
+                    >
+                      {METHODS.map((m) => (
+                        <option key={m.value} value={m.value}>
+                          {m.label}
+                        </option>
+                      ))}
+                    </select>
+                    <svg
+                      aria-hidden
+                      width="10"
+                      height="6"
+                      viewBox="0 0 10 6"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover/method:text-slate-700 transition-colors"
+                    >
+                      <path
+                        d="M1 1l4 4 4-4"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </label>
+
+                  {/* Amount input — full width */}
+                  <div className="flex items-baseline gap-2 px-3 py-2.5 rounded-md ring-1 ring-slate-200 bg-white hover:ring-slate-300 focus-within:ring-slate-900 focus-within:shadow-[0_0_0_3px_rgba(15,23,42,0.05)] transition-all">
+                    <span
+                      aria-hidden
+                      className="text-base font-light text-slate-300 font-mono leading-none translate-y-[2px] select-none"
+                    >
+                      ₫
+                    </span>
+                    <MoneyInput
+                      value={r.amount}
+                      onChange={(v) => updateRow(idx, { amount: v })}
+                      aria-label={
+                        isCash
+                          ? `Tiền khách đưa ${idx + 1}`
+                          : `Số tiền ${idx + 1}`
+                      }
+                      placeholder={isCash ? 'Tiền khách đưa…' : 'Số tiền'}
+                      showZeroAsEmpty
+                      hideCurrency
+                      autoFocus={idx === 0}
+                      className="flex-1 min-w-0 bg-transparent text-right text-xl font-semibold text-slate-900 placeholder:text-slate-300 placeholder:font-normal placeholder:text-[13px] focus:outline-none tabular-nums font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Remove row */}
+                {rows.length > 1 ? (
+                  <button
+                    onClick={() => removeRow(idx)}
+                    className="text-slate-300 hover:text-rose-600 transition-colors text-base w-6 h-9 flex items-center justify-center mt-px"
+                    aria-label={`Xóa dòng thanh toán ${idx + 1}`}
+                  >
+                    ✕
+                  </button>
+                ) : (
+                  <span aria-hidden className="w-6 shrink-0" />
+                )}
+              </div>
+            );
+          })}
+
+          <div className="pl-7">
+            <button
+              onClick={addRow}
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.14em] uppercase text-slate-400 hover:text-slate-900 transition-colors"
+              type="button"
+            >
+              <span className="text-base leading-none translate-y-[-1px]">＋</span>
+              <span>Thêm phương thức</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="h-px bg-slate-100" />
+
+        {/* Result strip */}
+        {treatAsExact ? (
+          <div className="px-6 py-4 text-xs text-slate-500 flex items-baseline justify-between">
+            <span>Để trống nếu khách trả đúng đủ</span>
+            <span className="text-slate-400">
+              bấm{' '}
+              <kbd className="font-mono text-[10px] px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-600">
+                Enter
+              </kbd>{' '}
+              là xong
+            </span>
+          </div>
+        ) : change > 0 ? (
+          <div
+            role="status"
+            aria-label="Tiền thừa cho khách"
+            className="px-6 py-4 bg-emerald-50/80 border-t border-emerald-100 flex items-baseline justify-between"
+          >
+            <span className="text-[10px] font-semibold tracking-[0.25em] text-emerald-700 uppercase">
+              Tiền thừa
+            </span>
+            <div className="flex items-baseline gap-1.5 whitespace-nowrap">
+              <span
+                aria-hidden
+                className="text-xl font-light text-emerald-400 font-mono leading-none translate-y-[1px]"
+              >
+                ₫
+              </span>
+              <span className="text-3xl font-bold text-emerald-700 tabular-nums leading-none tracking-tight font-mono">
+                {formatNumber(change)}
+              </span>
+            </div>
+          </div>
+        ) : missing > 0 ? (
+          <div className="px-6 py-4 bg-rose-50/80 border-t border-rose-100 space-y-2.5">
+            <div className="flex items-baseline justify-between">
+              <span className="text-[10px] font-semibold tracking-[0.25em] text-rose-700 uppercase">
+                Còn thiếu
+              </span>
+              <div className="flex items-baseline gap-1.5 whitespace-nowrap">
+                <span
+                  aria-hidden
+                  className="text-xl font-light text-rose-400 font-mono leading-none translate-y-[1px]"
+                >
+                  ₫
+                </span>
+                <span className="text-3xl font-bold text-rose-700 tabular-nums leading-none tracking-tight font-mono">
+                  {formatNumber(missing)}
+                </span>
+              </div>
+            </div>
+            <label className="flex items-center gap-2 text-[11px] text-rose-700 select-none cursor-pointer">
+              <input
+                type="checkbox"
+                checked={allowDebt}
+                onChange={(e) => setAllowDebt(e.target.checked)}
+                aria-label="Cho phép nợ"
+                className="accent-rose-600"
+              />
+              Cho phép nợ — khách trả thiếu
+            </label>
+          </div>
+        ) : (
+          <div className="px-6 py-4 text-xs text-slate-500">
+            Khách đưa vừa đủ — không cần thối lại.
+          </div>
+        )}
+
         {error && (
-          <div role="alert" className="text-sm text-rose-600">
+          <div
+            role="alert"
+            className="px-6 pb-3 text-xs text-rose-600"
+          >
             {error}
           </div>
         )}
 
-        <div className="flex justify-end gap-2 pt-2">
+        {/* Actions */}
+        <div className="px-6 py-4 bg-slate-50/60 border-t border-slate-100 flex items-center justify-end gap-2">
           <button
             onClick={onClose}
             disabled={submitting}
-            className="px-3 py-2 rounded border border-slate-300"
+            className="px-4 py-2.5 text-sm text-slate-600 hover:text-slate-900 transition-colors disabled:opacity-50"
           >
             Đóng
           </button>
           <button
+            ref={completeBtnRef}
             onClick={handleComplete}
             disabled={submitting}
-            className="px-4 py-2 rounded bg-emerald-700 text-white disabled:opacity-50"
+            className="group px-5 py-2.5 rounded-lg bg-emerald-700 text-white text-sm font-semibold shadow-sm shadow-emerald-700/20 hover:bg-emerald-800 active:bg-emerald-900 transition-colors disabled:opacity-60 flex items-center gap-2.5"
           >
-            {submitting ? 'Đang xử lý...' : 'Hoàn tất'}
+            <span>{submitting ? 'Đang xử lý…' : 'Hoàn tất'}</span>
+            {!submitting && (
+              <kbd className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-white/15 text-white/80 group-hover:bg-white/20 transition-colors">
+                ↵
+              </kbd>
+            )}
           </button>
         </div>
       </div>

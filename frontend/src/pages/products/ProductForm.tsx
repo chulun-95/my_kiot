@@ -6,6 +6,7 @@ import type { ProductStatus } from '../../api/product';
 import type { CategoryNode } from '../../api/category';
 import { useAuthStore } from '../../stores/authStore';
 import { toFriendlyMessage } from '../../utils/errors';
+import { viValidity } from '../../utils/validity';
 import FieldHint from '../../components/FieldHint';
 import MoneyInput from '../../components/MoneyInput';
 
@@ -136,6 +137,10 @@ export default function ProductForm() {
             minLength={1}
             maxLength={300}
             className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            {...viValidity({
+              valueMissing: 'Vui lòng nhập tên sản phẩm',
+              tooLong: 'Tên sản phẩm tối đa 300 ký tự',
+            })}
           />
         </label>
         <div className="grid grid-cols-2 gap-3">
@@ -147,6 +152,7 @@ export default function ProductForm() {
               onChange={(e) => setSku(e.target.value)}
               maxLength={50}
               className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+              {...viValidity({ tooLong: 'SKU tối đa 50 ký tự' })}
             />
           </label>
           <label className="block">
@@ -157,6 +163,7 @@ export default function ProductForm() {
               onChange={(e) => setBarcode(e.target.value)}
               maxLength={50}
               className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+              {...viValidity({ tooLong: 'Mã vạch tối đa 50 ký tự' })}
             />
           </label>
         </div>
@@ -197,6 +204,7 @@ export default function ProductForm() {
               onChange={(e) => setUnit(e.target.value)}
               maxLength={30}
               className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+              {...viValidity({ tooLong: 'Đơn vị tối đa 30 ký tự' })}
             />
           </label>
           {isOwner && (
@@ -237,6 +245,10 @@ export default function ProductForm() {
               value={minStock}
               onChange={(e) => setMinStock(e.target.value)}
               className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+              {...viValidity({
+                rangeUnderflow: 'Tồn tối thiểu không được nhỏ hơn 0',
+                typeMismatch: 'Vui lòng nhập số',
+              })}
             />
           </label>
           <label className="block">
@@ -261,6 +273,7 @@ export default function ProductForm() {
             onChange={(e) => setImageUrl(e.target.value)}
             maxLength={500}
             className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            {...viValidity({ tooLong: 'URL ảnh tối đa 500 ký tự' })}
           />
         </label>
         <label className="flex items-center gap-2">

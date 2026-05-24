@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import * as staffApi from '../../api/staff';
 import type { StaffResponse } from '../../api/staff';
 import { toFriendlyMessage } from '../../utils/errors';
+import { viValidity } from '../../utils/validity';
 
 interface Props {
   mode: 'create' | 'edit';
@@ -66,6 +67,10 @@ export default function StaffForm({ mode, initial, onClose, onSaved }: Props) {
             required
             minLength={2}
             className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            {...viValidity({
+              valueMissing: 'Vui lòng nhập họ tên',
+              tooShort: 'Họ tên phải có ít nhất 2 ký tự',
+            })}
           />
         </label>
         <label className="block">
@@ -77,6 +82,7 @@ export default function StaffForm({ mode, initial, onClose, onSaved }: Props) {
             required={mode === 'create'}
             disabled={mode === 'edit'}
             className="mt-1 w-full px-3 py-2 border border-slate-300 rounded disabled:bg-slate-100"
+            {...viValidity({ valueMissing: 'Vui lòng nhập số điện thoại' })}
           />
         </label>
         <label className="block">
@@ -86,6 +92,7 @@ export default function StaffForm({ mode, initial, onClose, onSaved }: Props) {
             value={email ?? ''}
             onChange={(e) => setEmail(e.target.value)}
             className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            {...viValidity({ typeMismatch: 'Email không hợp lệ' })}
           />
         </label>
         {mode === 'create' && (
@@ -98,6 +105,10 @@ export default function StaffForm({ mode, initial, onClose, onSaved }: Props) {
               required
               minLength={6}
               className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+              {...viValidity({
+                valueMissing: 'Vui lòng nhập mật khẩu',
+                tooShort: 'Mật khẩu phải có ít nhất 6 ký tự',
+              })}
             />
           </label>
         )}
