@@ -234,18 +234,30 @@ async def test_search_products_endpoint(client, registered_owner):
     await client.post("/api/v1/products", json={
         "name": "Sữa Vinamilk", "sku": "SVN-100", "sale_price": 30000,
     }, headers=h)
+    await client.post("/api/v1/products", json={
+        "name": "Mỳ tôm Hảo Hảo", "sku": "MYT-001", "sale_price": 4000,
+    }, headers=h)
     # INACTIVE should be filtered out from POS search
     await client.post("/api/v1/products", json={
         "name": "Sữa Cũ", "status": "INACTIVE", "sale_price": 1000,
     }, headers=h)
 
+    # Diacritic-insensitive: "sua" matches "Sữa Vinamilk"
     r = await client.get("/api/v1/products/search?q=sua", headers=h)
-    # Vietnamese diacritic — ilike may not match without normalization;
-    # search by exact "Sữa" should work
-    r2 = await client.get("/api/v1/products/search?q=Sữa", headers=h)
-    items = r2.json()["items"]
-    # Inactive must be filtered
+    items = r.json()["items"]
+    assert any(i["name"] == "Sữa Vinamilk" for i in items)
     assert all(i["status"] == "ACTIVE" for i in items)
+
+    # Diacritic-insensitive multi-word: "my tom" matches "Mỳ tôm Hảo Hảo"
+    r2 = await client.get("/api/v1/products/search?q=my tom", headers=h)
+    items2 = r2.json()["items"]
+    assert any(i["name"] == "Mỳ tôm Hảo Hảo" for i in items2)
+
+    # Exact with diacritic still works
+    r3 = await client.get("/api/v1/products/search?q=Sữa", headers=h)
+    items3 = r3.json()["items"]
+    assert all(i["status"] == "ACTIVE" for i in items3)
+    assert any(i["name"] == "Sữa Vinamilk" for i in items3)
 
 
 @pytest.mark.asyncio

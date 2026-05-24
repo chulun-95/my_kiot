@@ -16,7 +16,10 @@ os.environ.setdefault("APP_ENV", "test")
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from backend.shared.text import vi_unaccent
 
 from backend.database import get_db
 from backend.main import app
@@ -53,6 +56,13 @@ def event_loop():
 @pytest_asyncio.fixture
 async def db_engine():
     engine = create_async_engine(TEST_DB_URL, future=True)
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def _register_sqlite_funcs(dbapi_connection, _):
+        # SQLAlchemy's AsyncAdapt_aiosqlite_connection exposes a sync `create_function`
+        # wrapper that dispatches to aiosqlite's worker thread under the hood.
+        dbapi_connection.create_function("immutable_unaccent", 1, vi_unaccent)
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield engine

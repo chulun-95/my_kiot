@@ -19,6 +19,17 @@ from backend.modules.product.schemas import (
 from backend.shared import audit as audit_helper
 from backend.shared.code_generator import generate_code
 from backend.shared.pagination import paginate
+from backend.shared.text import vi_like_pattern
+
+
+def _name_unaccent_match(column, pattern: str):
+    """Build `immutable_unaccent(lower(column)) LIKE :pattern` filter.
+
+    Pattern must already be normalized (lowercased + diacritics stripped + escaped)
+    via `vi_like_pattern`. Uses the functional GIN trigram index created by
+    migration 004_unaccent_search.
+    """
+    return func.immutable_unaccent(func.lower(column)).like(pattern, escape="\\")
 
 
 # ====================================================================
@@ -499,12 +510,13 @@ async def list_products(
     )
 
     if search:
-        like = f"%{search.strip()}%"
+        like_orig = f"%{search.strip()}%"
+        like_norm = vi_like_pattern(search)
         stmt = stmt.where(
             or_(
-                Product.name.ilike(like),
-                Product.sku.ilike(like),
-                Product.barcode.ilike(like),
+                _name_unaccent_match(Product.name, like_norm),
+                Product.sku.ilike(like_orig),
+                Product.barcode.ilike(like_orig),
             )
         )
 
@@ -527,7 +539,8 @@ async def search_products(
     q = (query or "").strip()
     if not q:
         return []
-    like = f"%{q}%"
+    like_orig = f"%{q}%"
+    like_norm = vi_like_pattern(q)
     rows = (
         await db.execute(
             select(Product)
@@ -536,9 +549,9 @@ async def search_products(
                 Product.deleted_at.is_(None),
                 Product.status == "ACTIVE",
                 or_(
-                    Product.name.ilike(like),
-                    Product.sku.ilike(like),
-                    Product.barcode.ilike(like),
+                    _name_unaccent_match(Product.name, like_norm),
+                    Product.sku.ilike(like_orig),
+                    Product.barcode.ilike(like_orig),
                 ),
             )
             .order_by(Product.name)
