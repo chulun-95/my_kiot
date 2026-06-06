@@ -234,6 +234,34 @@ async def test_top_products_excludes_cancelled(client, shop):
     assert len(items) == 0
 
 
+@pytest.mark.asyncio
+async def test_top_products_multi_unit(client, shop):
+    h = shop["headers"]
+    unit = (await client.post(
+        f"/api/v1/products/{shop['p1']['id']}/units",
+        json={"unit_name": "thùng", "conversion_rate": 24},
+        headers=h,
+    )).json()
+    inv = (await client.post("/api/v1/invoices", json={
+        "items": [{"product_id": shop["p1"]["id"], "unit_id": unit["id"], "quantity": 2}],
+    }, headers=h)).json()
+    await client.post(
+        f"/api/v1/invoices/{inv['id']}/complete",
+        json={"payments": [{"method": "CASH", "amount": float(inv["total"])}]},
+        headers=h,
+    )
+
+    today = date.today().isoformat()
+    r = await client.get(
+        f"/api/v1/reports/top-products?from={today}&to={today}", headers=h
+    )
+    item = r.json()["items"][0]
+    # SL quy về cơ bản: 2 × 24 = 48 (trước fix là 2 → sai)
+    assert float(item["quantity_sold"]) == 48
+    # profit = net(2×288000) − cost(9000×2×24) = 576000 − 432000 = 144000
+    assert float(item["profit"]) == 144000
+
+
 # ===================================================================
 # Products sold (báo cáo SP đã bán)
 # ===================================================================

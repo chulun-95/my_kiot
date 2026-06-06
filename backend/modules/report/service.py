@@ -211,14 +211,15 @@ async def top_products(
     start, end = _date_range(from_date, to_date)
     limit = max(1, min(limit, 100))
 
+    rate = func.coalesce(InvoiceItem.conversion_rate, 1)
     q = await db.execute(
         select(
             InvoiceItem.product_id,
             InvoiceItem.product_sku,
             InvoiceItem.product_name,
-            func.sum(InvoiceItem.quantity).label("qty"),
+            func.sum(InvoiceItem.quantity * rate).label("qty"),
             func.sum(InvoiceItem.line_total).label("revenue"),
-            func.sum(InvoiceItem.cost_price * InvoiceItem.quantity).label("cost"),
+            func.sum(InvoiceItem.cost_price * InvoiceItem.quantity * rate).label("cost"),
         )
         .join(Invoice, Invoice.id == InvoiceItem.invoice_id)
         .where(
