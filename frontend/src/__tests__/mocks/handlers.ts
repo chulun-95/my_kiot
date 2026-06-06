@@ -1244,6 +1244,56 @@ export const handlers = [
       ],
     });
   }),
+  http.get('*/reports/products-sold', ({ request }) => {
+    const url = new URL(request.url);
+    const from = url.searchParams.get('from') ?? '2026-05-01';
+    const to = url.searchParams.get('to') ?? '2026-05-31';
+    const page = Number(url.searchParams.get('page') ?? '1');
+    return HttpResponse.json({
+      from_date: from,
+      to_date: to,
+      sort_by: url.searchParams.get('sort_by') ?? 'revenue',
+      order: url.searchParams.get('order') ?? 'desc',
+      category_id: url.searchParams.get('category_id')
+        ? Number(url.searchParams.get('category_id'))
+        : null,
+      items: [
+        {
+          product_id: 1,
+          product_sku: 'SP000001',
+          product_name: 'Mì tôm Hảo Hảo',
+          quantity_sold: 120,
+          revenue: 660000,
+          discount: 60000,
+          net_revenue: 600000,
+          cost: 420000,
+          profit: 180000,
+          margin_pct: 30,
+        },
+        {
+          product_id: 2,
+          product_sku: 'SP000002',
+          product_name: 'Coca 330ml',
+          quantity_sold: 80,
+          revenue: 560000,
+          discount: 0,
+          net_revenue: 560000,
+          cost: 420000,
+          profit: 140000,
+          margin_pct: 25,
+        },
+      ],
+      totals: {
+        quantity_sold: 200,
+        revenue: 1220000,
+        discount: 60000,
+        net_revenue: 1160000,
+        cost: 840000,
+        profit: 320000,
+      },
+      pagination: { page, limit: 20, total: 2, total_pages: 1 },
+    });
+  }),
   http.get('*/reports/profit', ({ request }) => {
     const url = new URL(request.url);
     return HttpResponse.json({
