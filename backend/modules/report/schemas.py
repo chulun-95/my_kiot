@@ -77,3 +77,49 @@ class StockSummaryResponse(BaseModel):
     low_stock_count: int
     total_inventory_value: Decimal
     last_updated: datetime
+
+
+# ---------- Products Sold (báo cáo SP đã bán) ----------
+
+ProductsSoldSortBy = Literal["revenue", "quantity", "profit"]
+SortOrder = Literal["asc", "desc"]
+
+
+class ProductsSoldItem(BaseModel):
+    product_id: int
+    product_sku: str
+    product_name: str
+    quantity_sold: Decimal      # đơn vị cơ bản
+    revenue: Decimal            # doanh thu gộp (trước giảm giá)
+    discount: Decimal
+    net_revenue: Decimal        # doanh thu thuần
+    cost: Decimal               # giá vốn
+    profit: Decimal             # lợi nhuận gộp
+    margin_pct: Decimal         # tỷ suất % (= profit / net_revenue * 100)
+
+
+class ProductsSoldTotals(BaseModel):
+    quantity_sold: Decimal
+    revenue: Decimal
+    discount: Decimal
+    net_revenue: Decimal
+    cost: Decimal
+    profit: Decimal
+
+
+class ProductsSoldPagination(BaseModel):
+    page: int
+    limit: int
+    total: int           # tổng số SP (distinct) khớp bộ lọc
+    total_pages: int
+
+
+class ProductsSoldResponse(BaseModel):
+    from_date: date
+    to_date: date
+    sort_by: ProductsSoldSortBy
+    order: SortOrder
+    category_id: int | None
+    items: list[ProductsSoldItem]
+    totals: ProductsSoldTotals
+    pagination: ProductsSoldPagination
