@@ -12,9 +12,12 @@ from backend.modules.auth.models import User
 from backend.modules.report import service as report_service
 from backend.modules.report.schemas import (
     DashboardResponse,
+    ProductsSoldResponse,
+    ProductsSoldSortBy,
     ProfitResponse,
     RevenuePoint,
     RevenueResponse,
+    SortOrder,
     StockSummaryResponse,
     TopProductItem,
     TopProductsResponse,
@@ -82,6 +85,33 @@ async def top_products(
         to_date=data["to_date"],
         items=[TopProductItem(**i) for i in data["items"]],
     )
+
+
+@router.get("/products-sold", response_model=ProductsSoldResponse)
+async def products_sold(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    owner: Annotated[User, Depends(require_role("OWNER"))],
+    from_date: date | None = Query(default=None, alias="from"),
+    to_date: date | None = Query(default=None, alias="to"),
+    category_id: int | None = Query(default=None),
+    sort_by: ProductsSoldSortBy = Query(default="revenue"),
+    order: SortOrder = Query(default="desc"),
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=20, ge=1, le=100),
+):
+    f, t = _default_range(from_date, to_date)
+    data = await report_service.products_sold(
+        db,
+        owner.current_tenant_id,
+        f,
+        t,
+        category_id=category_id,
+        sort_by=sort_by,
+        order=order,
+        page=page,
+        limit=limit,
+    )
+    return ProductsSoldResponse(**data)
 
 
 @router.get("/profit", response_model=ProfitResponse)

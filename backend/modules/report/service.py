@@ -1,5 +1,6 @@
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
+from math import ceil
 from typing import Any
 
 from sqlalchemy import and_, func, select
@@ -356,4 +357,157 @@ async def stock_summary(db: AsyncSession, tenant_id: int) -> dict[str, Any]:
         "low_stock_count": low_stock_count,
         "total_inventory_value": total_value,
         "last_updated": datetime.now(tz=timezone.utc),
+    }
+
+
+# ====================================================================
+# Products sold (báo cáo SP đã bán) — phân trang + sort + lọc nhóm hàng
+# ====================================================================
+
+
+async def products_sold(
+    db: AsyncSession,
+    tenant_id: int,
+    from_date: date,
+    to_date: date,
+    *,
+    category_id: int | None = None,
+    sort_by: str = "revenue",
+    order: str = "desc",
+    page: int = 1,
+    limit: int = 20,
+) -> dict[str, Any]:
+    if sort_by not in {"revenue", "quantity", "profit"}:
+        sort_by = "revenue"
+    if order not in {"asc", "desc"}:
+        order = "desc"
+    page = max(1, page)
+    limit = max(1, min(limit, 100))
+
+    start, end = _date_range(from_date, to_date)
+
+    rate = func.coalesce(InvoiceItem.conversion_rate, 1)
+    qty_base = func.sum(InvoiceItem.quantity * rate)
+    gross = func.sum(InvoiceItem.unit_price * InvoiceItem.quantity)
+    disc = func.sum(InvoiceItem.discount_amount)
+    net = func.sum(InvoiceItem.line_total)
+    cost = func.sum(InvoiceItem.cost_price * InvoiceItem.quantity * rate)
+
+    filters = [
+        Invoice.tenant_id == tenant_id,
+        Invoice.status == "COMPLETED",
+        Invoice.completed_at >= start,
+        Invoice.completed_at < end,
+    ]
+
+    def _with_scope(stmt):
+        stmt = stmt.join(Invoice, Invoice.id == InvoiceItem.invoice_id)
+        if category_id is not None:
+            stmt = stmt.join(Product, Product.id == InvoiceItem.product_id).where(
+                Product.category_id == category_id
+            )
+        return stmt.where(*filters)
+
+    grouped = _with_scope(
+        select(
+            InvoiceItem.product_id.label("product_id"),
+            InvoiceItem.product_sku.label("product_sku"),
+            InvoiceItem.product_name.label("product_name"),
+            qty_base.label("quantity_sold"),
+            gross.label("revenue"),
+            disc.label("discount"),
+            net.label("net_revenue"),
+            cost.label("cost"),
+        )
+    ).group_by(
+        InvoiceItem.product_id,
+        InvoiceItem.product_sku,
+        InvoiceItem.product_name,
+    )
+
+    # Tổng số SP (distinct) khớp bộ lọc — count số nhóm
+    total = (
+        await db.execute(select(func.count()).select_from(grouped.subquery()))
+    ).scalar() or 0
+
+    # Totals trên TOÀN BỘ (không group, không phân trang)
+    totals_row = (
+        await db.execute(
+            _with_scope(
+                select(
+                    func.coalesce(qty_base, 0),
+                    func.coalesce(gross, 0),
+                    func.coalesce(disc, 0),
+                    func.coalesce(net, 0),
+                    func.coalesce(cost, 0),
+                )
+            )
+        )
+    ).one()
+    t_qty = Decimal(str(totals_row[0] or 0))
+    t_gross = Decimal(str(totals_row[1] or 0))
+    t_disc = Decimal(str(totals_row[2] or 0))
+    t_net = Decimal(str(totals_row[3] or 0))
+    t_cost = Decimal(str(totals_row[4] or 0))
+
+    sort_exprs = {"revenue": net, "quantity": qty_base, "profit": net - cost}
+    sort_col = sort_exprs[sort_by]
+    direction = sort_col.desc() if order == "desc" else sort_col.asc()
+
+    page_rows = (
+        await db.execute(
+            grouped.order_by(direction, InvoiceItem.product_id.asc())
+            .offset((page - 1) * limit)
+            .limit(limit)
+        )
+    ).all()
+
+    items = []
+    for r in page_rows:
+        revenue = Decimal(str(r.revenue or 0))
+        discount = Decimal(str(r.discount or 0))
+        net_revenue = Decimal(str(r.net_revenue or 0))
+        c = Decimal(str(r.cost or 0))
+        prof = net_revenue - c
+        margin = (
+            (prof / net_revenue * Decimal("100")).quantize(Decimal("0.01"))
+            if net_revenue > 0
+            else Decimal("0")
+        )
+        items.append(
+            {
+                "product_id": r.product_id,
+                "product_sku": r.product_sku,
+                "product_name": r.product_name,
+                "quantity_sold": Decimal(str(r.quantity_sold or 0)),
+                "revenue": revenue,
+                "discount": discount,
+                "net_revenue": net_revenue,
+                "cost": c,
+                "profit": prof,
+                "margin_pct": margin,
+            }
+        )
+
+    return {
+        "from_date": from_date,
+        "to_date": to_date,
+        "sort_by": sort_by,
+        "order": order,
+        "category_id": category_id,
+        "items": items,
+        "totals": {
+            "quantity_sold": t_qty,
+            "revenue": t_gross,
+            "discount": t_disc,
+            "net_revenue": t_net,
+            "cost": t_cost,
+            "profit": t_net - t_cost,
+        },
+        "pagination": {
+            "page": page,
+            "limit": limit,
+            "total": int(total),
+            "total_pages": int(ceil(total / limit)) if total else 0,
+        },
     }
