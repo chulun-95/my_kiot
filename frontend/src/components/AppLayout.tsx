@@ -155,6 +155,7 @@ export default function AppLayout() {
     user?.role === 'OWNER'
       ? [
           ...baseNav,
+          { to: '/reports/products-sold', label: 'SP đã bán', icon: icons.topProducts },
           { to: '/reports/profit', label: 'Lợi nhuận', icon: icons.profit },
           { to: '/inventory/adjustments', label: 'Điều chỉnh kho', icon: icons.adjustment },
           { to: '/staff', label: 'Nhân viên', icon: icons.staff },

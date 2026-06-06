@@ -32,6 +32,7 @@ const InvoiceDetail = lazy(() => import('./pages/invoices/InvoiceDetail'));
 const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'));
 const RevenuePage = lazy(() => import('./pages/reports/RevenuePage'));
 const TopProductsPage = lazy(() => import('./pages/reports/TopProductsPage'));
+const ProductsSoldPage = lazy(() => import('./pages/reports/ProductsSoldPage'));
 const ProfitPage = lazy(() => import('./pages/reports/ProfitPage'));
 const StockSummaryPage = lazy(() => import('./pages/reports/StockSummaryPage'));
 
@@ -128,6 +129,14 @@ export default function App() {
                 <Route
                   path="/reports/top-products"
                   element={<TopProductsPage />}
+                />
+                <Route
+                  path="/reports/products-sold"
+                  element={
+                    <OwnerOnly>
+                      <ProductsSoldPage />
+                    </OwnerOnly>
+                  }
                 />
                 <Route
                   path="/reports/profit"
