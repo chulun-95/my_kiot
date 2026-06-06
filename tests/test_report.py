@@ -235,6 +235,170 @@ async def test_top_products_excludes_cancelled(client, shop):
 
 
 # ===================================================================
+# Products sold (báo cáo SP đã bán)
+# ===================================================================
+
+@pytest.mark.asyncio
+async def test_products_sold_basic(client, shop):
+    h = shop["headers"]
+    await _complete_invoice(client, h, shop["p1"]["id"], 5)   # net 60000, cost 45000
+    await _complete_invoice(client, h, shop["p2"]["id"], 3)   # net 75000, cost 60000
+
+    today = date.today().isoformat()
+    r = await client.get(
+        f"/api/v1/reports/products-sold?from={today}&to={today}", headers=h
+    )
+    assert r.status_code == 200
+    body = r.json()
+    # default sort = revenue desc → p2 (75000) đứng đầu
+    items = body["items"]
+    assert len(items) == 2
+    assert items[0]["product_id"] == shop["p2"]["id"]
+    assert float(items[0]["quantity_sold"]) == 3
+    assert float(items[0]["revenue"]) == 75000
+    assert float(items[0]["net_revenue"]) == 75000
+    assert float(items[0]["cost"]) == 60000
+    assert float(items[0]["profit"]) == 15000
+    # totals
+    assert float(body["totals"]["net_revenue"]) == 135000
+    assert float(body["totals"]["cost"]) == 105000
+    assert float(body["totals"]["profit"]) == 30000
+    # pagination
+    assert body["pagination"]["total"] == 2
+    assert body["pagination"]["page"] == 1
+
+
+@pytest.mark.asyncio
+async def test_products_sold_sort_by_quantity(client, shop):
+    h = shop["headers"]
+    await _complete_invoice(client, h, shop["p1"]["id"], 5)   # qty 5
+    await _complete_invoice(client, h, shop["p2"]["id"], 3)   # qty 3
+
+    today = date.today().isoformat()
+    r = await client.get(
+        f"/api/v1/reports/products-sold?from={today}&to={today}"
+        f"&sort_by=quantity&order=desc",
+        headers=h,
+    )
+    items = r.json()["items"]
+    assert items[0]["product_id"] == shop["p1"]["id"]  # qty 5 > 3
+
+
+@pytest.mark.asyncio
+async def test_products_sold_pagination(client, shop):
+    h = shop["headers"]
+    await _complete_invoice(client, h, shop["p1"]["id"], 5)
+    await _complete_invoice(client, h, shop["p2"]["id"], 3)
+
+    today = date.today().isoformat()
+    r = await client.get(
+        f"/api/v1/reports/products-sold?from={today}&to={today}&page=1&limit=1",
+        headers=h,
+    )
+    body = r.json()
+    assert len(body["items"]) == 1
+    assert body["pagination"]["total"] == 2
+    assert body["pagination"]["total_pages"] == 2
+    # totals luôn tính trên TOÀN BỘ, không bị phân trang
+    assert float(body["totals"]["net_revenue"]) == 135000
+
+
+@pytest.mark.asyncio
+async def test_products_sold_category_filter(client, shop):
+    h = shop["headers"]
+    # Tạo nhóm hàng + gán p1 vào nhóm
+    cat = (await client.post("/api/v1/categories", json={"name": "Nước ngọt"}, headers=h)).json()
+    await client.put(
+        f"/api/v1/products/{shop['p1']['id']}",
+        json={"category_id": cat["id"]},
+        headers=h,
+    )
+    await _complete_invoice(client, h, shop["p1"]["id"], 2)
+    await _complete_invoice(client, h, shop["p2"]["id"], 1)
+
+    today = date.today().isoformat()
+    r = await client.get(
+        f"/api/v1/reports/products-sold?from={today}&to={today}&category_id={cat['id']}",
+        headers=h,
+    )
+    items = r.json()["items"]
+    assert len(items) == 1
+    assert items[0]["product_id"] == shop["p1"]["id"]
+
+
+@pytest.mark.asyncio
+async def test_products_sold_multi_unit_base_quantity(client, shop):
+    h = shop["headers"]
+    # Tạo đơn vị "thùng" rate 24 cho p1 (tồn 100 base đủ bán 2 thùng = 48)
+    unit = (await client.post(
+        f"/api/v1/products/{shop['p1']['id']}/units",
+        json={"unit_name": "thùng", "conversion_rate": 24},
+        headers=h,
+    )).json()
+    # Bán 2 thùng theo đơn vị này
+    inv = (await client.post("/api/v1/invoices", json={
+        "items": [{"product_id": shop["p1"]["id"], "unit_id": unit["id"], "quantity": 2}],
+    }, headers=h)).json()
+    await client.post(
+        f"/api/v1/invoices/{inv['id']}/complete",
+        json={"payments": [{"method": "CASH", "amount": float(inv["total"])}]},
+        headers=h,
+    )
+
+    today = date.today().isoformat()
+    r = await client.get(
+        f"/api/v1/reports/products-sold?from={today}&to={today}", headers=h
+    )
+    item = r.json()["items"][0]
+    # SL quy về đơn vị cơ bản: 2 thùng × 24 = 48
+    assert float(item["quantity_sold"]) == 48
+    # Giá vốn = cost_price(9000) × quantity(2) × rate(24) = 432000
+    assert float(item["cost"]) == 432000
+
+
+@pytest.mark.asyncio
+async def test_products_sold_excludes_cancelled(client, shop):
+    h = shop["headers"]
+    inv = (await client.post("/api/v1/invoices", json={
+        "items": [{"product_id": shop["p1"]["id"], "quantity": 4}],
+    }, headers=h)).json()
+    await client.post(f"/api/v1/invoices/{inv['id']}/complete", json={
+        "payments": [{"method": "CASH", "amount": float(inv["total"])}],
+    }, headers=h)
+    await client.post(f"/api/v1/invoices/{inv['id']}/cancel", json={"reason": "test"}, headers=h)
+
+    today = date.today().isoformat()
+    r = await client.get(
+        f"/api/v1/reports/products-sold?from={today}&to={today}", headers=h
+    )
+    assert len(r.json()["items"]) == 0
+
+
+@pytest.mark.asyncio
+async def test_products_sold_owner_only(client, shop):
+    staff = await client.post("/api/v1/staff", json={
+        "full_name": "Cashier", "phone": "0911777666", "password": "secret123",
+    }, headers=shop["headers"])
+    assert staff.status_code == 201
+    cashier_token = (await client.post("/api/v1/auth/login", json={
+        "phone": "0911777666", "password": "secret123",
+    })).json()["access_token"]
+
+    r = await client.get(
+        "/api/v1/reports/products-sold", headers=_auth(cashier_token)
+    )
+    assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_products_sold_invalid_sort(client, shop):
+    r = await client.get(
+        "/api/v1/reports/products-sold?sort_by=bogus", headers=shop["headers"]
+    )
+    assert r.status_code == 422
+
+
+# ===================================================================
 # Profit
 # ===================================================================
 
