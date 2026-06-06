@@ -45,6 +45,59 @@ export interface TopProductsResponse {
   items: TopProductItem[];
 }
 
+export type ProductsSoldSortBy = 'revenue' | 'quantity' | 'profit';
+export type SortOrder = 'asc' | 'desc';
+
+export interface ProductsSoldItem {
+  product_id: number;
+  product_sku: string;
+  product_name: string;
+  quantity_sold: number | string;
+  revenue: number | string;
+  discount: number | string;
+  net_revenue: number | string;
+  cost: number | string;
+  profit: number | string;
+  margin_pct: number | string;
+}
+
+export interface ProductsSoldTotals {
+  quantity_sold: number | string;
+  revenue: number | string;
+  discount: number | string;
+  net_revenue: number | string;
+  cost: number | string;
+  profit: number | string;
+}
+
+export interface ProductsSoldPagination {
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
+}
+
+export interface ProductsSoldResponse {
+  from_date: string;
+  to_date: string;
+  sort_by: ProductsSoldSortBy;
+  order: SortOrder;
+  category_id: number | null;
+  items: ProductsSoldItem[];
+  totals: ProductsSoldTotals;
+  pagination: ProductsSoldPagination;
+}
+
+export interface ProductsSoldParams {
+  from: string;
+  to: string;
+  category_id?: number;
+  sort_by?: ProductsSoldSortBy;
+  order?: SortOrder;
+  page?: number;
+  limit?: number;
+}
+
 export interface ProfitResponse {
   from_date: string;
   to_date: string;
@@ -87,6 +140,16 @@ export async function getTopProducts(
 ): Promise<TopProductsResponse> {
   const { data } = await apiClient.get<TopProductsResponse>(
     '/reports/top-products',
+    { params },
+  );
+  return data;
+}
+
+export async function getProductsSold(
+  params: ProductsSoldParams,
+): Promise<ProductsSoldResponse> {
+  const { data } = await apiClient.get<ProductsSoldResponse>(
+    '/reports/products-sold',
     { params },
   );
   return data;
