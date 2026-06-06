@@ -225,7 +225,6 @@ export default function PaymentDialog({
                           : `Số tiền ${idx + 1}`
                       }
                       placeholder={isCash ? 'Tiền khách đưa…' : 'Số tiền'}
-                      showZeroAsEmpty
                       hideCurrency
                       autoFocus={idx === 0}
                       className="flex-1 min-w-0 bg-transparent text-right text-xl font-semibold text-slate-900 placeholder:text-slate-300 placeholder:font-normal placeholder:text-[13px] focus:outline-none tabular-nums font-mono"
