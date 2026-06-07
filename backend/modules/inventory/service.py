@@ -730,26 +730,34 @@ async def list_low_stock(
     OUT_OF_STOCK = đã hết hàng (quantity <= 0) → ưu tiên cao nhất.
     LOW          = 0 < quantity <= min_stock.
     """
+    # Anchor trên Product + LEFT JOIN Inventory: SP chưa từng nhập kho không có
+    # dòng inventory nào nhưng tồn thực tế = 0 → vẫn phải coi là OUT_OF_STOCK.
+    # Filter tenant của Inventory đặt trong ON-clause (không phải WHERE) để giữ outer join.
+    qty_col = func.coalesce(Inventory.quantity, 0).label("qty")
     rows = (
         await db.execute(
-            select(Inventory, Product)
-            .join(Product, Product.id == Inventory.product_id)
+            select(Product, qty_col)
+            .outerjoin(
+                Inventory,
+                (Inventory.product_id == Product.id)
+                & (Inventory.tenant_id == tenant_id),
+            )
             .where(
-                Inventory.tenant_id == tenant_id,
+                Product.tenant_id == tenant_id,
                 Product.deleted_at.is_(None),
                 Product.status == "ACTIVE",
                 Product.min_stock > 0,
-                Inventory.quantity <= Product.min_stock,
+                qty_col <= Product.min_stock,
             )
-            .order_by(Inventory.quantity)
+            .order_by(qty_col)
         )
     ).all()
 
     items: list[dict[str, Any]] = []
     out_of_stock_count = 0
     low_count = 0
-    for inv, product in rows:
-        qty = inv.quantity if inv.quantity is not None else Decimal("0")
+    for product, qty_raw in rows:
+        qty = Decimal(str(qty_raw)) if qty_raw is not None else Decimal("0")
         if qty <= 0:
             severity = "OUT_OF_STOCK"
             out_of_stock_count += 1
