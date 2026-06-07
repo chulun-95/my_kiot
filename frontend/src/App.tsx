@@ -35,6 +35,8 @@ const TopProductsPage = lazy(() => import('./pages/reports/TopProductsPage'));
 const ProductsSoldPage = lazy(() => import('./pages/reports/ProductsSoldPage'));
 const ProfitPage = lazy(() => import('./pages/reports/ProfitPage'));
 const StockSummaryPage = lazy(() => import('./pages/reports/StockSummaryPage'));
+const CashBookList = lazy(() => import('./pages/cashbook/CashBookList'));
+const CashVoucherForm = lazy(() => import('./pages/cashbook/CashVoucherForm'));
 
 function NotFound() {
   return (
@@ -150,6 +152,9 @@ export default function App() {
                   path="/reports/stock-summary"
                   element={<StockSummaryPage />}
                 />
+
+                <Route path="/cash-book" element={<OwnerOnly><CashBookList /></OwnerOnly>} />
+                <Route path="/cash-book/new" element={<OwnerOnly><CashVoucherForm /></OwnerOnly>} />
 
                 <Route path="/me/change-password" element={<ChangePassword />} />
                 <Route
