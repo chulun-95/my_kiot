@@ -6,9 +6,11 @@ from typing import Any
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.modules.inventory.models import Inventory
+from backend.modules.inventory.models import Inventory, GoodsReceipt
 from backend.modules.product.models import Product
 from backend.modules.sales.models import Invoice, InvoiceItem, ReturnOrder, ReturnOrderItem
+from backend.modules.customer.models import Customer, Supplier
+from backend.modules.cashbook.models import CashTransaction
 
 
 # ====================================================================
@@ -631,3 +633,115 @@ async def products_sold(
             "total_pages": int(ceil(total / limit)) if total else 0,
         },
     }
+
+
+# ====================================================================
+# Debt Report
+# ====================================================================
+
+async def customer_debts(db: AsyncSession, tenant_id: int) -> dict[str, Any]:
+    """Calculate customer debts: (total - paid) from COMPLETED invoices minus collected amounts."""
+    # Nợ phát sinh = Σ(total - paid) hóa đơn COMPLETED, customer_id not null
+    owed_rows = (await db.execute(
+        select(
+            Invoice.customer_id,
+            func.coalesce(func.sum(Invoice.total - Invoice.paid_amount), 0),
+        ).where(
+            Invoice.tenant_id == tenant_id,
+            Invoice.status == "COMPLETED",
+            Invoice.customer_id.isnot(None),
+        ).group_by(Invoice.customer_id)
+    )).all()
+    owed = {cid: Decimal(str(v or 0)) for cid, v in owed_rows}
+
+    # Đã thu nợ = Σ cash IN category=DEBT_COLLECTION ACTIVE, partner CUSTOMER
+    coll_rows = (await db.execute(
+        select(
+            CashTransaction.partner_id,
+            func.coalesce(func.sum(CashTransaction.amount), 0),
+        ).where(
+            CashTransaction.tenant_id == tenant_id,
+            CashTransaction.status == "ACTIVE",
+            CashTransaction.direction == "IN",
+            CashTransaction.category == "DEBT_COLLECTION",
+            CashTransaction.partner_type == "CUSTOMER",
+            CashTransaction.partner_id.isnot(None),
+        ).group_by(CashTransaction.partner_id)
+    )).all()
+    collected = {pid: Decimal(str(v or 0)) for pid, v in coll_rows}
+
+    partner_ids = set(owed) | set(collected)
+    debts: dict[int, Decimal] = {}
+    for pid in partner_ids:
+        d = owed.get(pid, Decimal("0")) - collected.get(pid, Decimal("0"))
+        if d > 0:
+            debts[pid] = d
+
+    items = []
+    if debts:
+        crows = (await db.execute(
+            select(Customer).where(Customer.tenant_id == tenant_id, Customer.id.in_(list(debts.keys())))
+        )).scalars().all()
+        cmap = {c.id: c for c in crows}
+        for pid, d in sorted(debts.items(), key=lambda kv: kv[1], reverse=True):
+            c = cmap.get(pid)
+            items.append({
+                "partner_id": pid,
+                "partner_name": c.name if c else "Khách đã xóa",
+                "phone": c.phone if c else None,
+                "debt": d,
+            })
+    return {"items": items, "total_debt": sum((i["debt"] for i in items), Decimal("0"))}
+
+
+async def supplier_debts(db: AsyncSession, tenant_id: int) -> dict[str, Any]:
+    """Calculate supplier debts: (total - paid) from COMPLETED goods receipts minus paid amounts."""
+    owed_rows = (await db.execute(
+        select(
+            GoodsReceipt.supplier_id,
+            func.coalesce(func.sum(GoodsReceipt.total - GoodsReceipt.paid_amount), 0),
+        ).where(
+            GoodsReceipt.tenant_id == tenant_id,
+            GoodsReceipt.status == "COMPLETED",
+            GoodsReceipt.supplier_id.isnot(None),
+        ).group_by(GoodsReceipt.supplier_id)
+    )).all()
+    owed = {sid: Decimal(str(v or 0)) for sid, v in owed_rows}
+
+    paid_rows = (await db.execute(
+        select(
+            CashTransaction.partner_id,
+            func.coalesce(func.sum(CashTransaction.amount), 0),
+        ).where(
+            CashTransaction.tenant_id == tenant_id,
+            CashTransaction.status == "ACTIVE",
+            CashTransaction.direction == "OUT",
+            CashTransaction.category == "DEBT_PAYMENT",
+            CashTransaction.partner_type == "SUPPLIER",
+            CashTransaction.partner_id.isnot(None),
+        ).group_by(CashTransaction.partner_id)
+    )).all()
+    paid = {pid: Decimal(str(v or 0)) for pid, v in paid_rows}
+
+    partner_ids = set(owed) | set(paid)
+    debts: dict[int, Decimal] = {}
+    for pid in partner_ids:
+        d = owed.get(pid, Decimal("0")) - paid.get(pid, Decimal("0"))
+        if d > 0:
+            debts[pid] = d
+
+    items = []
+    if debts:
+        srows = (await db.execute(
+            select(Supplier).where(Supplier.tenant_id == tenant_id, Supplier.id.in_(list(debts.keys())))
+        )).scalars().all()
+        smap = {s.id: s for s in srows}
+        for pid, d in sorted(debts.items(), key=lambda kv: kv[1], reverse=True):
+            s = smap.get(pid)
+            items.append({
+                "partner_id": pid,
+                "partner_name": s.name if s else "NCC đã xóa",
+                "phone": s.phone if s else None,
+                "debt": d,
+            })
+    return {"items": items, "total_debt": sum((i["debt"] for i in items), Decimal("0"))}

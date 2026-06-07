@@ -123,3 +123,17 @@ class ProductsSoldResponse(BaseModel):
     items: list[ProductsSoldItem]
     totals: ProductsSoldTotals
     pagination: ProductsSoldPagination
+
+
+# ---------- Debt Report ----------
+
+class DebtItem(BaseModel):
+    partner_id: int
+    partner_name: str
+    phone: str | None = None
+    debt: Decimal
+
+
+class DebtReportResponse(BaseModel):
+    items: list[DebtItem]
+    total_debt: Decimal

@@ -480,6 +480,68 @@ async def test_stock_summary(client, shop):
 
 
 # ===================================================================
+# Debt Report
+# ===================================================================
+
+@pytest.mark.asyncio
+async def test_customer_debt_derived(client, shop):
+    h = shop["headers"]
+    cus = (await client.post("/api/v1/customers", json={"name": "Nợ A", "phone": "0905111222"}, headers=h)).json()
+    # bán chịu: total 24000, trả 10000 → nợ 14000
+    inv = (await client.post("/api/v1/invoices", json={
+        "customer_id": cus["id"],
+        "items": [{"product_id": shop["p1"]["id"], "quantity": 2}],
+    }, headers=h)).json()
+    await client.post(f"/api/v1/invoices/{inv['id']}/complete", json={
+        "payments": [{"method": "CASH", "amount": 10000}], "allow_debt": True,
+    }, headers=h)
+
+    r = await client.get("/api/v1/reports/debts/customers", headers=h)
+    assert r.status_code == 200
+    body = r.json()
+    item = next(i for i in body["items"] if i["partner_id"] == cus["id"])
+    assert float(item["debt"]) == 14000
+
+    # thu nợ 4000 → còn 10000
+    await client.post("/api/v1/cash-transactions", json={
+        "direction": "IN", "method": "CASH", "category": "DEBT_COLLECTION", "amount": 4000,
+        "partner_type": "CUSTOMER", "partner_id": cus["id"],
+    }, headers=h)
+    r2 = await client.get("/api/v1/reports/debts/customers", headers=h)
+    item2 = next(i for i in r2.json()["items"] if i["partner_id"] == cus["id"])
+    assert float(item2["debt"]) == 10000
+
+
+@pytest.mark.asyncio
+async def test_customer_debt_owner_only(client, shop):
+    r = await client.post("/api/v1/staff", json={
+        "full_name": "CW", "phone": "0912555666", "password": "secret123",
+    }, headers=shop["headers"])
+    assert r.status_code == 201, f"Staff creation failed: {r.json()}"
+    login_r = await client.post("/api/v1/auth/login", json={"phone": "0912555666", "password": "secret123"})
+    assert login_r.status_code == 200, f"Login failed: {login_r.json()}"
+    ct = login_r.json()["access_token"]
+    r = await client.get("/api/v1/reports/debts/customers", headers=_auth(ct))
+    assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_supplier_debt_derived(client, shop):
+    h = shop["headers"]
+    sup = (await client.post("/api/v1/suppliers", json={"name": "NCC X"}, headers=h)).json()
+    # nhập chịu: total 200000, trả 50000 → nợ 150000
+    r = (await client.post("/api/v1/goods-receipts", json={
+        "supplier_id": sup["id"],
+        "items": [{"product_id": shop["p1"]["id"], "quantity": 10, "cost_price": 20000}],
+        "paid_amount": 50000,
+    }, headers=h)).json()
+    await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
+    rep = await client.get("/api/v1/reports/debts/suppliers", headers=h)
+    item = next(i for i in rep.json()["items"] if i["partner_id"] == sup["id"])
+    assert float(item["debt"]) == 150000
+
+
+# ===================================================================
 # Tenant isolation
 # ===================================================================
 

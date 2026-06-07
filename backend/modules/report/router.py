@@ -12,6 +12,8 @@ from backend.modules.auth.models import User
 from backend.modules.report import service as report_service
 from backend.modules.report.schemas import (
     DashboardResponse,
+    DebtItem,
+    DebtReportResponse,
     ProductsSoldResponse,
     ProductsSoldSortBy,
     ProfitResponse,
@@ -133,3 +135,21 @@ async def stock_summary(
 ):
     data = await report_service.stock_summary(db, owner.current_tenant_id)
     return StockSummaryResponse(**data)
+
+
+@router.get("/debts/customers", response_model=DebtReportResponse)
+async def customer_debts(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    owner: Annotated[User, Depends(require_role("OWNER"))],
+):
+    data = await report_service.customer_debts(db, owner.current_tenant_id)
+    return DebtReportResponse(items=[DebtItem(**i) for i in data["items"]], total_debt=data["total_debt"])
+
+
+@router.get("/debts/suppliers", response_model=DebtReportResponse)
+async def supplier_debts(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    owner: Annotated[User, Depends(require_role("OWNER"))],
+):
+    data = await report_service.supplier_debts(db, owner.current_tenant_id)
+    return DebtReportResponse(items=[DebtItem(**i) for i in data["items"]], total_debt=data["total_debt"])
