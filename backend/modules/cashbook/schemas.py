@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 CashDirection = Literal["IN", "OUT"]
@@ -26,6 +26,8 @@ class CashTransactionCreate(BaseModel):
 
 
 class CashTransactionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     code: str
     direction: CashDirection
@@ -41,9 +43,6 @@ class CashTransactionResponse(BaseModel):
     status: CashStatus
     created_at: datetime
     created_by: Optional[int]
-
-    class Config:
-        from_attributes = True
 
 
 class CashCancelRequest(BaseModel):
