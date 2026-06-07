@@ -170,3 +170,25 @@ export async function getStockSummary(): Promise<StockSummaryResponse> {
   );
   return data;
 }
+
+export interface DebtItem {
+  partner_id: number;
+  partner_name: string;
+  phone: string | null;
+  debt: number | string;
+}
+
+export interface DebtReportResponse {
+  items: DebtItem[];
+  total_debt: number | string;
+}
+
+export async function getCustomerDebts(): Promise<DebtReportResponse> {
+  const { data } = await apiClient.get<DebtReportResponse>('/reports/debts/customers');
+  return data;
+}
+
+export async function getSupplierDebts(): Promise<DebtReportResponse> {
+  const { data } = await apiClient.get<DebtReportResponse>('/reports/debts/suppliers');
+  return data;
+}

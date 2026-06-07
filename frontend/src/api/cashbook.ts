@@ -63,6 +63,8 @@ export interface CashCreatePayload {
   method: CashMethod;
   category: string;
   amount: number;
+  partner_type?: 'CUSTOMER' | 'SUPPLIER' | 'OTHER';
+  partner_id?: number;
   partner_name?: string;
   note?: string;
 }
