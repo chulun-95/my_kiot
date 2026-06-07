@@ -21,8 +21,8 @@ METHOD_MAP = {
 }
 
 AUTO_ONLY_CATEGORIES = {"SALE", "PURCHASE", "CHANGE", "REFUND"}
-VALID_IN_CATEGORIES = {"SALE", "OTHER_IN", "CAPITAL"}
-VALID_OUT_CATEGORIES = {"PURCHASE", "CHANGE", "SALARY", "OPERATING", "OTHER_OUT", "REFUND"}
+VALID_IN_CATEGORIES = {"SALE", "OTHER_IN", "CAPITAL", "DEBT_COLLECTION"}
+VALID_OUT_CATEGORIES = {"PURCHASE", "CHANGE", "SALARY", "OPERATING", "OTHER_OUT", "REFUND", "DEBT_PAYMENT"}
 
 
 def _date_range(from_date: date, to_date: date) -> tuple[datetime, datetime]:
@@ -92,6 +92,13 @@ async def create_cash_transaction(
     valid = VALID_IN_CATEGORIES if payload.direction == "IN" else VALID_OUT_CATEGORIES
     if cat not in valid:
         raise AppError(400, "INVALID_CASH_CATEGORY", "Loại thu/chi không hợp lệ cho chiều giao dịch")
+
+    if cat in {"DEBT_COLLECTION", "DEBT_PAYMENT"}:
+        if payload.partner_type is None or payload.partner_id is None:
+            raise AppError(400, "DEBT_PARTNER_REQUIRED", "Thu/trả nợ phải chọn đối tác")
+        expected = "CUSTOMER" if cat == "DEBT_COLLECTION" else "SUPPLIER"
+        if payload.partner_type != expected:
+            raise AppError(400, "DEBT_PARTNER_MISMATCH", "Đối tác không khớp loại thu/trả nợ")
 
     tx = await record_cash_entry(
         db, tenant_id, direction=payload.direction, method=payload.method,

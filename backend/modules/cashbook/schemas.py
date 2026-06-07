@@ -10,8 +10,8 @@ CashDirection = Literal["IN", "OUT"]
 CashMethod = Literal["CASH", "BANK_TRANSFER", "EWALLET"]
 CashStatus = Literal["ACTIVE", "CANCELLED"]
 # Category cho phép tạo TAY (auto-only SALE/PURCHASE/CHANGE bị loại)
-ManualInCategory = Literal["OTHER_IN", "CAPITAL"]
-ManualOutCategory = Literal["SALARY", "OPERATING", "OTHER_OUT"]
+ManualInCategory = Literal["OTHER_IN", "CAPITAL", "DEBT_COLLECTION"]
+ManualOutCategory = Literal["SALARY", "OPERATING", "OTHER_OUT", "DEBT_PAYMENT"]
 
 
 class CashTransactionCreate(BaseModel):

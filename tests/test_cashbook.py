@@ -153,3 +153,63 @@ async def test_complete_receipt_creates_cash_out(client, owner_h):
     assert data["items"][0]["category"] == "PURCHASE"
     assert float(data["items"][0]["amount"]) == 30000
     assert float(data["summary"]["balance_total"]) == -30000  # cho âm quỹ
+
+
+@pytest.mark.asyncio
+async def test_debt_collection_requires_partner(client, owner_h):
+    r = await client.post("/api/v1/cash-transactions", json={
+        "direction": "IN", "method": "CASH", "category": "DEBT_COLLECTION", "amount": 50000,
+    }, headers=owner_h)
+    assert r.status_code == 400
+    assert r.json()["error"]["code"] == "DEBT_PARTNER_REQUIRED"
+
+
+@pytest.mark.asyncio
+async def test_debt_collection_with_partner_ok(client, owner_h):
+    cus = (await client.post("/api/v1/customers", json={"name": "A", "phone": "0905000123"}, headers=owner_h)).json()
+    r = await client.post("/api/v1/cash-transactions", json={
+        "direction": "IN", "method": "CASH", "category": "DEBT_COLLECTION", "amount": 50000,
+        "partner_type": "CUSTOMER", "partner_id": cus["id"],
+    }, headers=owner_h)
+    assert r.status_code == 201
+
+
+@pytest.mark.asyncio
+async def test_debt_payment_requires_partner(client, owner_h):
+    r = await client.post("/api/v1/cash-transactions", json={
+        "direction": "OUT", "method": "CASH", "category": "DEBT_PAYMENT", "amount": 100000,
+    }, headers=owner_h)
+    assert r.status_code == 400
+    assert r.json()["error"]["code"] == "DEBT_PARTNER_REQUIRED"
+
+
+@pytest.mark.asyncio
+async def test_debt_payment_with_partner_ok(client, owner_h):
+    sup = (await client.post("/api/v1/suppliers", json={"name": "NCC X"}, headers=owner_h)).json()
+    r = await client.post("/api/v1/cash-transactions", json={
+        "direction": "OUT", "method": "CASH", "category": "DEBT_PAYMENT", "amount": 100000,
+        "partner_type": "SUPPLIER", "partner_id": sup["id"],
+    }, headers=owner_h)
+    assert r.status_code == 201
+
+
+@pytest.mark.asyncio
+async def test_debt_collection_partner_mismatch(client, owner_h):
+    sup = (await client.post("/api/v1/suppliers", json={"name": "NCC Y"}, headers=owner_h)).json()
+    r = await client.post("/api/v1/cash-transactions", json={
+        "direction": "IN", "method": "CASH", "category": "DEBT_COLLECTION", "amount": 50000,
+        "partner_type": "SUPPLIER", "partner_id": sup["id"],
+    }, headers=owner_h)
+    assert r.status_code == 400
+    assert r.json()["error"]["code"] == "DEBT_PARTNER_MISMATCH"
+
+
+@pytest.mark.asyncio
+async def test_debt_payment_partner_mismatch(client, owner_h):
+    cus = (await client.post("/api/v1/customers", json={"name": "B", "phone": "0905000456"}, headers=owner_h)).json()
+    r = await client.post("/api/v1/cash-transactions", json={
+        "direction": "OUT", "method": "CASH", "category": "DEBT_PAYMENT", "amount": 50000,
+        "partner_type": "CUSTOMER", "partner_id": cus["id"],
+    }, headers=owner_h)
+    assert r.status_code == 400
+    assert r.json()["error"]["code"] == "DEBT_PARTNER_MISMATCH"
