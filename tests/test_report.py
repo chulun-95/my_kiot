@@ -98,6 +98,20 @@ async def test_dashboard_out_of_stock(client, shop):
 
 
 @pytest.mark.asyncio
+async def test_dashboard_never_stocked_counts_out_of_stock(client, registered_owner):
+    # SP có min_stock>0 nhưng CHƯA từng nhập kho (không có dòng inventory)
+    # vẫn phải tính là hết hàng trên dashboard.
+    h = _auth(registered_owner["access_token"])
+    await client.post("/api/v1/products", json={
+        "name": "Chưa nhập", "sale_price": 1000, "min_stock": 5,
+    }, headers=h)
+    r = await client.get("/api/v1/reports/dashboard", headers=h)
+    body = r.json()
+    assert body["out_of_stock_count"] >= 1
+    assert body["low_stock_count"] >= 1
+
+
+@pytest.mark.asyncio
 async def test_dashboard_pending_drafts(client, shop):
     h = shop["headers"]
     await client.post("/api/v1/invoices", json={

@@ -66,15 +66,24 @@ async def dashboard(db: AsyncSession, tenant_id: int) -> dict[str, Any]:
     pending_drafts = int(drafts_q.scalar() or 0)
 
     # Low stock — tách ra OUT_OF_STOCK (qty <= 0) vs LOW (0 < qty <= min)
+    # Anchor trên Product + LEFT JOIN: SP chưa từng nhập kho (không có dòng
+    # inventory) vẫn phải tính là hết hàng. Filter tenant của Inventory đặt
+    # trong ON-clause để giữ outer join.
+    qty_col = func.coalesce(Inventory.quantity, 0)
     low_q = await db.execute(
-        select(Inventory.quantity)
-        .join(Product, Product.id == Inventory.product_id)
+        select(qty_col)
+        .select_from(Product)
+        .outerjoin(
+            Inventory,
+            (Inventory.product_id == Product.id)
+            & (Inventory.tenant_id == tenant_id),
+        )
         .where(
-            Inventory.tenant_id == tenant_id,
+            Product.tenant_id == tenant_id,
             Product.deleted_at.is_(None),
             Product.status == "ACTIVE",
             Product.min_stock > 0,
-            Inventory.quantity <= Product.min_stock,
+            qty_col <= Product.min_stock,
         )
     )
     low_rows = low_q.all()
