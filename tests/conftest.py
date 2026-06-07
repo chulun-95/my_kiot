@@ -38,6 +38,8 @@ from backend.modules.sales.models import (  # noqa: F401
     Invoice,
     InvoiceItem,
     Payment,
+    ReturnOrder,
+    ReturnOrderItem,
 )
 from backend.modules.cashbook.models import CashTransaction  # noqa: F401
 from backend.modules.system.models import AuditLog, PriceHistory  # noqa: F401

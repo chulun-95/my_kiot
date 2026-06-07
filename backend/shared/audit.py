@@ -63,6 +63,10 @@ DELETE_PRODUCT_UNIT = "DELETE_PRODUCT_UNIT"
 CREATE_CASH_TX = "CREATE_CASH_TX"
 CANCEL_CASH_TX = "CANCEL_CASH_TX"
 
+# Phase 7 — sales returns
+CREATE_SALES_RETURN = "CREATE_SALES_RETURN"
+CANCEL_SALES_RETURN = "CANCEL_SALES_RETURN"
+
 
 # ====================================================================
 # JSON-safe coercion

@@ -151,3 +151,90 @@ class Payment(Base):
     )
 
     invoice: Mapped["Invoice"] = relationship("Invoice", back_populates="payments")
+
+
+class ReturnOrder(Base, AuditMixin):
+    __tablename__ = "return_orders"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "code", name="uq_return_orders_tenant_code"),
+        Index("idx_return_orders_tenant_completed", "tenant_id", "completed_at"),
+        Index("idx_return_orders_invoice", "tenant_id", "invoice_id"),
+    )
+
+    id: Mapped[int] = mapped_column(PKType, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int] = mapped_column(
+        FKType, ForeignKey("tenants.id"), nullable=False, index=True
+    )
+    code: Mapped[str] = mapped_column(String(30), nullable=False)
+    invoice_id: Mapped[int] = mapped_column(
+        FKType, ForeignKey("invoices.id"), nullable=False
+    )
+    customer_id: Mapped[Optional[int]] = mapped_column(
+        FKType, ForeignKey("customers.id"), nullable=True
+    )
+    customer_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    cashier_id: Mapped[int] = mapped_column(
+        FKType, ForeignKey("users.id"), nullable=False
+    )
+    subtotal: Mapped[Decimal] = mapped_column(
+        Numeric(15, 2), nullable=False, default=Decimal("0"), server_default="0"
+    )
+    total_refund: Mapped[Decimal] = mapped_column(
+        Numeric(15, 2), nullable=False, default=Decimal("0"), server_default="0"
+    )
+    cost_total: Mapped[Decimal] = mapped_column(
+        Numeric(15, 2), nullable=False, default=Decimal("0"), server_default="0"
+    )
+    refund_method: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="CASH", server_default="CASH"
+    )
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="COMPLETED", server_default="COMPLETED"
+    )
+    reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    cancelled_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    cancelled_by: Mapped[Optional[int]] = mapped_column(
+        FKType, ForeignKey("users.id"), nullable=True
+    )
+    cancel_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_by: Mapped[Optional[int]] = mapped_column(
+        FKType, ForeignKey("users.id"), nullable=True
+    )
+
+    items: Mapped[list["ReturnOrderItem"]] = relationship(
+        "ReturnOrderItem", back_populates="return_order", cascade="all, delete-orphan"
+    )
+
+
+class ReturnOrderItem(Base):
+    __tablename__ = "return_order_items"
+
+    id: Mapped[int] = mapped_column(PKType, primary_key=True, autoincrement=True)
+    return_id: Mapped[int] = mapped_column(
+        FKType, ForeignKey("return_orders.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    invoice_item_id: Mapped[Optional[int]] = mapped_column(
+        FKType, ForeignKey("invoice_items.id"), nullable=True
+    )
+    product_id: Mapped[int] = mapped_column(
+        FKType, ForeignKey("products.id"), nullable=False
+    )
+    product_name: Mapped[str] = mapped_column(String(300), nullable=False)
+    product_sku: Mapped[str] = mapped_column(String(50), nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False)
+    unit_price: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
+    cost_price: Mapped[Decimal] = mapped_column(
+        Numeric(15, 2), nullable=False, default=Decimal("0")
+    )
+    line_total: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
+    unit_id: Mapped[Optional[int]] = mapped_column(
+        FKType, ForeignKey("product_units.id", ondelete="SET NULL"), nullable=True
+    )
+    conversion_rate: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 3), nullable=True)
+
+    return_order: Mapped["ReturnOrder"] = relationship("ReturnOrder", back_populates="items")
