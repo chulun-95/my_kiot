@@ -1333,6 +1333,19 @@ export const handlers = [
       last_updated: '2026-05-23T09:00:00Z',
     }),
   ),
+  http.get('*/reports/end-of-day', ({ request }) => {
+    const url = new URL(request.url);
+    return HttpResponse.json({
+      business_date: url.searchParams.get('date') ?? '2026-06-07',
+      by_method: [
+        { method: 'CASH', opening: 100000, total_in: 24000, total_out: 5000, closing: 119000 },
+        { method: 'BANK_TRANSFER', opening: 0, total_in: 0, total_out: 0, closing: 0 },
+        { method: 'EWALLET', opening: 0, total_in: 0, total_out: 0, closing: 0 },
+      ],
+      opening_total: 100000, in_total: 24000, out_total: 5000, closing_total: 119000,
+      sales_revenue: 24000, sales_invoices: 1,
+    });
+  }),
   // ---------- CASH BOOK ----------
   http.get('*/cash-transactions', ({ request }) => {
     const url = new URL(request.url);

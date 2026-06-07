@@ -192,3 +192,29 @@ export async function getSupplierDebts(): Promise<DebtReportResponse> {
   const { data } = await apiClient.get<DebtReportResponse>('/reports/debts/suppliers');
   return data;
 }
+
+export interface EodMethodRow {
+  method: string;
+  opening: number | string;
+  total_in: number | string;
+  total_out: number | string;
+  closing: number | string;
+}
+
+export interface EndOfDayResponse {
+  business_date: string;
+  by_method: EodMethodRow[];
+  opening_total: number | string;
+  in_total: number | string;
+  out_total: number | string;
+  closing_total: number | string;
+  sales_revenue: number | string;
+  sales_invoices: number;
+}
+
+export async function getEndOfDay(date?: string): Promise<EndOfDayResponse> {
+  const { data } = await apiClient.get<EndOfDayResponse>('/reports/end-of-day', {
+    params: date ? { date } : {},
+  });
+  return data;
+}

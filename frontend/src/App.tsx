@@ -37,6 +37,7 @@ const ProductsSoldPage = lazy(() => import('./pages/reports/ProductsSoldPage'));
 const ProfitPage = lazy(() => import('./pages/reports/ProfitPage'));
 const StockSummaryPage = lazy(() => import('./pages/reports/StockSummaryPage'));
 const DebtReportPage = lazy(() => import('./pages/reports/DebtReportPage'));
+const EndOfDayPage = lazy(() => import('./pages/reports/EndOfDayPage'));
 const CashBookList = lazy(() => import('./pages/cashbook/CashBookList'));
 const CashVoucherForm = lazy(() => import('./pages/cashbook/CashVoucherForm'));
 const ReturnList = lazy(() => import('./pages/returns/ReturnList'));
@@ -178,6 +179,14 @@ export default function App() {
                   element={
                     <OwnerOnly>
                       <DebtReportPage />
+                    </OwnerOnly>
+                  }
+                />
+                <Route
+                  path="/reports/end-of-day"
+                  element={
+                    <OwnerOnly>
+                      <EndOfDayPage />
                     </OwnerOnly>
                   }
                 />
