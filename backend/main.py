@@ -21,6 +21,7 @@ from backend.modules.inventory.router import (
 )
 from backend.modules.report.router import router as report_router
 from backend.modules.sales.router import router as sales_router
+from backend.modules.sales.return_router import router as return_router
 from backend.modules.cashbook.router import router as cashbook_router
 
 
@@ -53,6 +54,7 @@ def create_app() -> FastAPI:
     app.include_router(receipt_router)
     app.include_router(inventory_router)
     app.include_router(sales_router)
+    app.include_router(return_router)
     app.include_router(report_router)
     app.include_router(cashbook_router)
 
