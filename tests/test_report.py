@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone, timedelta
 
 import pytest
 
@@ -579,3 +579,55 @@ async def test_report_tenant_isolation(client):
 async def test_report_requires_auth(client):
     r = await client.get("/api/v1/reports/dashboard")
     assert r.status_code == 401
+
+
+# ===================================================================
+# End-of-Day Report
+# ===================================================================
+
+@pytest.mark.asyncio
+async def test_end_of_day_cash_and_sales(client, shop):
+    h = shop["headers"]
+    vn_today = datetime.now(tz=timezone(timedelta(hours=7))).date().isoformat()
+
+    # bán 2 cái p1 (12000) tiền mặt → thu 24000, doanh thu 24000
+    inv = (await client.post("/api/v1/invoices", json={
+        "items": [{"product_id": shop["p1"]["id"], "quantity": 2}],
+    }, headers=h)).json()
+    await client.post(f"/api/v1/invoices/{inv['id']}/complete", json={
+        "payments": [{"method": "CASH", "amount": 24000}],
+    }, headers=h)
+    # chi tay tiền điện 5000
+    await client.post("/api/v1/cash-transactions", json={
+        "direction": "OUT", "method": "CASH", "category": "OPERATING", "amount": 5000,
+    }, headers=h)
+
+    r = await client.get(f"/api/v1/reports/end-of-day?date={vn_today}", headers=h)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["business_date"] == vn_today
+    cash = next(m for m in body["by_method"] if m["method"] == "CASH")
+    assert float(cash["total_in"]) == 24000
+    assert float(cash["total_out"]) == 5000
+    assert float(cash["closing"]) == float(cash["opening"]) + 24000 - 5000
+    assert float(body["sales_revenue"]) == 24000
+    assert body["sales_invoices"] == 1
+
+
+@pytest.mark.asyncio
+async def test_end_of_day_owner_only(client, shop, registered_owner):
+    staff_resp = await client.post("/api/v1/staff", json={
+        "full_name": "Cashier2", "phone": "0912777888", "password": "secret123",
+    }, headers=shop["headers"])
+    assert staff_resp.status_code == 201, f"Staff creation failed: {staff_resp.json()}"
+    ct_resp = await client.post("/api/v1/auth/login", json={"phone": "0912777888", "password": "secret123"})
+    assert ct_resp.status_code == 200, f"Login failed: {ct_resp.json()}"
+    ct = ct_resp.json()["access_token"]
+    r = await client.get("/api/v1/reports/end-of-day", headers=_auth(ct))
+    assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_end_of_day_default_today(client, shop):
+    r = await client.get("/api/v1/reports/end-of-day", headers=shop["headers"])
+    assert r.status_code == 200

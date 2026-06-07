@@ -137,3 +137,24 @@ class DebtItem(BaseModel):
 class DebtReportResponse(BaseModel):
     items: list[DebtItem]
     total_debt: Decimal
+
+
+# ---------- End-of-Day ----------
+
+class EodMethodRow(BaseModel):
+    method: str
+    opening: Decimal
+    total_in: Decimal
+    total_out: Decimal
+    closing: Decimal
+
+
+class EndOfDayResponse(BaseModel):
+    business_date: date
+    by_method: list[EodMethodRow]
+    opening_total: Decimal
+    in_total: Decimal
+    out_total: Decimal
+    closing_total: Decimal
+    sales_revenue: Decimal      # doanh thu hóa đơn trong ngày, đã trừ trả hàng
+    sales_invoices: int

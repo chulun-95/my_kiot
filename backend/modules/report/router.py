@@ -14,6 +14,8 @@ from backend.modules.report.schemas import (
     DashboardResponse,
     DebtItem,
     DebtReportResponse,
+    EodMethodRow,
+    EndOfDayResponse,
     ProductsSoldResponse,
     ProductsSoldSortBy,
     ProfitResponse,
@@ -153,3 +155,24 @@ async def supplier_debts(
 ):
     data = await report_service.supplier_debts(db, owner.current_tenant_id)
     return DebtReportResponse(items=[DebtItem(**i) for i in data["items"]], total_debt=data["total_debt"])
+
+
+@router.get("/end-of-day", response_model=EndOfDayResponse)
+async def end_of_day(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    owner: Annotated[User, Depends(require_role("OWNER"))],
+    business_date: date | None = Query(default=None, alias="date"),
+):
+    from datetime import datetime, timezone as _tz, timedelta
+    d = business_date or datetime.now(tz=_tz(timedelta(hours=7))).date()
+    data = await report_service.end_of_day(db, owner.current_tenant_id, d)
+    return EndOfDayResponse(
+        business_date=data["business_date"],
+        by_method=[EodMethodRow(**r) for r in data["by_method"]],
+        opening_total=data["opening_total"],
+        in_total=data["in_total"],
+        out_total=data["out_total"],
+        closing_total=data["closing_total"],
+        sales_revenue=data["sales_revenue"],
+        sales_invoices=data["sales_invoices"],
+    )

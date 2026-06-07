@@ -745,3 +745,104 @@ async def supplier_debts(db: AsyncSession, tenant_id: int) -> dict[str, Any]:
                 "debt": d,
             })
     return {"items": items, "total_debt": sum((i["debt"] for i in items), Decimal("0"))}
+
+
+# ====================================================================
+# End-of-Day Report
+# ====================================================================
+
+VN_TZ = timezone(timedelta(hours=7))
+CASH_METHODS = ["CASH", "BANK_TRANSFER", "EWALLET"]
+
+
+def _vn_day_range(d: date) -> tuple[datetime, datetime]:
+    """Return [start, end) for a business date in VN timezone (UTC+7)."""
+    start = datetime(d.year, d.month, d.day, tzinfo=VN_TZ)
+    return start, start + timedelta(days=1)
+
+
+async def end_of_day(db: AsyncSession, tenant_id: int, business_date: date) -> dict[str, Any]:
+    """End-of-day report: per-method opening/in/out/closing + sales revenue."""
+    start, end = _vn_day_range(business_date)
+
+    # Lũy kế trước đầu ngày theo method (opening)
+    open_rows = (await db.execute(
+        select(
+            CashTransaction.method,
+            CashTransaction.direction,
+            func.coalesce(func.sum(CashTransaction.amount), 0),
+        ).where(
+            CashTransaction.tenant_id == tenant_id,
+            CashTransaction.status == "ACTIVE",
+            CashTransaction.created_at < start,
+        ).group_by(CashTransaction.method, CashTransaction.direction)
+    )).all()
+    opening: dict[str, Decimal] = {}
+    for m, d, v in open_rows:
+        delta = Decimal(str(v or 0)) * (Decimal("1") if d == "IN" else Decimal("-1"))
+        opening[m] = opening.get(m, Decimal("0")) + delta
+
+    # Thu/chi trong ngày theo method
+    day_rows = (await db.execute(
+        select(
+            CashTransaction.method,
+            CashTransaction.direction,
+            func.coalesce(func.sum(CashTransaction.amount), 0),
+        ).where(
+            CashTransaction.tenant_id == tenant_id,
+            CashTransaction.status == "ACTIVE",
+            CashTransaction.created_at >= start,
+            CashTransaction.created_at < end,
+        ).group_by(CashTransaction.method, CashTransaction.direction)
+    )).all()
+    day_in: dict[str, Decimal] = {}
+    day_out: dict[str, Decimal] = {}
+    for m, d, v in day_rows:
+        if d == "IN":
+            day_in[m] = day_in.get(m, Decimal("0")) + Decimal(str(v or 0))
+        else:
+            day_out[m] = day_out.get(m, Decimal("0")) + Decimal(str(v or 0))
+
+    methods = set(CASH_METHODS) | set(opening) | set(day_in) | set(day_out)
+    by_method = []
+    for m in sorted(methods):
+        op = opening.get(m, Decimal("0"))
+        i = day_in.get(m, Decimal("0"))
+        o = day_out.get(m, Decimal("0"))
+        by_method.append({
+            "method": m, "opening": op, "total_in": i, "total_out": o,
+            "closing": op + i - o,
+        })
+
+    opening_total = sum((r["opening"] for r in by_method), Decimal("0"))
+    in_total = sum((r["total_in"] for r in by_method), Decimal("0"))
+    out_total = sum((r["total_out"] for r in by_method), Decimal("0"))
+    closing_total = opening_total + in_total - out_total
+
+    # Doanh thu bán hàng trong ngày (hóa đơn COMPLETED) − trả hàng trong ngày
+    sales_row = (await db.execute(
+        select(
+            func.coalesce(func.sum(Invoice.total), 0),
+            func.count(Invoice.id),
+        ).where(
+            Invoice.tenant_id == tenant_id,
+            Invoice.status == "COMPLETED",
+            Invoice.completed_at >= start,
+            Invoice.completed_at < end,
+        )
+    )).one()
+    gross_sales = Decimal(str(sales_row[0] or 0))
+    sales_invoices = int(sales_row[1] or 0)
+    ret_refund, _ret_cost, _ = await _returns_totals(db, tenant_id, start, end)
+    sales_revenue = gross_sales - ret_refund
+
+    return {
+        "business_date": business_date,
+        "by_method": by_method,
+        "opening_total": opening_total,
+        "in_total": in_total,
+        "out_total": out_total,
+        "closing_total": closing_total,
+        "sales_revenue": sales_revenue,
+        "sales_invoices": sales_invoices,
+    }
