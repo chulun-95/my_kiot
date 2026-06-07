@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.modules.inventory.models import Inventory
 from backend.modules.product.models import Product
-from backend.modules.sales.models import Invoice, InvoiceItem
+from backend.modules.sales.models import Invoice, InvoiceItem, ReturnOrder, ReturnOrderItem
 
 
 # ====================================================================
@@ -27,6 +27,63 @@ def _date_range(from_date: date, to_date: date) -> tuple[datetime, datetime]:
     start = datetime.combine(from_date, datetime.min.time(), tzinfo=timezone.utc)
     end = datetime.combine(to_date, datetime.min.time(), tzinfo=timezone.utc) + timedelta(days=1)
     return start, end
+
+
+async def _returns_totals(db: AsyncSession, tenant_id: int, start: datetime, end: datetime) -> tuple[Decimal, Decimal, int]:
+    """Aggregate refund and cost from completed returns in date range."""
+    row = (await db.execute(
+        select(
+            func.coalesce(func.sum(ReturnOrder.total_refund), 0),
+            func.coalesce(func.sum(ReturnOrder.cost_total), 0),
+            func.count(ReturnOrder.id),
+        ).where(
+            ReturnOrder.tenant_id == tenant_id, ReturnOrder.status == "COMPLETED",
+            ReturnOrder.completed_at >= start, ReturnOrder.completed_at < end,
+        )
+    )).one()
+    return Decimal(str(row[0] or 0)), Decimal(str(row[1] or 0)), int(row[2] or 0)
+
+
+async def _returns_by_product(db: AsyncSession, tenant_id: int, start: datetime, end: datetime) -> dict[int, tuple[Decimal, Decimal, Decimal]]:
+    """Returns by product_id: (qty_base, revenue, cost)."""
+    rate = func.coalesce(ReturnOrderItem.conversion_rate, 1)
+    rows = (await db.execute(
+        select(
+            ReturnOrderItem.product_id,
+            func.coalesce(func.sum(ReturnOrderItem.quantity * rate), 0),
+            func.coalesce(func.sum(ReturnOrderItem.line_total), 0),
+            func.coalesce(func.sum(ReturnOrderItem.cost_price * ReturnOrderItem.quantity * rate), 0),
+        )
+        .join(ReturnOrder, ReturnOrder.id == ReturnOrderItem.return_id)
+        .where(
+            ReturnOrder.tenant_id == tenant_id, ReturnOrder.status == "COMPLETED",
+            ReturnOrder.completed_at >= start, ReturnOrder.completed_at < end,
+        )
+        .group_by(ReturnOrderItem.product_id)
+    )).all()
+    return {
+        pid: (Decimal(str(q or 0)), Decimal(str(rev or 0)), Decimal(str(cost or 0)))
+        for pid, q, rev, cost in rows
+    }
+
+
+async def _returns_by_period(db: AsyncSession, tenant_id: int, start: datetime, end: datetime, dialect: str, group_by: str) -> dict[str, tuple[Decimal, Decimal]]:
+    """Returns by period: (refund, cost)."""
+    if dialect == "postgresql":
+        period_expr = func.to_char(ReturnOrder.completed_at, "YYYY-MM-DD" if group_by == "day" else "YYYY-MM")
+    else:
+        period_expr = func.strftime("%Y-%m-%d" if group_by == "day" else "%Y-%m", ReturnOrder.completed_at)
+    rows = (await db.execute(
+        select(
+            period_expr.label("period"),
+            func.coalesce(func.sum(ReturnOrder.total_refund), 0),
+            func.coalesce(func.sum(ReturnOrder.cost_total), 0),
+        ).where(
+            ReturnOrder.tenant_id == tenant_id, ReturnOrder.status == "COMPLETED",
+            ReturnOrder.completed_at >= start, ReturnOrder.completed_at < end,
+        ).group_by("period")
+    )).all()
+    return {p: (Decimal(str(r or 0)), Decimal(str(c or 0))) for p, r, c in rows}
 
 
 # ====================================================================
@@ -55,7 +112,11 @@ async def dashboard(db: AsyncSession, tenant_id: int) -> dict[str, Any]:
     today_cost = Decimal(str(row[1] or 0))
     today_invoices = int(row[2] or 0)
     today_customers = int(row[3] or 0)
-    today_profit = today_revenue - today_cost
+
+    # Deduct returns
+    ret_refund, ret_cost, _ = await _returns_totals(db, tenant_id, today_start, today_end)
+    today_revenue = today_revenue - ret_refund
+    today_profit = today_revenue - (today_cost - ret_cost)
 
     # Pending drafts
     drafts_q = await db.execute(
@@ -150,7 +211,11 @@ async def revenue(
     total_revenue = Decimal(str(row[0] or 0))
     total_cost = Decimal(str(row[1] or 0))
     total_invoices = int(row[2] or 0)
-    total_profit = total_revenue - total_cost
+
+    # Deduct returns
+    r_refund, r_cost, _ = await _returns_totals(db, tenant_id, start, end)
+    total_revenue = total_revenue - r_refund
+    total_profit = total_revenue - (total_cost - r_cost)
 
     # Series — strftime works on both PG (with to_char) and SQLite.
     # Dùng SQLAlchemy's func.strftime cho SQLite; với PG có thể cần substr.
@@ -185,15 +250,21 @@ async def revenue(
         .order_by("period")
     )
 
-    series = [
-        {
+    # Get returns by period
+    rmap = await _returns_by_period(db, tenant_id, start, end, dialect, group_by)
+
+    series = []
+    for r in series_q.all():
+        revenue = Decimal(str(r.revenue or 0))
+        cost = Decimal(str(r.cost or 0))
+        rr, rc = rmap.get(r.period, (Decimal("0"), Decimal("0")))
+        net_revenue = revenue - rr
+        series.append({
             "period": r.period,
-            "revenue": Decimal(str(r.revenue or 0)),
+            "revenue": net_revenue,
             "invoices": int(r.invoices or 0),
-            "profit": Decimal(str((r.revenue or 0))) - Decimal(str((r.cost or 0))),
-        }
-        for r in series_q.all()
-    ]
+            "profit": net_revenue - (cost - rc),
+        })
 
     return {
         "from_date": from_date,
@@ -246,18 +317,23 @@ async def top_products(
         .limit(limit)
     )
 
+    # Get returns by product
+    rbp = await _returns_by_product(db, tenant_id, start, end)
+
     items = []
     for r in q.all():
         revenue = Decimal(str(r.revenue or 0))
         cost = Decimal(str(r.cost or 0))
+        rq, rrev, rcost = rbp.get(r.product_id, (Decimal("0"), Decimal("0"), Decimal("0")))
+        net_revenue = revenue - rrev
         items.append(
             {
                 "product_id": r.product_id,
                 "product_sku": r.product_sku,
                 "product_name": r.product_name,
-                "quantity_sold": Decimal(str(r.qty or 0)),
-                "revenue": revenue,
-                "profit": revenue - cost,
+                "quantity_sold": Decimal(str(r.qty or 0)) - rq,
+                "revenue": net_revenue,
+                "profit": net_revenue - (cost - rcost),
             }
         )
 
@@ -292,6 +368,11 @@ async def profit(
     total_revenue = Decimal(str(row[0] or 0))
     total_cost = Decimal(str(row[1] or 0))
     invoices = int(row[2] or 0)
+
+    # Deduct returns
+    r_refund, r_cost, _ = await _returns_totals(db, tenant_id, start, end)
+    total_revenue = total_revenue - r_refund
+    total_cost = total_cost - r_cost
 
     return {
         "from_date": from_date,
@@ -472,16 +553,23 @@ async def products_sold(
         )
     ).all()
 
+    # Get returns by product
+    rbp = await _returns_by_product(db, tenant_id, start, end)
+
     items = []
     for r in page_rows:
         revenue = Decimal(str(r.revenue or 0))
         discount = Decimal(str(r.discount or 0))
         net_revenue = Decimal(str(r.net_revenue or 0))
         c = Decimal(str(r.cost or 0))
-        prof = net_revenue - c
+        rq, rrev, rcost = rbp.get(r.product_id, (Decimal("0"), Decimal("0"), Decimal("0")))
+        qty = Decimal(str(r.quantity_sold or 0)) - rq
+        net_rev = net_revenue - rrev
+        cost = c - rcost
+        prof = net_rev - cost
         margin = (
-            (prof / net_revenue * Decimal("100")).quantize(Decimal("0.01"))
-            if net_revenue > 0
+            (prof / net_rev * Decimal("100")).quantize(Decimal("0.01"))
+            if net_rev > 0
             else Decimal("0")
         )
         items.append(
@@ -489,15 +577,37 @@ async def products_sold(
                 "product_id": r.product_id,
                 "product_sku": r.product_sku,
                 "product_name": r.product_name,
-                "quantity_sold": Decimal(str(r.quantity_sold or 0)),
-                "revenue": revenue,
+                "quantity_sold": qty,
+                "revenue": revenue - rrev,
                 "discount": discount,
-                "net_revenue": net_revenue,
-                "cost": c,
+                "net_revenue": net_rev,
+                "cost": cost,
                 "profit": prof,
                 "margin_pct": margin,
             }
         )
+
+    # Deduct returns from totals
+    rate = func.coalesce(ReturnOrderItem.conversion_rate, 1)
+    ret_totals_row = (await db.execute(
+        select(
+            func.coalesce(func.sum(ReturnOrderItem.quantity * rate), 0),
+            func.coalesce(func.sum(ReturnOrderItem.line_total), 0),
+            func.coalesce(func.sum(ReturnOrderItem.cost_price * ReturnOrderItem.quantity * rate), 0),
+        )
+        .join(ReturnOrder, ReturnOrder.id == ReturnOrderItem.return_id)
+        .where(
+            ReturnOrder.tenant_id == tenant_id, ReturnOrder.status == "COMPLETED",
+            ReturnOrder.completed_at >= start, ReturnOrder.completed_at < end,
+        )
+    )).one()
+    ret_qty = Decimal(str(ret_totals_row[0] or 0))
+    ret_rev = Decimal(str(ret_totals_row[1] or 0))
+    ret_cost = Decimal(str(ret_totals_row[2] or 0))
+
+    t_qty_net = t_qty - ret_qty
+    t_net_net = t_net - ret_rev
+    t_cost_net = t_cost - ret_cost
 
     return {
         "from_date": from_date,
@@ -507,12 +617,12 @@ async def products_sold(
         "category_id": category_id,
         "items": items,
         "totals": {
-            "quantity_sold": t_qty,
-            "revenue": t_gross,
+            "quantity_sold": t_qty_net,
+            "revenue": t_gross - ret_rev,
             "discount": t_disc,
-            "net_revenue": t_net,
-            "cost": t_cost,
-            "profit": t_net - t_cost,
+            "net_revenue": t_net_net,
+            "cost": t_cost_net,
+            "profit": t_net_net - t_cost_net,
         },
         "pagination": {
             "page": page,
