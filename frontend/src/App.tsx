@@ -1,5 +1,6 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuthStore } from './stores/authStore';
 import AppLayout from './components/AppLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -62,6 +63,20 @@ function PageFallback() {
 }
 
 export default function App() {
+  const initializing = useAuthStore((s) => s.initializing);
+  const bootstrap = useAuthStore((s) => s.bootstrap);
+  useEffect(() => {
+    void bootstrap();
+  }, [bootstrap]);
+
+  if (initializing) {
+    return (
+      <div className="flex h-screen items-center justify-center text-slate-500">
+        Đang tải...
+      </div>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <BrowserRouter>
