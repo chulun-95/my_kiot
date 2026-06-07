@@ -15,8 +15,11 @@ describe('inventory API', () => {
 
   it('getLowStock returns flagged items', async () => {
     const res = await inventoryApi.getLowStock();
-    expect(res.items[0].product_sku).toBe('SP000001');
-    expect(Number(res.items[0].quantity)).toBe(3);
+    // API sắp xếp theo tồn tăng dần (OUT_OF_STOCK trước), nên tra theo SKU
+    // thay vì giả định vị trí phần tử đầu.
+    const item = res.items.find((i) => i.product_sku === 'SP000001');
+    expect(item).toBeDefined();
+    expect(Number(item!.quantity)).toBe(3);
   });
 
   it('getMovements returns kardex timeline', async () => {
