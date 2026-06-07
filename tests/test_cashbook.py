@@ -90,3 +90,66 @@ async def test_cashbook_filter_by_direction(client, owner_h):
     )).json()
     assert all(i["direction"] == "OUT" for i in data["items"])
     assert float(data["summary"]["balance_total"]) == 60000  # summary luôn tính toàn bộ
+
+
+async def _stock_product(client, h, sku, sale, cost, qty):
+    p = (await client.post("/api/v1/products", json={
+        "name": sku, "sku": sku, "sale_price": sale, "cost_price": cost,
+    }, headers=h)).json()
+    r = (await client.post("/api/v1/goods-receipts", json={
+        "items": [{"product_id": p["id"], "quantity": qty, "cost_price": cost}],
+        "paid_amount": 0,
+    }, headers=h)).json()
+    await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
+    return p
+
+
+@pytest.mark.asyncio
+async def test_complete_invoice_creates_cash_in(client, owner_h):
+    p = await _stock_product(client, owner_h, "AAA", 12000, 9000, 100)
+    inv = (await client.post("/api/v1/invoices", json={
+        "items": [{"product_id": p["id"], "quantity": 2}],
+    }, headers=owner_h)).json()  # total 24000
+    await client.post(f"/api/v1/invoices/{inv['id']}/complete", json={
+        "payments": [{"method": "CASH", "amount": 50000}],  # thừa → thối 26000
+    }, headers=owner_h)
+
+    data = (await client.get("/api/v1/cash-transactions?ref_type=INVOICE", headers=owner_h)).json()
+    cats = {i["category"]: float(i["amount"]) for i in data["items"]}
+    assert cats["SALE"] == 50000      # phiếu thu = tiền nhận
+    assert cats["CHANGE"] == 26000    # phiếu chi tiền thối
+    # tồn quỹ tiền mặt = 50000 - 26000 = 24000 (đúng giá trị hóa đơn)
+    assert float(data["summary"]["balance_total"]) == 24000
+
+
+@pytest.mark.asyncio
+async def test_cancel_invoice_reverses_cash(client, owner_h):
+    p = await _stock_product(client, owner_h, "BBB", 10000, 6000, 100)
+    inv = (await client.post("/api/v1/invoices", json={
+        "items": [{"product_id": p["id"], "quantity": 1}],
+    }, headers=owner_h)).json()
+    await client.post(f"/api/v1/invoices/{inv['id']}/complete", json={
+        "payments": [{"method": "CASH", "amount": 10000}],
+    }, headers=owner_h)
+    await client.post(f"/api/v1/invoices/{inv['id']}/cancel", json={"reason": "x"}, headers=owner_h)
+
+    data = (await client.get("/api/v1/cash-transactions", headers=owner_h)).json()
+    assert float(data["summary"]["balance_total"]) == 0  # phiếu thu auto đã CANCELLED
+
+
+@pytest.mark.asyncio
+async def test_complete_receipt_creates_cash_out(client, owner_h):
+    p = (await client.post("/api/v1/products", json={
+        "name": "CCC", "sku": "CCC", "sale_price": 5000, "cost_price": 3000,
+    }, headers=owner_h)).json()
+    r = (await client.post("/api/v1/goods-receipts", json={
+        "items": [{"product_id": p["id"], "quantity": 10, "cost_price": 3000}],
+        "paid_amount": 30000,
+    }, headers=owner_h)).json()
+    await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=owner_h)
+
+    data = (await client.get("/api/v1/cash-transactions?ref_type=GOODS_RECEIPT", headers=owner_h)).json()
+    assert len(data["items"]) == 1
+    assert data["items"][0]["category"] == "PURCHASE"
+    assert float(data["items"][0]["amount"]) == 30000
+    assert float(data["summary"]["balance_total"]) == -30000  # cho âm quỹ

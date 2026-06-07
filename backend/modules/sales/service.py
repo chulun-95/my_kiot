@@ -22,6 +22,7 @@ from backend.shared import audit as audit_helper
 from backend.shared.code_generator import generate_code
 from backend.shared.pagination import paginate
 from backend.shared.settings import tenant_setting
+from backend.modules.cashbook import service as cash_service
 
 
 # ====================================================================
@@ -393,6 +394,25 @@ async def complete_invoice(
             Payment(method=p.method, amount=p.amount, note=p.note)
         )
 
+    # 6b. Sổ quỹ: phiếu thu theo từng phương thức + phiếu chi tiền thối
+    for p in payload.payments:
+        await cash_service.record_cash_entry(
+            db, tenant_id, direction="IN",
+            method=cash_service.METHOD_MAP.get(p.method, "CASH"),
+            amount=p.amount, category="SALE",
+            ref_type="INVOICE", ref_id=invoice.id, created_by=user_id,
+            partner_type=("CUSTOMER" if invoice.customer_id else None),
+            partner_id=invoice.customer_id,
+            note=f"Thu tiền hóa đơn {invoice.code}",
+        )
+    if invoice.change_amount and invoice.change_amount > 0:
+        await cash_service.record_cash_entry(
+            db, tenant_id, direction="OUT", method="CASH",
+            amount=invoice.change_amount, category="CHANGE",
+            ref_type="INVOICE", ref_id=invoice.id, created_by=user_id,
+            note=f"Tiền thối hóa đơn {invoice.code}",
+        )
+
     # 7. Trừ tồn + ghi kardex (dùng base_qty)
     for pid in sorted(base_qty_needed.keys()):
         inv = inv_by_pid[pid]
@@ -510,6 +530,12 @@ async def cancel_invoice(
     invoice.cancelled_at = datetime.now(tz=timezone.utc)
     invoice.cancelled_by = user_id
     invoice.cancel_reason = reason
+
+    # Hủy các phiếu thu/chi tự sinh của hóa đơn
+    await cash_service.cancel_entries_for_ref(
+        db, tenant_id, ref_type="INVOICE", ref_id=invoice.id,
+        user_id=user_id, reason=reason,
+    )
 
     # Trừ ngược thống kê KH
     if invoice.customer_id:

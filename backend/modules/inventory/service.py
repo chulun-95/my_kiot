@@ -24,6 +24,7 @@ from backend.modules.product.models import Product
 from backend.shared import audit as audit_helper
 from backend.shared.code_generator import generate_code
 from backend.shared.pagination import paginate
+from backend.modules.cashbook import service as cash_service
 
 
 # ====================================================================
@@ -365,6 +366,17 @@ async def complete_goods_receipt(
             )
         )
 
+    # Sổ quỹ: phiếu chi trả tiền nhập (nếu có thanh toán)
+    if receipt.paid_amount and receipt.paid_amount > 0:
+        await cash_service.record_cash_entry(
+            db, tenant_id, direction="OUT", method="CASH",
+            amount=receipt.paid_amount, category="PURCHASE",
+            ref_type="GOODS_RECEIPT", ref_id=receipt.id, created_by=user_id,
+            partner_type=("SUPPLIER" if receipt.supplier_id else None),
+            partner_id=receipt.supplier_id,
+            note=f"Trả tiền nhập {receipt.code}",
+        )
+
     await audit_helper.write_audit(
         db,
         tenant_id=tenant_id,
@@ -443,6 +455,12 @@ async def cancel_goods_receipt(
     receipt.status = "CANCELLED"
     if reason:
         receipt.note = f"{(receipt.note or '').strip()}\n[Hủy] {reason}".strip()
+
+    # Hủy các phiếu chi tự sinh của phiếu nhập
+    await cash_service.cancel_entries_for_ref(
+        db, tenant_id, ref_type="GOODS_RECEIPT", ref_id=receipt.id,
+        user_id=user_id, reason=reason,
+    )
 
     await audit_helper.write_audit(
         db,
