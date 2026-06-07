@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 import * as authApi from '../api/auth';
 
 export type Role = 'OWNER' | 'CASHIER';
@@ -33,17 +32,12 @@ interface AuthState {
   user: User | null;
   tenant: Tenant | null;
   accessToken: string | null;
-  refreshToken: string | null;
-  setAuth: (payload: {
-    user: User;
-    tenant: Tenant;
-    accessToken: string;
-    refreshToken: string;
-  }) => void;
+  initializing: boolean;
+  setAuth: (payload: { user: User; tenant: Tenant; accessToken: string }) => void;
   setUser: (user: User) => void;
   setAccessToken: (token: string | null) => void;
-  setTokens: (accessToken: string, refreshToken: string) => void;
   logout: () => void;
+  bootstrap: () => Promise<void>;
   login: (
     phone: string,
     password: string,
@@ -53,65 +47,47 @@ interface AuthState {
   doLogout: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set, get) => ({
-      user: null,
-      tenant: null,
-      accessToken: null,
-      refreshToken: null,
-      setAuth: ({ user, tenant, accessToken, refreshToken }) =>
-        set({ user, tenant, accessToken, refreshToken }),
-      setUser: (user) => set({ user }),
-      setAccessToken: (accessToken) => set({ accessToken }),
-      setTokens: (accessToken, refreshToken) =>
-        set({ accessToken, refreshToken }),
-      logout: () =>
-        set({ user: null, tenant: null, accessToken: null, refreshToken: null }),
-      login: async (phone, password, tenantId) => {
-        const res = await authApi.login({ phone, password, tenant_id: tenantId });
-        if ('requires_tenant_selection' in res && res.requires_tenant_selection) {
-          return res;
-        }
-        const success = res as authApi.LoginSuccess;
-        set({
-          user: success.user,
-          tenant: success.tenant,
-          accessToken: success.access_token,
-          refreshToken: success.refresh_token,
-        });
-        return null;
-      },
-      register: async (payload) => {
-        const res = await authApi.register(payload);
-        set({
-          user: res.user,
-          tenant: res.tenant,
-          accessToken: res.access_token,
-          refreshToken: res.refresh_token,
-        });
-      },
-      doLogout: async () => {
-        const rt = get().refreshToken;
-        if (rt) {
-          try {
-            await authApi.logout(rt);
-          } catch {
-            // swallow — always clear local state
-          }
-        }
-        set({ user: null, tenant: null, accessToken: null, refreshToken: null });
-      },
-    }),
-    {
-      name: 'pos_auth',
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        user: state.user,
-        tenant: state.tenant,
-        accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
-      }),
-    },
-  ),
-);
+export const useAuthStore = create<AuthState>()((set) => ({
+  user: null,
+  tenant: null,
+  accessToken: null,
+  initializing: true,
+  setAuth: ({ user, tenant, accessToken }) => set({ user, tenant, accessToken }),
+  setUser: (user) => set({ user }),
+  setAccessToken: (accessToken) => set({ accessToken }),
+  logout: () => set({ user: null, tenant: null, accessToken: null }),
+  bootstrap: async () => {
+    try {
+      const res = await authApi.refresh();
+      set({
+        user: res.user,
+        tenant: res.tenant,
+        accessToken: res.access_token,
+        initializing: false,
+      });
+    } catch {
+      set({ user: null, tenant: null, accessToken: null, initializing: false });
+    }
+  },
+  login: async (phone, password, tenantId) => {
+    const res = await authApi.login({ phone, password, tenant_id: tenantId });
+    if ('requires_tenant_selection' in res && res.requires_tenant_selection) {
+      return res;
+    }
+    const success = res as authApi.LoginSuccess;
+    set({ user: success.user, tenant: success.tenant, accessToken: success.access_token });
+    return null;
+  },
+  register: async (payload) => {
+    const res = await authApi.register(payload);
+    set({ user: res.user, tenant: res.tenant, accessToken: res.access_token });
+  },
+  doLogout: async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // swallow — luôn xóa state local
+    }
+    set({ user: null, tenant: null, accessToken: null });
+  },
+}));

@@ -19,7 +19,7 @@ export interface LoginSuccess {
   user: User;
   tenant: Tenant;
   access_token: string;
-  refresh_token: string;
+  refresh_token?: string;
 }
 
 export type AuthSuccess = LoginSuccess;
@@ -55,15 +55,13 @@ export async function login(
   return data;
 }
 
-export async function refresh(refreshToken: string): Promise<LoginSuccess> {
-  const { data } = await apiClient.post<LoginSuccess>('/auth/refresh', {
-    refresh_token: refreshToken,
-  });
+export async function refresh(): Promise<LoginSuccess> {
+  const { data } = await apiClient.post<LoginSuccess>('/auth/refresh', {});
   return data;
 }
 
-export async function logout(refreshToken: string): Promise<void> {
-  await apiClient.post('/auth/logout', { refresh_token: refreshToken });
+export async function logout(): Promise<void> {
+  await apiClient.post('/auth/logout', {});
 }
 
 export async function me(): Promise<MeResponse> {
