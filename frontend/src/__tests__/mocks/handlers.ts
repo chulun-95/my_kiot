@@ -1315,4 +1315,53 @@ export const handlers = [
       last_updated: '2026-05-23T09:00:00Z',
     }),
   ),
+
+  // ---------- CASH BOOK ----------
+  http.get('*/cash-transactions', ({ request }) => {
+    const url = new URL(request.url);
+    const dir = url.searchParams.get('direction');
+    const items = [
+      {
+        id: 1, code: 'PT20260607-001', direction: 'IN', method: 'CASH',
+        category: 'CAPITAL', amount: 500000, ref_type: 'MANUAL', ref_id: null,
+        partner_type: null, partner_id: null, partner_name: 'Chủ shop',
+        note: 'Góp vốn', status: 'ACTIVE', created_at: '2026-06-07T01:00:00Z', created_by: 1,
+      },
+      {
+        id: 2, code: 'PC20260607-001', direction: 'OUT', method: 'CASH',
+        category: 'OPERATING', amount: 120000, ref_type: 'MANUAL', ref_id: null,
+        partner_type: null, partner_id: null, partner_name: null,
+        note: 'Tiền điện', status: 'ACTIVE', created_at: '2026-06-07T02:00:00Z', created_by: 1,
+      },
+    ].filter((i) => !dir || i.direction === dir);
+    return HttpResponse.json({
+      items,
+      summary: {
+        range_in: 500000, range_out: 120000, balance_total: 380000,
+        balance_by_method: [{ method: 'CASH', balance: 380000 }],
+      },
+      pagination: { page: 1, limit: 20, total: items.length, total_pages: 1 },
+    });
+  }),
+  http.post('*/cash-transactions', async ({ request }) => {
+    const body = (await request.json()) as { direction: string; method: string; category: string; amount: number };
+    return HttpResponse.json(
+      {
+        id: 99, code: body.direction === 'IN' ? 'PT20260607-099' : 'PC20260607-099',
+        direction: body.direction, method: body.method, category: body.category,
+        amount: body.amount, ref_type: 'MANUAL', ref_id: null,
+        partner_type: null, partner_id: null, partner_name: null, note: null,
+        status: 'ACTIVE', created_at: '2026-06-07T03:00:00Z', created_by: 1,
+      },
+      { status: 201 },
+    );
+  }),
+  http.post('*/cash-transactions/:id/cancel', ({ params }) =>
+    HttpResponse.json({
+      id: Number(params.id), code: 'PT20260607-001', direction: 'IN', method: 'CASH',
+      category: 'CAPITAL', amount: 500000, ref_type: 'MANUAL', ref_id: null,
+      partner_type: null, partner_id: null, partner_name: null, note: null,
+      status: 'CANCELLED', created_at: '2026-06-07T01:00:00Z', created_by: 1,
+    }),
+  ),
 ];
