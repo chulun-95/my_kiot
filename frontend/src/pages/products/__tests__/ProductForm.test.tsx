@@ -30,6 +30,11 @@ describe('ProductForm', () => {
     renderWithRoute('/products/new');
     const nameInput = await screen.findByLabelText(/Tên sản phẩm/);
     fireEvent.change(nameInput, { target: { value: 'SP mới' } });
+    // "Giá bán" là trường bắt buộc (required) — phải nhập giá > 0, nếu để mặc
+    // định 0 thì MoneyInput hiển thị rỗng và trình duyệt chặn submit.
+    fireEvent.change(screen.getByLabelText('Giá bán'), {
+      target: { value: '10000' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Lưu' }));
     await waitFor(() => expect(screen.getByText('Detail page')).toBeInTheDocument());
   });
