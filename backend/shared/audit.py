@@ -59,6 +59,10 @@ CREATE_PRODUCT_UNIT = "CREATE_PRODUCT_UNIT"
 UPDATE_PRODUCT_UNIT = "UPDATE_PRODUCT_UNIT"
 DELETE_PRODUCT_UNIT = "DELETE_PRODUCT_UNIT"
 
+# Phase 6 — cash book
+CREATE_CASH_TX = "CREATE_CASH_TX"
+CANCEL_CASH_TX = "CANCEL_CASH_TX"
+
 
 # ====================================================================
 # JSON-safe coercion
