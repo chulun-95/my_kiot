@@ -158,6 +158,7 @@ export default function AppLayout() {
           ...baseNav,
           { to: '/reports/products-sold', label: 'SP đã bán', icon: icons.topProducts },
           { to: '/reports/profit', label: 'Lợi nhuận', icon: icons.profit },
+          { to: '/reports/debts', label: 'Công nợ', icon: icons.customer },
           { to: '/cash-book', label: 'Sổ quỹ', icon: icons.revenue },
           { to: '/inventory/adjustments', label: 'Điều chỉnh kho', icon: icons.adjustment },
           { to: '/staff', label: 'Nhân viên', icon: icons.staff },
