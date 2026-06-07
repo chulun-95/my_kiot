@@ -38,6 +38,8 @@ const ProfitPage = lazy(() => import('./pages/reports/ProfitPage'));
 const StockSummaryPage = lazy(() => import('./pages/reports/StockSummaryPage'));
 const CashBookList = lazy(() => import('./pages/cashbook/CashBookList'));
 const CashVoucherForm = lazy(() => import('./pages/cashbook/CashVoucherForm'));
+const ReturnList = lazy(() => import('./pages/returns/ReturnList'));
+const ReturnForm = lazy(() => import('./pages/returns/ReturnForm'));
 
 function NotFound() {
   return (
@@ -141,6 +143,9 @@ export default function App() {
 
                 <Route path="/invoices" element={<InvoiceList />} />
                 <Route path="/invoices/:id" element={<InvoiceDetail />} />
+
+                <Route path="/returns" element={<ReturnList />} />
+                <Route path="/returns/new" element={<ReturnForm />} />
 
                 <Route path="/reports/revenue" element={<RevenuePage />} />
                 <Route

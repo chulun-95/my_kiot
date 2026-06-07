@@ -140,6 +140,7 @@ const baseNav: Array<{ to: string; label: string; icon: ReactNode }> = [
   { to: '/goods-receipts', label: 'Nhập kho', icon: icons.receipt },
   { to: '/inventory', label: 'Tồn kho', icon: icons.inventory },
   { to: '/invoices', label: 'Hóa đơn', icon: icons.invoice },
+  { to: '/returns', label: 'Trả hàng', icon: icons.invoice },
   { to: '/reports/revenue', label: 'Doanh thu', icon: icons.revenue },
   { to: '/reports/top-products', label: 'Top SP', icon: icons.topProducts },
   { to: '/reports/stock-summary', label: 'Tồn kho TQ', icon: icons.stockSummary },

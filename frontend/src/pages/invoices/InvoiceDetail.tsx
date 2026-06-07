@@ -82,6 +82,14 @@ export default function InvoiceDetail() {
           >
             In
           </button>
+          {invoice.status === 'COMPLETED' && (
+            <button
+              onClick={() => navigate(`/returns/new?invoice=${invoice.id}`)}
+              className="px-3 py-2 rounded border border-slate-300"
+            >
+              Trả hàng
+            </button>
+          )}
           {canCancel && (
             <button
               onClick={onCancel}

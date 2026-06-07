@@ -1368,4 +1368,63 @@ export const handlers = [
       status: 'CANCELLED', created_at: '2026-06-07T01:00:00Z', created_by: 1,
     }),
   ),
+
+  // ---------- SALES RETURNS ----------
+  http.get('*/returns/returnable/:id', ({ params }) =>
+    HttpResponse.json({
+      invoice_id: Number(params.id),
+      invoice_code: 'HD20260607-001',
+      customer_id: null,
+      customer_name: null,
+      lines: [
+        {
+          invoice_item_id: 10,
+          product_id: 1,
+          product_name: 'Coca 330ml',
+          product_sku: 'COC',
+          unit: 'lon',
+          sold_quantity: 5,
+          returned_quantity: 0,
+          returnable_quantity: 5,
+          unit_price: 12000,
+        },
+      ],
+    }),
+  ),
+  http.get('*/returns', () =>
+    HttpResponse.json({
+      items: [
+        {
+          id: 1,
+          code: 'TH20260607-001',
+          invoice_id: 1,
+          customer_name: null,
+          total_refund: 24000,
+          refund_method: 'CASH',
+          status: 'COMPLETED',
+          completed_at: '2026-06-07T03:00:00Z',
+        },
+      ],
+      pagination: { page: 1, limit: 20, total: 1, total_pages: 1 },
+    }),
+  ),
+  http.post('*/returns', () =>
+    HttpResponse.json(
+      {
+        id: 1,
+        code: 'TH20260607-001',
+        invoice_id: 1,
+        customer_id: null,
+        customer_name: null,
+        total_refund: 24000,
+        refund_method: 'CASH',
+        status: 'COMPLETED',
+        reason: null,
+        completed_at: '2026-06-07T03:00:00Z',
+        created_at: '2026-06-07T03:00:00Z',
+        items: [],
+      },
+      { status: 201 },
+    ),
+  ),
 ];
