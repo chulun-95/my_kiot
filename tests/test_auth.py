@@ -18,7 +18,8 @@ async def test_register_success(client):
     assert resp.status_code == 201
     data = resp.json()
     assert "access_token" in data
-    assert "refresh_token" in data
+    assert "refresh_token" not in data
+    assert resp.cookies.get("refresh_token")
     assert data["tenant"]["name"] == payload["shop_name"]
     assert data["tenant"]["slug"].startswith("tap-hoa-minh-anh")
     assert data["user"]["role"] == "OWNER"
@@ -111,7 +112,8 @@ async def test_login_success(client, registered_owner):
     assert resp.status_code == 200
     data = resp.json()
     assert "access_token" in data
-    assert "refresh_token" in data
+    assert "refresh_token" not in data
+    assert resp.cookies.get("refresh_token")
     assert data["user"]["role"] == "OWNER"
 
 
@@ -155,17 +157,14 @@ async def test_login_jwt_payload(client, registered_owner):
 
 @pytest.mark.asyncio
 async def test_logout_invalidates_refresh_token(client, registered_owner):
+    old = registered_owner["refresh_token"]
     resp = await client.post(
         "/api/v1/auth/logout",
-        json={"refresh_token": registered_owner["refresh_token"]},
         headers={"Authorization": f"Bearer {registered_owner['access_token']}"},
     )
     assert resp.status_code == 200
 
-    r = await client.post(
-        "/api/v1/auth/refresh",
-        json={"refresh_token": registered_owner["refresh_token"]},
-    )
+    r = await client.post("/api/v1/auth/refresh", cookies={"refresh_token": old})
     assert r.status_code == 401
 
 
@@ -174,12 +173,14 @@ async def test_logout_invalidates_refresh_token(client, registered_owner):
 @pytest.mark.asyncio
 async def test_refresh_rotates_tokens(client, registered_owner):
     old_refresh = registered_owner["refresh_token"]
-    r = await client.post("/api/v1/auth/refresh", json={"refresh_token": old_refresh})
+    r = await client.post("/api/v1/auth/refresh", cookies={"refresh_token": old_refresh})
     assert r.status_code == 200
-    data = r.json()
-    assert data["refresh_token"] != old_refresh
+    new_refresh = r.cookies.get("refresh_token")
+    assert new_refresh and new_refresh != old_refresh
+    assert "refresh_token" not in r.json()
 
-    r2 = await client.post("/api/v1/auth/refresh", json={"refresh_token": old_refresh})
+    # tái sử dụng token cũ → bị từ chối (reuse detection)
+    r2 = await client.post("/api/v1/auth/refresh", cookies={"refresh_token": old_refresh})
     assert r2.status_code == 401
 
 
@@ -260,8 +261,9 @@ async def test_change_password_invalidates_old_refresh_tokens(client, registered
         headers=headers,
     )
     assert r.status_code == 200
+    assert "refresh_token" not in r.json()
 
-    r2 = await client.post("/api/v1/auth/refresh", json={"refresh_token": old_refresh})
+    r2 = await client.post("/api/v1/auth/refresh", cookies={"refresh_token": old_refresh})
     assert r2.status_code == 401
 
 

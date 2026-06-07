@@ -119,6 +119,7 @@ async def registered_owner(client) -> dict:
     resp = await client.post("/api/v1/auth/register", json=payload)
     assert resp.status_code == 201, resp.text
     data = resp.json()
+    data["refresh_token"] = resp.cookies.get("refresh_token")
     data["password"] = payload["password"]
     data["phone"] = payload["phone"]
     return data
