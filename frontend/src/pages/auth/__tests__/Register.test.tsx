@@ -18,7 +18,6 @@ describe('Register page', () => {
       user: null,
       tenant: null,
       accessToken: null,
-      refreshToken: null,
     });
   });
 

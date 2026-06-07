@@ -18,7 +18,6 @@ describe('Login page', () => {
       user: null,
       tenant: null,
       accessToken: null,
-      refreshToken: null,
     });
   });
 

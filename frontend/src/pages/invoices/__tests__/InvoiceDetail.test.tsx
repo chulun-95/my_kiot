@@ -15,7 +15,6 @@ function renderAt(role: 'OWNER' | 'CASHIER', userId: number) {
     },
     tenant: { id: 1, name: 'Shop A', slug: 'shop-a' },
     accessToken: 'tok',
-    refreshToken: 'rtok',
   });
   return render(
     <MemoryRouter initialEntries={['/invoices/11']}>

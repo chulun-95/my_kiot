@@ -32,7 +32,11 @@ const tokens = {
 
 export const handlers = [
   http.post('*/auth/refresh', () =>
-    HttpResponse.json({ access_token: 'mock-access-token' }),
+    HttpResponse.json({
+      user: { id: 1, full_name: 'Owner A', role: 'OWNER' },
+      tenant: { id: 1, name: 'Shop A', slug: 'shop-a' },
+      access_token: 'access-1',
+    }),
   ),
   http.post('*/auth/register', async ({ request }) => {
     const body = (await request.json()) as RegisterBody;

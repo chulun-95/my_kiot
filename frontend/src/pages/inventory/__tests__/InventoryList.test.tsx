@@ -11,7 +11,6 @@ function asOwner() {
     user: { id: 1, full_name: 'Owner', role: 'OWNER', phone: null, email: null },
     tenant: { id: 1, name: 'Shop', slug: 'shop' },
     accessToken: 'tok',
-    refreshToken: 'r',
   });
 }
 
@@ -20,7 +19,6 @@ function asCashier() {
     user: { id: 2, full_name: 'Cashier', role: 'CASHIER', phone: null, email: null },
     tenant: { id: 1, name: 'Shop', slug: 'shop' },
     accessToken: 'tok',
-    refreshToken: 'r',
   });
 }
 

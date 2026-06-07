@@ -17,7 +17,6 @@ describe('ProfitPage', () => {
       },
       tenant: { id: 1, name: 'Shop', slug: 'shop' },
       accessToken: 'tok',
-      refreshToken: 'r',
     });
   });
 
@@ -47,7 +46,6 @@ describe('ProfitPage', () => {
       },
       tenant: { id: 1, name: 'Shop', slug: 'shop' },
       accessToken: 'tok',
-      refreshToken: 'r',
     });
     render(
       <MemoryRouter>

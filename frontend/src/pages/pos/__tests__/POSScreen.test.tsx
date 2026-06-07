@@ -10,7 +10,6 @@ function setupAuth() {
     user: { id: 1, full_name: 'Chủ shop', role: 'OWNER', phone: null, email: null },
     tenant: { id: 1, name: 'Shop A', slug: 'shop-a' },
     accessToken: 'tok',
-    refreshToken: 'rtok',
   });
 }
 

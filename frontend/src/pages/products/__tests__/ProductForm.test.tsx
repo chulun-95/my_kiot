@@ -22,7 +22,6 @@ describe('ProductForm', () => {
       user: { id: 1, full_name: 'Owner', role: 'OWNER' },
       tenant: { id: 1, name: 'Shop', slug: 'shop' },
       accessToken: 't',
-      refreshToken: 'r',
     });
   });
 
@@ -52,7 +51,6 @@ describe('ProductForm', () => {
       user: { id: 2, full_name: 'Cashier', role: 'CASHIER' },
       tenant: { id: 1, name: 'Shop', slug: 'shop' },
       accessToken: 't',
-      refreshToken: 'r',
     });
     renderWithRoute('/products/new');
     await screen.findByLabelText(/Tên sản phẩm/);
