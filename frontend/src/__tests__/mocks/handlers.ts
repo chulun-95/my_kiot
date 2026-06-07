@@ -352,6 +352,20 @@ export const handlers = [
     HttpResponse.json({ message: 'Đã xóa nhóm hàng' }),
   ),
 
+  // ---------- DEBT REPORTS (before generic /customers to match first) ----------
+  http.get('*/reports/debts/customers', () =>
+    HttpResponse.json({
+      items: [{ partner_id: 1, partner_name: 'Nguyễn Văn A', phone: '0905111222', debt: 14000 }],
+      total_debt: 14000,
+    }),
+  ),
+  http.get('*/reports/debts/suppliers', () =>
+    HttpResponse.json({
+      items: [{ partner_id: 2, partner_name: 'NCC X', phone: null, debt: 150000 }],
+      total_debt: 150000,
+    }),
+  ),
+
   // ---------- CUSTOMERS ----------
   http.get('*/customers/phone/:phone', ({ params }) => {
     if (String(params.phone) === '0999999999') {
@@ -1319,19 +1333,6 @@ export const handlers = [
       last_updated: '2026-05-23T09:00:00Z',
     }),
   ),
-  http.get('*/reports/debts/customers', () =>
-    HttpResponse.json({
-      items: [{ partner_id: 1, partner_name: 'Nguyễn Văn A', phone: '0905111222', debt: 14000 }],
-      total_debt: 14000,
-    }),
-  ),
-  http.get('*/reports/debts/suppliers', () =>
-    HttpResponse.json({
-      items: [{ partner_id: 2, partner_name: 'NCC X', phone: null, debt: 150000 }],
-      total_debt: 150000,
-    }),
-  ),
-
   // ---------- CASH BOOK ----------
   http.get('*/cash-transactions', ({ request }) => {
     const url = new URL(request.url);
