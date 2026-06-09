@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 ReceiptStatus = Literal["DRAFT", "COMPLETED", "CANCELLED"]
+ReceiptPaymentMethod = Literal["CASH", "BANK_TRANSFER", "EWALLET"]
 
 
 # ---------- Goods Receipt ----------
@@ -29,6 +30,7 @@ class GoodsReceiptCreateRequest(BaseModel):
     supplier_id: int | None = None
     items: list[GoodsReceiptItemInput] = Field(min_length=1)
     paid_amount: Decimal = Field(default=Decimal("0"), ge=0)
+    payment_method: ReceiptPaymentMethod = "CASH"
     note: str | None = None
 
 
@@ -38,6 +40,7 @@ class GoodsReceiptUpdateRequest(BaseModel):
     supplier_id: int | None = None
     items: list[GoodsReceiptItemInput] | None = None
     paid_amount: Decimal | None = Field(default=None, ge=0)
+    payment_method: ReceiptPaymentMethod | None = None
     note: str | None = None
 
 
@@ -63,6 +66,7 @@ class GoodsReceiptResponse(BaseModel):
     supplier_name: str | None = None
     total: Decimal
     paid_amount: Decimal
+    payment_method: str = "CASH"
     status: ReceiptStatus
     note: str | None
     completed_at: datetime | None
@@ -105,7 +109,7 @@ class InventoryItemResponse(BaseModel):
     unit: str
     quantity: Decimal
     min_stock: int
-    cost_price: Decimal
+    cost_price: Decimal | None = None  # None nếu CASHIER không được xem giá vốn
     sale_price: Decimal
     units_breakdown: list[UnitBreakdownItem] = []
 

@@ -18,7 +18,11 @@ async def shop(client, registered_owner):
     p2 = (await client.post("/api/v1/products", json={
         "name": "Pepsi", "sku": "PEP", "sale_price": 25000, "cost_price": 20000,
     }, headers=h)).json()
+    sup = (await client.post("/api/v1/suppliers", json={
+        "name": "NCC Test",
+    }, headers=h)).json()
     r = (await client.post("/api/v1/goods-receipts", json={
+        "supplier_id": sup["id"],
         "items": [
             {"product_id": p1["id"], "quantity": 100, "cost_price": 9000},
             {"product_id": p2["id"], "quantity": 50, "cost_price": 20000},
@@ -26,7 +30,7 @@ async def shop(client, registered_owner):
     }, headers=h)).json()
     await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
 
-    return {"headers": h, "p1": p1, "p2": p2, "token": registered_owner["access_token"]}
+    return {"headers": h, "p1": p1, "p2": p2, "supplier": sup, "token": registered_owner["access_token"]}
 
 
 async def _complete_invoice(client, headers, product_id, quantity):
@@ -127,7 +131,8 @@ async def test_dashboard_pending_drafts(client, shop):
 
 
 @pytest.mark.asyncio
-async def test_dashboard_owner_only(client, shop, registered_owner):
+async def test_dashboard_cashier_sees_revenue_but_not_profit(client, shop, registered_owner):
+    """CASHIER xem được doanh thu hôm nay nhưng KHÔNG thấy lợi nhuận / giá trị tồn kho."""
     # Tạo cashier
     staff = await client.post("/api/v1/staff", json={
         "full_name": "Cashier", "phone": "0911999888", "password": "secret123",
@@ -140,7 +145,17 @@ async def test_dashboard_owner_only(client, shop, registered_owner):
     r = await client.get(
         "/api/v1/reports/dashboard", headers=_auth(cashier_token)
     )
-    assert r.status_code == 403
+    assert r.status_code == 200
+    body = r.json()
+    assert "today_revenue" in body
+    assert body["today_profit"] is None       # ẩn lợi nhuận
+    assert body["inventory_value"] is None     # ẩn giá trị tồn (suy ra từ giá vốn)
+
+    # OWNER vẫn thấy đầy đủ
+    owner = await client.get("/api/v1/reports/dashboard", headers=shop["headers"])
+    obody = owner.json()
+    assert obody["today_profit"] is not None
+    assert obody["inventory_value"] is not None
 
 
 # ===================================================================

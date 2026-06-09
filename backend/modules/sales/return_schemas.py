@@ -42,6 +42,8 @@ class ReturnResponse(BaseModel):
     customer_id: Optional[int]
     customer_name: Optional[str]
     total_refund: Decimal
+    debt_adjust: Decimal
+    cash_refund: Decimal
     refund_method: str
     status: str
     reason: Optional[str]

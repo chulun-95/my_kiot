@@ -46,3 +46,10 @@ def can_see_cost(tenant: Tenant | None, role: str) -> bool:
     if role == "OWNER":
         return True
     return bool(tenant_setting(tenant, "show_cost_to_cashier", False))
+
+
+def can_see_profit(tenant: Tenant | None, role: str) -> bool:
+    """OWNER luôn thấy lợi nhuận. CASHIER tuỳ tenant.settings.show_profit_to_cashier."""
+    if role == "OWNER":
+        return True
+    return bool(tenant_setting(tenant, "show_profit_to_cashier", False))

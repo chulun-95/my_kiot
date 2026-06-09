@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from backend.exceptions import AppError
 from backend.modules.cashbook import service as cash_service
+from backend.modules.cashbook.models import CashTransaction
 from backend.modules.customer.models import Customer
 from backend.modules.inventory.models import Inventory, StockMovement
 from backend.modules.sales.models import Invoice, InvoiceItem, ReturnOrder, ReturnOrderItem
@@ -32,6 +33,39 @@ async def _returned_qty_by_item(db: AsyncSession, tenant_id: int, invoice_id: in
         .group_by(ReturnOrderItem.invoice_item_id)
     )).all()
     return {iid: Decimal(str(q or 0)) for iid, q in rows if iid is not None}
+
+
+async def _current_customer_debt(db: AsyncSession, tenant_id: int, customer_id: int) -> Decimal:
+    """Công nợ hiện tại của 1 khách (cùng công thức báo cáo customer_debts).
+
+    debt = Σ(invoice.total − paid) [COMPLETED] − Σ DEBT_COLLECTION (cash IN)
+           − Σ ReturnOrder.debt_adjust [COMPLETED]
+    """
+    owed = (await db.execute(
+        select(func.coalesce(func.sum(Invoice.total - Invoice.paid_amount), 0)).where(
+            Invoice.tenant_id == tenant_id,
+            Invoice.status == "COMPLETED",
+            Invoice.customer_id == customer_id,
+        )
+    )).scalar()
+    collected = (await db.execute(
+        select(func.coalesce(func.sum(CashTransaction.amount), 0)).where(
+            CashTransaction.tenant_id == tenant_id,
+            CashTransaction.status == "ACTIVE",
+            CashTransaction.direction == "IN",
+            CashTransaction.category == "DEBT_COLLECTION",
+            CashTransaction.partner_type == "CUSTOMER",
+            CashTransaction.partner_id == customer_id,
+        )
+    )).scalar()
+    returned = (await db.execute(
+        select(func.coalesce(func.sum(ReturnOrder.debt_adjust), 0)).where(
+            ReturnOrder.tenant_id == tenant_id,
+            ReturnOrder.status == "COMPLETED",
+            ReturnOrder.customer_id == customer_id,
+        )
+    )).scalar()
+    return Decimal(str(owed or 0)) - Decimal(str(collected or 0)) - Decimal(str(returned or 0))
 
 
 async def get_returnable(db: AsyncSession, tenant_id: int, invoice_id: int) -> dict[str, Any]:
@@ -91,6 +125,11 @@ async def create_return(db: AsyncSession, tenant_id: int, user_id: int, payload:
     db.add(ro)
     await db.flush()
 
+    # Tỷ lệ phân bổ chiết khấu toàn hóa đơn: invoice.total = subtotal − discount_amount.
+    # Khách thực trả cho mỗi dòng = line_total × (total / subtotal). Trả hàng phải hoàn
+    # đúng phần thực trả này, không hoàn nguyên line_total (tránh hoàn dư khi có CK tổng).
+    order_ratio = (invoice.total / invoice.subtotal) if invoice.subtotal else Decimal("1")
+
     # build items + gom base_qty theo product
     base_qty_by_pid: dict[int, Decimal] = {}
     subtotal = Decimal("0")
@@ -99,7 +138,7 @@ async def create_return(db: AsyncSession, tenant_id: int, user_id: int, payload:
         it = items_by_id[line.invoice_item_id]
         rate = it.conversion_rate if it.conversion_rate else Decimal("1")
         refund_per_unit = (it.line_total / it.quantity) if it.quantity else Decimal("0")
-        line_refund = (refund_per_unit * line.quantity).quantize(Decimal("0.01"))
+        line_refund = (refund_per_unit * line.quantity * order_ratio).quantize(Decimal("0.01"))
         base_qty = (line.quantity * rate).quantize(Decimal("0.001"))
         cost_line = (it.cost_price * base_qty).quantize(Decimal("0.01"))
         subtotal += line_refund
@@ -116,6 +155,16 @@ async def create_return(db: AsyncSession, tenant_id: int, user_id: int, payload:
     ro.total_refund = subtotal
     ro.cost_total = cost_total
 
+    # Cấn trừ công nợ trước (kiểu KiotViet): giá trị trả hàng giảm nợ khách,
+    # chỉ phần dư mới chi tiền mặt. Khách vãng lai (customer_id null) → nợ = 0.
+    if invoice.customer_id:
+        current_debt = await _current_customer_debt(db, tenant_id, invoice.customer_id)
+        debt_adjust = min(ro.total_refund, max(Decimal("0"), current_debt))
+    else:
+        debt_adjust = Decimal("0")
+    ro.debt_adjust = debt_adjust
+    ro.cash_refund = ro.total_refund - debt_adjust
+
     # cộng tồn (kardex RETURN)
     inv_by_pid = await _lock_inventory_rows(db, tenant_id, list(base_qty_by_pid.keys()))
     for pid in sorted(base_qty_by_pid.keys()):
@@ -131,10 +180,11 @@ async def create_return(db: AsyncSession, tenant_id: int, user_id: int, payload:
             note=f"Trả hàng {ro.code}",
         ))
 
-    # hoàn tiền (cash OUT)
+    # hoàn tiền (cash OUT) — chỉ phần tiền mặt thực chi; phần debt_adjust đã cấn
+    # trừ vào công nợ nên không chi tiền. record_cash_entry tự bỏ qua nếu <= 0.
     await cash_service.record_cash_entry(
         db, tenant_id, direction="OUT", method=payload.refund_method,
-        amount=ro.total_refund, category="REFUND",
+        amount=ro.cash_refund, category="REFUND",
         ref_type="SALES_RETURN", ref_id=ro.id, created_by=user_id,
         partner_type=("CUSTOMER" if invoice.customer_id else None),
         partner_id=invoice.customer_id, note=f"Hoàn tiền trả hàng {ro.code}",
@@ -149,7 +199,10 @@ async def create_return(db: AsyncSession, tenant_id: int, user_id: int, payload:
     await audit_helper.write_audit(
         db, tenant_id=tenant_id, user_id=user_id,
         action=audit_helper.CREATE_SALES_RETURN, entity_type="return_order",
-        entity_id=ro.id, new_data={"code": ro.code, "invoice_id": invoice.id, "total_refund": ro.total_refund},
+        entity_id=ro.id, new_data={
+            "code": ro.code, "invoice_id": invoice.id, "total_refund": ro.total_refund,
+            "debt_adjust": ro.debt_adjust, "cash_refund": ro.cash_refund,
+        },
     )
     await db.commit()
     return await get_return(db, tenant_id, ro.id)

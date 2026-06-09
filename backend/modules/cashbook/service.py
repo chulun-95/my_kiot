@@ -25,10 +25,16 @@ VALID_IN_CATEGORIES = {"SALE", "OTHER_IN", "CAPITAL", "DEBT_COLLECTION"}
 VALID_OUT_CATEGORIES = {"PURCHASE", "CHANGE", "SALARY", "OPERATING", "OTHER_OUT", "REFUND", "DEBT_PAYMENT"}
 
 
+# Múi giờ VN — sổ quỹ lọc theo "ngày kinh doanh" giống module báo cáo, tránh
+# lệch 7h khi đối chiếu thu/chi với doanh thu cùng ngày.
+VN_TZ = timezone(timedelta(hours=7))
+
+
 def _date_range(from_date: date, to_date: date) -> tuple[datetime, datetime]:
-    start = datetime.combine(from_date, datetime.min.time(), tzinfo=timezone.utc)
-    end = datetime.combine(to_date, datetime.min.time(), tzinfo=timezone.utc) + timedelta(days=1)
-    return start, end
+    """Diễn giải from/to là ngày kinh doanh VN, trả về biên UTC để query DB."""
+    start = datetime(from_date.year, from_date.month, from_date.day, tzinfo=VN_TZ)
+    end = datetime(to_date.year, to_date.month, to_date.day, tzinfo=VN_TZ) + timedelta(days=1)
+    return start.astimezone(timezone.utc), end.astimezone(timezone.utc)
 
 
 async def record_cash_entry(

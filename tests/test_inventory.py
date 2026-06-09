@@ -111,6 +111,7 @@ async def test_update_draft_receipt(client, shop):
 async def test_complete_receipt_updates_stock(client, shop):
     h = shop["headers"]
     r = (await client.post("/api/v1/goods-receipts", json={
+        "supplier_id": shop["supplier"]["id"],
         "items": [
             {"product_id": shop["p1"]["id"], "quantity": 10, "cost_price": 9000},
             {"product_id": shop["p2"]["id"], "quantity": 5, "cost_price": 20000},
@@ -137,11 +138,13 @@ async def test_complete_receipt_average_cost(client, shop):
     """Nhập 10@9000 rồi 10@11000 → giá vốn bình quân = 10000."""
     h = shop["headers"]
     r1 = (await client.post("/api/v1/goods-receipts", json={
+        "supplier_id": shop["supplier"]["id"],
         "items": [{"product_id": shop["p1"]["id"], "quantity": 10, "cost_price": 9000}],
     }, headers=h)).json()
     await client.post(f"/api/v1/goods-receipts/{r1['id']}/complete", headers=h)
 
     r2 = (await client.post("/api/v1/goods-receipts", json={
+        "supplier_id": shop["supplier"]["id"],
         "items": [{"product_id": shop["p1"]["id"], "quantity": 10, "cost_price": 11000}],
     }, headers=h)).json()
     await client.post(f"/api/v1/goods-receipts/{r2['id']}/complete", headers=h)
@@ -154,6 +157,7 @@ async def test_complete_receipt_average_cost(client, shop):
 async def test_complete_receipt_twice_rejected(client, shop):
     h = shop["headers"]
     r = (await client.post("/api/v1/goods-receipts", json={
+        "supplier_id": shop["supplier"]["id"],
         "items": [{"product_id": shop["p1"]["id"], "quantity": 1, "cost_price": 1000}],
     }, headers=h)).json()
     await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
@@ -167,6 +171,7 @@ async def test_complete_receipt_twice_rejected(client, shop):
 async def test_update_completed_receipt_rejected(client, shop):
     h = shop["headers"]
     r = (await client.post("/api/v1/goods-receipts", json={
+        "supplier_id": shop["supplier"]["id"],
         "items": [{"product_id": shop["p1"]["id"], "quantity": 1, "cost_price": 1000}],
     }, headers=h)).json()
     await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
@@ -175,6 +180,35 @@ async def test_update_completed_receipt_rejected(client, shop):
         "note": "Try update",
     }, headers=h)
     assert r2.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_complete_receipt_debt_without_supplier_rejected(client, shop):
+    """Nhập nợ (trả thiếu) khi chưa chọn NCC phải bị chặn — nợ sẽ không thống kê được."""
+    h = shop["headers"]
+    r = (await client.post("/api/v1/goods-receipts", json={
+        "items": [{"product_id": shop["p1"]["id"], "quantity": 10, "cost_price": 9000}],
+        "paid_amount": 0,
+    }, headers=h)).json()
+
+    r2 = await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
+    assert r2.status_code == 400
+    assert r2.json()["error"]["code"] == "DEBT_REQUIRES_SUPPLIER"
+
+
+@pytest.mark.asyncio
+async def test_complete_receipt_debt_with_supplier_ok(client, shop):
+    """Nhập nợ có NCC → cho phép (công nợ phải trả được thống kê)."""
+    h = shop["headers"]
+    r = (await client.post("/api/v1/goods-receipts", json={
+        "supplier_id": shop["supplier"]["id"],
+        "items": [{"product_id": shop["p1"]["id"], "quantity": 10, "cost_price": 9000}],
+        "paid_amount": 0,
+    }, headers=h)).json()
+
+    r2 = await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
+    assert r2.status_code == 200, r2.text
+    assert r2.json()["status"] == "COMPLETED"
 
 
 # ---------- Cancel ----------
@@ -199,6 +233,7 @@ async def test_cancel_completed_receipt_rollbacks_stock(client, shop):
     h = shop["headers"]
     # nhập 10 cái
     r = (await client.post("/api/v1/goods-receipts", json={
+        "supplier_id": shop["supplier"]["id"],
         "items": [{"product_id": shop["p1"]["id"], "quantity": 10, "cost_price": 9000}],
     }, headers=h)).json()
     await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
@@ -254,6 +289,7 @@ async def test_inventory_list_empty_initial(client, shop):
 async def test_inventory_movements_kardex(client, shop):
     h = shop["headers"]
     r = (await client.post("/api/v1/goods-receipts", json={
+        "supplier_id": shop["supplier"]["id"],
         "items": [{"product_id": shop["p1"]["id"], "quantity": 7, "cost_price": 9000}],
     }, headers=h)).json()
     await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
@@ -287,8 +323,10 @@ async def test_low_stock_endpoint(client, registered_owner):
     }, headers=h)).json()
 
     # nhập 5 cho p_low (dưới min 10 → LOW); p_out không nhập (tồn 0 → OUT_OF_STOCK)
+    # trả đủ tiền (paid = total) nên không cần NCC
     r = (await client.post("/api/v1/goods-receipts", json={
         "items": [{"product_id": p_low["id"], "quantity": 5, "cost_price": 100}],
+        "paid_amount": 5 * 100,
     }, headers=h)).json()
     await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
 
@@ -329,6 +367,58 @@ async def test_low_stock_endpoint_forbidden_for_cashier(client, registered_owner
     assert r.status_code == 403
 
 
+@pytest.mark.asyncio
+async def test_inventory_cost_hidden_from_cashier(client, shop):
+    """CASHIER không thấy giá vốn ở màn Tồn kho; OWNER thì thấy."""
+    h = shop["headers"]
+    # nhập kho để có dòng inventory (gắn NCC để complete không bị chặn nợ)
+    r = (await client.post("/api/v1/goods-receipts", json={
+        "supplier_id": shop["supplier"]["id"],
+        "items": [{"product_id": shop["p1"]["id"], "quantity": 10, "cost_price": 9000}],
+    }, headers=h)).json()
+    rc = await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
+    assert rc.status_code == 200, rc.text
+
+    # OWNER thấy cost_price
+    owner_list = (await client.get("/api/v1/inventory", headers=h)).json()
+    row = next(i for i in owner_list["items"] if i["product_id"] == shop["p1"]["id"])
+    assert row["cost_price"] is not None and float(row["cost_price"]) == 9000
+
+    # CASHIER không thấy (mặc định show_cost_to_cashier = false)
+    await client.post("/api/v1/staff", json={
+        "full_name": "Cashier", "phone": "0987222333", "password": "cashier123",
+    }, headers=h)
+    login = await client.post("/api/v1/auth/login", json={
+        "phone": "0987222333", "password": "cashier123",
+    })
+    cashier_h = _auth(login.json()["access_token"])
+    cashier_list = (await client.get("/api/v1/inventory", headers=cashier_h)).json()
+    crow = next(i for i in cashier_list["items"] if i["product_id"] == shop["p1"]["id"])
+    assert crow["cost_price"] is None
+    # nhưng vẫn thấy số lượng + giá bán
+    assert float(crow["quantity"]) == 10
+    assert float(crow["sale_price"]) == 12000
+
+
+@pytest.mark.asyncio
+async def test_receipt_payment_method_flows_to_cashbook(client, shop):
+    """Phương thức trả tiền nhập phải ghi đúng vào sổ quỹ (không hardcode CASH)."""
+    h = shop["headers"]
+    r = (await client.post("/api/v1/goods-receipts", json={
+        "supplier_id": shop["supplier"]["id"],
+        "items": [{"product_id": shop["p1"]["id"], "quantity": 10, "cost_price": 9000}],
+        "paid_amount": 90000,
+        "payment_method": "BANK_TRANSFER",
+    }, headers=h)).json()
+    assert r["payment_method"] == "BANK_TRANSFER"
+    await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
+
+    cash = (await client.get("/api/v1/cash-transactions?ref_type=GOODS_RECEIPT", headers=h)).json()
+    entry = next(i for i in cash["items"] if i["category"] == "PURCHASE")
+    assert entry["method"] == "BANK_TRANSFER"
+    assert float(entry["amount"]) == 90000
+
+
 # ---------- List receipts ----------
 
 @pytest.mark.asyncio
@@ -349,6 +439,7 @@ async def test_list_receipts_pagination(client, shop):
 async def test_list_receipts_filter_by_status(client, shop):
     h = shop["headers"]
     r = (await client.post("/api/v1/goods-receipts", json={
+        "supplier_id": shop["supplier"]["id"],
         "items": [{"product_id": shop["p1"]["id"], "quantity": 1, "cost_price": 1000}],
     }, headers=h)).json()
     await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)

@@ -43,6 +43,10 @@ class GoodsReceipt(Base, AuditMixin):
     paid_amount: Mapped[Decimal] = mapped_column(
         Numeric(15, 2), nullable=False, default=Decimal("0"), server_default="0"
     )
+    # Phương thức trả tiền nhập: CASH | BANK_TRANSFER | EWALLET
+    payment_method: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="CASH", server_default="CASH"
+    )
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="DRAFT", server_default="DRAFT"
     )

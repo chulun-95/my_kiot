@@ -96,11 +96,31 @@ async def _validate_products(
     return by_id
 
 
+async def _ensure_inventory_rows(
+    db: AsyncSession, tenant_id: int, product_ids: list[int]
+) -> None:
+    """Upsert (ON CONFLICT DO NOTHING) đảm bảo dòng tồn tồn tại trước khi lock — chống race."""
+    if not product_ids:
+        return
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+    from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
+    dialect = db.bind.dialect.name if db.bind is not None else "sqlite"
+    ins = pg_insert if dialect == "postgresql" else sqlite_insert
+    stmt = ins(Inventory).values(
+        [{"tenant_id": tenant_id, "product_id": pid, "quantity": Decimal("0")}
+         for pid in sorted(set(product_ids))]
+    ).on_conflict_do_nothing(index_elements=["tenant_id", "product_id"])
+    await db.execute(stmt)
+    await db.flush()
+
+
 async def _lock_inventory_rows(
     db: AsyncSession, tenant_id: int, product_ids: list[int]
 ) -> dict[int, Inventory]:
     """Lock theo product_id ASC để tránh deadlock. Tạo row mới nếu chưa có."""
     sorted_ids = sorted(set(product_ids))
+    await _ensure_inventory_rows(db, tenant_id, sorted_ids)
     rows = (
         await db.execute(
             select(Inventory)
@@ -178,6 +198,7 @@ async def create_goods_receipt(
         supplier_id=payload.supplier_id,
         total=total,
         paid_amount=payload.paid_amount,
+        payment_method=payload.payment_method,
         status="DRAFT",
         note=payload.note,
         created_by=user_id,
@@ -234,6 +255,9 @@ async def update_goods_receipt(
     if payload.paid_amount is not None and payload.paid_amount != receipt.paid_amount:
         changed_fields["paid_amount"] = (receipt.paid_amount, payload.paid_amount)
         receipt.paid_amount = payload.paid_amount
+    if payload.payment_method is not None and payload.payment_method != receipt.payment_method:
+        changed_fields["payment_method"] = (receipt.payment_method, payload.payment_method)
+        receipt.payment_method = payload.payment_method
 
     if payload.items is not None:
         product_ids = [it.product_id for it in payload.items]
@@ -295,6 +319,16 @@ async def complete_goods_receipt(
     if not receipt.items:
         raise AppError(
             400, "RECEIPT_NO_ITEMS", "Phiếu nhập chưa có sản phẩm"
+        )
+
+    # Nhập nợ (trả NCC thiếu) bắt buộc phải gắn nhà cung cấp — nếu không công nợ
+    # phải trả sẽ không được thống kê ở báo cáo (chỉ tính phiếu có supplier_id).
+    if receipt.paid_amount < receipt.total and receipt.supplier_id is None:
+        raise AppError(
+            400,
+            "DEBT_REQUIRES_SUPPLIER",
+            "Nhập nợ phải chọn nhà cung cấp — không thể ghi nợ khi chưa có NCC",
+            {"total": str(receipt.total), "paid": str(receipt.paid_amount)},
         )
 
     product_ids = list({it.product_id for it in receipt.items})
@@ -366,10 +400,10 @@ async def complete_goods_receipt(
             )
         )
 
-    # Sổ quỹ: phiếu chi trả tiền nhập (nếu có thanh toán)
+    # Sổ quỹ: phiếu chi trả tiền nhập (nếu có thanh toán) — theo đúng phương thức
     if receipt.paid_amount and receipt.paid_amount > 0:
         await cash_service.record_cash_entry(
-            db, tenant_id, direction="OUT", method="CASH",
+            db, tenant_id, direction="OUT", method=receipt.payment_method or "CASH",
             amount=receipt.paid_amount, category="PURCHASE",
             ref_type="GOODS_RECEIPT", ref_id=receipt.id, created_by=user_id,
             partner_type=("SUPPLIER" if receipt.supplier_id else None),

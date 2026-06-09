@@ -182,6 +182,14 @@ class ReturnOrder(Base, AuditMixin):
     total_refund: Mapped[Decimal] = mapped_column(
         Numeric(15, 2), nullable=False, default=Decimal("0"), server_default="0"
     )
+    # Phần giá trị trả hàng cấn trừ vào công nợ khách (không chi tiền mặt).
+    debt_adjust: Mapped[Decimal] = mapped_column(
+        Numeric(15, 2), nullable=False, default=Decimal("0"), server_default="0"
+    )
+    # Tiền mặt thực chi ra cho khách (= total_refund - debt_adjust).
+    cash_refund: Mapped[Decimal] = mapped_column(
+        Numeric(15, 2), nullable=False, default=Decimal("0"), server_default="0"
+    )
     cost_total: Mapped[Decimal] = mapped_column(
         Numeric(15, 2), nullable=False, default=Decimal("0"), server_default="0"
     )

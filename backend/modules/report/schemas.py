@@ -13,12 +13,12 @@ RevenueGroupBy = Literal["day", "month"]
 class DashboardResponse(BaseModel):
     today_revenue: Decimal
     today_invoices: int
-    today_profit: Decimal
+    today_profit: Decimal | None = None   # None nếu CASHIER không được xem lợi nhuận
     today_customers: int
     pending_drafts: int
     low_stock_count: int       # gồm cả OUT_OF_STOCK + LOW
     out_of_stock_count: int    # subset của low_stock_count: tồn ≤ 0
-    inventory_value: Decimal   # tổng giá vốn tồn kho
+    inventory_value: Decimal | None = None  # None nếu CASHIER không được xem giá vốn
 
 
 # ---------- Revenue ----------

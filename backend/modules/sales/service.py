@@ -92,10 +92,33 @@ async def _validate_products(
     return by_id
 
 
+async def _ensure_inventory_rows(
+    db: AsyncSession, tenant_id: int, product_ids: list[int]
+) -> None:
+    """Upsert (INSERT ... ON CONFLICT DO NOTHING) ở tầng DB để đảm bảo dòng tồn tồn
+    tại TRƯỚC khi lock. Chống race: 2 POS cùng bán SP allow_negative chưa có dòng
+    tồn → nếu chỉ SELECT-rồi-INSERT ở Python sẽ cùng INSERT → unique violation.
+    """
+    if not product_ids:
+        return
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+    from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
+    dialect = db.bind.dialect.name if db.bind is not None else "sqlite"
+    ins = pg_insert if dialect == "postgresql" else sqlite_insert
+    stmt = ins(Inventory).values(
+        [{"tenant_id": tenant_id, "product_id": pid, "quantity": Decimal("0")}
+         for pid in sorted(set(product_ids))]
+    ).on_conflict_do_nothing(index_elements=["tenant_id", "product_id"])
+    await db.execute(stmt)
+    await db.flush()
+
+
 async def _lock_inventory_rows(
     db: AsyncSession, tenant_id: int, product_ids: list[int]
 ) -> dict[int, Inventory]:
     sorted_ids = sorted(set(product_ids))
+    await _ensure_inventory_rows(db, tenant_id, sorted_ids)
     rows = (
         await db.execute(
             select(Inventory)
@@ -317,6 +340,19 @@ async def complete_invoice(
     user_id: int,
     payload: InvoiceCompleteRequest,
 ) -> Invoice:
+    # Lock dòng hóa đơn TRƯỚC khi đọc/kiểm tra trạng thái — chống 2 request complete
+    # đồng thời cùng trừ kho 1 lần nữa (double-spend). Request thứ 2 sẽ chờ commit
+    # của request đầu rồi đọc thấy status=COMPLETED → ném INVOICE_NOT_DRAFT.
+    locked_id = (
+        await db.execute(
+            select(Invoice.id)
+            .where(Invoice.id == invoice_id, Invoice.tenant_id == tenant_id)
+            .with_for_update()
+        )
+    ).scalar()
+    if locked_id is None:
+        raise AppError(404, "INVOICE_NOT_FOUND", "Hóa đơn không tồn tại")
+
     invoice = await _get_invoice(db, tenant_id, invoice_id)
     if invoice.status != "DRAFT":
         raise AppError(
@@ -338,6 +374,16 @@ async def complete_invoice(
             400,
             "INSUFFICIENT_PAYMENT",
             f"Thanh toán {total_paid} < tổng {invoice.total}",
+            {"total": str(invoice.total), "paid": str(total_paid)},
+        )
+
+    # Bán nợ (trả thiếu) bắt buộc phải gắn khách hàng — nếu không công nợ sẽ
+    # không được thống kê ở báo cáo (chỉ tính HĐ có customer_id).
+    if total_paid < invoice.total and invoice.customer_id is None:
+        raise AppError(
+            400,
+            "DEBT_REQUIRES_CUSTOMER",
+            "Bán nợ phải chọn khách hàng — không thể ghi nợ cho khách vãng lai",
             {"total": str(invoice.total), "paid": str(total_paid)},
         )
 
@@ -496,6 +542,25 @@ async def cancel_invoice(
         )
         await db.commit()
         return await _get_invoice(db, tenant_id, invoice.id)
+
+    # COMPLETED → chặn nếu còn phiếu trả hàng ACTIVE (tránh cộng kho/đảo thống kê 2 lần)
+    from backend.modules.sales.models import ReturnOrder
+    active_returns = (
+        await db.execute(
+            select(ReturnOrder.code).where(
+                ReturnOrder.tenant_id == tenant_id,
+                ReturnOrder.invoice_id == invoice.id,
+                ReturnOrder.status == "COMPLETED",
+            )
+        )
+    ).scalars().all()
+    if active_returns:
+        raise AppError(
+            400,
+            "INVOICE_HAS_RETURNS",
+            "Hóa đơn đã có phiếu trả hàng. Vui lòng hủy các phiếu trả trước khi hủy hóa đơn.",
+            {"return_codes": list(active_returns)},
+        )
 
     # COMPLETED → bút toán ngược (dùng conversion_rate snapshot từ invoice_item)
     product_ids = list({it.product_id for it in invoice.items})

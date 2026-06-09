@@ -12,23 +12,27 @@ from backend.modules.sales.models import Invoice, InvoiceItem, ReturnOrder, Retu
 from backend.modules.customer.models import Customer, Supplier
 from backend.modules.cashbook.models import CashTransaction
 
+VN_TZ = timezone(timedelta(hours=7))
+_VN_TZ_NAME = "Asia/Ho_Chi_Minh"
+
 
 # ====================================================================
 # Helpers
 # ====================================================================
 
 def _today_range() -> tuple[datetime, datetime]:
-    """Return [start, end) for today in UTC (giản lược — sẽ chuyển TZ khi cần)."""
-    now = datetime.now(tz=timezone.utc)
-    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    end = start + timedelta(days=1)
-    return start, end
+    """Return [start, end) for today in VN timezone (UTC+7), as UTC bounds for DB queries."""
+    now_vn = datetime.now(tz=VN_TZ)
+    start_vn = now_vn.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_vn = start_vn + timedelta(days=1)
+    return start_vn.astimezone(timezone.utc), end_vn.astimezone(timezone.utc)
 
 
 def _date_range(from_date: date, to_date: date) -> tuple[datetime, datetime]:
-    start = datetime.combine(from_date, datetime.min.time(), tzinfo=timezone.utc)
-    end = datetime.combine(to_date, datetime.min.time(), tzinfo=timezone.utc) + timedelta(days=1)
-    return start, end
+    """Interpret from_date/to_date as VN business days, return UTC bounds for DB queries."""
+    start = datetime(from_date.year, from_date.month, from_date.day, tzinfo=VN_TZ)
+    end = datetime(to_date.year, to_date.month, to_date.day, tzinfo=VN_TZ) + timedelta(days=1)
+    return start.astimezone(timezone.utc), end.astimezone(timezone.utc)
 
 
 async def _returns_totals(db: AsyncSession, tenant_id: int, start: datetime, end: datetime) -> tuple[Decimal, Decimal, int]:
@@ -70,11 +74,13 @@ async def _returns_by_product(db: AsyncSession, tenant_id: int, start: datetime,
 
 
 async def _returns_by_period(db: AsyncSession, tenant_id: int, start: datetime, end: datetime, dialect: str, group_by: str) -> dict[str, tuple[Decimal, Decimal]]:
-    """Returns by period: (refund, cost)."""
+    """Returns by period: (refund, cost). Period expressed in VN timezone."""
+    fmt = "YYYY-MM-DD" if group_by == "day" else "YYYY-MM"
     if dialect == "postgresql":
-        period_expr = func.to_char(ReturnOrder.completed_at, "YYYY-MM-DD" if group_by == "day" else "YYYY-MM")
+        period_expr = func.to_char(ReturnOrder.completed_at.op("AT TIME ZONE")(_VN_TZ_NAME), fmt)
     else:
-        period_expr = func.strftime("%Y-%m-%d" if group_by == "day" else "%Y-%m", ReturnOrder.completed_at)
+        sqlite_fmt = "%Y-%m-%d" if group_by == "day" else "%Y-%m"
+        period_expr = func.strftime(sqlite_fmt, func.datetime(ReturnOrder.completed_at, "+7 hours"))
     rows = (await db.execute(
         select(
             period_expr.label("period"),
@@ -227,13 +233,11 @@ async def revenue(
     bind = db.bind
     dialect = bind.dialect.name if bind is not None else "sqlite"
     if dialect == "postgresql":
-        if group_by == "day":
-            period_expr = func.to_char(Invoice.completed_at, "YYYY-MM-DD")
-        else:
-            period_expr = func.to_char(Invoice.completed_at, "YYYY-MM")
+        pg_fmt = "YYYY-MM-DD" if group_by == "day" else "YYYY-MM"
+        period_expr = func.to_char(Invoice.completed_at.op("AT TIME ZONE")(_VN_TZ_NAME), pg_fmt)
     else:
-        # SQLite (test) — strftime
-        period_expr = func.strftime(fmt, Invoice.completed_at)
+        # SQLite (test) — shift +7h then strftime
+        period_expr = func.strftime(fmt, func.datetime(Invoice.completed_at, "+7 hours"))
 
     series_q = await db.execute(
         select(
@@ -670,10 +674,23 @@ async def customer_debts(db: AsyncSession, tenant_id: int) -> dict[str, Any]:
     )).all()
     collected = {pid: Decimal(str(v or 0)) for pid, v in coll_rows}
 
-    partner_ids = set(owed) | set(collected)
+    # Trả hàng cấn trừ công nợ = Σ ReturnOrder.debt_adjust (COMPLETED) theo khách
+    ret_rows = (await db.execute(
+        select(
+            ReturnOrder.customer_id,
+            func.coalesce(func.sum(ReturnOrder.debt_adjust), 0),
+        ).where(
+            ReturnOrder.tenant_id == tenant_id,
+            ReturnOrder.status == "COMPLETED",
+            ReturnOrder.customer_id.isnot(None),
+        ).group_by(ReturnOrder.customer_id)
+    )).all()
+    returned = {cid: Decimal(str(v or 0)) for cid, v in ret_rows}
+
+    partner_ids = set(owed) | set(collected) | set(returned)
     debts: dict[int, Decimal] = {}
     for pid in partner_ids:
-        d = owed.get(pid, Decimal("0")) - collected.get(pid, Decimal("0"))
+        d = owed.get(pid, Decimal("0")) - collected.get(pid, Decimal("0")) - returned.get(pid, Decimal("0"))
         if d > 0:
             debts[pid] = d
 
@@ -751,7 +768,6 @@ async def supplier_debts(db: AsyncSession, tenant_id: int) -> dict[str, Any]:
 # End-of-Day Report
 # ====================================================================
 
-VN_TZ = timezone(timedelta(hours=7))
 CASH_METHODS = ["CASH", "BANK_TRANSFER", "EWALLET"]
 
 

@@ -34,6 +34,7 @@ from backend.modules.inventory.schemas import (
     StockMovementsResponse,
 )
 from backend.modules.product.models import Product
+from backend.shared.settings import can_see_cost
 
 
 def _to_brief(r) -> GoodsReceiptBriefResponse:
@@ -85,6 +86,7 @@ async def _enrich_receipt(
         supplier_name=supplier_name,
         total=receipt.total,
         paid_amount=receipt.paid_amount,
+        payment_method=receipt.payment_method,
         status=receipt.status,
         note=receipt.note,
         completed_at=receipt.completed_at,
@@ -217,8 +219,14 @@ async def list_inventory(
         search=search,
         only_with_stock=only_with_stock,
     )
+    show_cost = can_see_cost(getattr(user, "_tenant", None), user.role)
+    items = []
+    for i in result["items"]:
+        if not show_cost:
+            i = {**i, "cost_price": None}
+        items.append(InventoryItemResponse(**i))
     return InventoryListResponse(
-        items=[InventoryItemResponse(**i) for i in result["items"]],
+        items=items,
         pagination=Pagination(**result["pagination"]),
     )
 

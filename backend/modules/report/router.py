@@ -6,9 +6,10 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database import get_db
-from backend.dependencies import require_role
+from backend.dependencies import get_current_user, require_role
 from backend.exceptions import AppError
 from backend.modules.auth.models import User
+from backend.shared.settings import can_see_cost, can_see_profit
 from backend.modules.report import service as report_service
 from backend.modules.report.schemas import (
     DashboardResponse,
@@ -43,9 +44,16 @@ def _default_range(from_date: date | None, to_date: date | None) -> tuple[date, 
 @router.get("/dashboard", response_model=DashboardResponse)
 async def dashboard(
     db: Annotated[AsyncSession, Depends(get_db)],
-    owner: Annotated[User, Depends(require_role("OWNER"))],
+    user: Annotated[User, Depends(get_current_user)],
 ):
-    data = await report_service.dashboard(db, owner.current_tenant_id)
+    # CASHIER được xem "doanh thu hôm nay" (theo bảng phân quyền) nhưng KHÔNG
+    # được xem lợi nhuận / giá trị tồn kho — ẩn các trường suy ra từ giá vốn.
+    data = await report_service.dashboard(db, user.current_tenant_id)
+    tenant = getattr(user, "_tenant", None)
+    if not can_see_profit(tenant, user.role):
+        data["today_profit"] = None
+    if not can_see_cost(tenant, user.role):
+        data["inventory_value"] = None
     return DashboardResponse(**data)
 
 
