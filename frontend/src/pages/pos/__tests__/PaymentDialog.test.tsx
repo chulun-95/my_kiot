@@ -8,6 +8,7 @@ describe('PaymentDialog', () => {
       <PaymentDialog
         open={false}
         total={1000}
+        hasCustomer={false}
         onClose={() => {}}
         onComplete={async () => {}}
       />,
@@ -20,6 +21,7 @@ describe('PaymentDialog', () => {
       <PaymentDialog
         open
         total={50000}
+        hasCustomer={false}
         onClose={() => {}}
         onComplete={async () => {}}
       />,
@@ -39,6 +41,7 @@ describe('PaymentDialog', () => {
       <PaymentDialog
         open
         total={50000}
+        hasCustomer={false}
         onClose={() => {}}
         onComplete={onComplete}
       />,
@@ -59,6 +62,7 @@ describe('PaymentDialog', () => {
       <PaymentDialog
         open
         total={50000}
+        hasCustomer={false}
         onClose={() => {}}
         onComplete={async () => {}}
       />,
@@ -72,11 +76,12 @@ describe('PaymentDialog', () => {
     expect(changeBox).toHaveTextContent('10.000');
   });
 
-  it('shows debt checkbox when cashier types less than total', () => {
+  it('shows debt checkbox when cashier types less than total and a customer is selected', () => {
     render(
       <PaymentDialog
         open
         total={50000}
+        hasCustomer
         onClose={() => {}}
         onComplete={async () => {}}
       />,
@@ -87,12 +92,40 @@ describe('PaymentDialog', () => {
     expect(screen.getByLabelText('Cho phép nợ')).toBeInTheDocument();
   });
 
+  it('blocks debt when underpaid and no customer: hides checkbox, shows message, refuses to complete', async () => {
+    const onComplete = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PaymentDialog
+        open
+        total={50000}
+        hasCustomer={false}
+        onClose={() => {}}
+        onComplete={onComplete}
+      />,
+    );
+    const input = screen.getByLabelText('Tiền khách đưa 1') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '30000' } });
+    expect(screen.getByText(/Còn thiếu/)).toBeInTheDocument();
+    // No debt checkbox for walk-in customers
+    expect(screen.queryByLabelText('Cho phép nợ')).toBeNull();
+    expect(screen.getByText(/Phải chọn khách hàng mới được bán nợ/)).toBeInTheDocument();
+    // Completing is refused with a Vietnamese error
+    fireEvent.click(screen.getByText('Hoàn tất'));
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Bán nợ phải chọn khách hàng/),
+      ).toBeInTheDocument(),
+    );
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+
   it('multi-row sum includes added row in callback', async () => {
     const onComplete = vi.fn().mockResolvedValue(undefined);
     render(
       <PaymentDialog
         open
         total={50000}
+        hasCustomer={false}
         onClose={() => {}}
         onComplete={onComplete}
       />,

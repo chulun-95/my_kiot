@@ -277,6 +277,7 @@ export default function POSScreen() {
       <PaymentDialog
         open={paymentOpen}
         total={total}
+        hasCustomer={customerId != null}
         onClose={() => setPaymentOpen(false)}
         onComplete={onComplete}
       />

@@ -6,6 +6,7 @@ import MoneyInput from '../../components/MoneyInput';
 interface Props {
   open: boolean;
   total: number;
+  hasCustomer: boolean;
   onClose: () => void;
   onComplete: (
     payments: PaymentInput[],
@@ -33,6 +34,7 @@ const formatNumber = (n: number) => numFormatter.format(Math.round(Math.max(0, n
 export default function PaymentDialog({
   open,
   total,
+  hasCustomer,
   onClose,
   onComplete,
 }: Props) {
@@ -70,6 +72,10 @@ export default function PaymentDialog({
 
   const handleComplete = async () => {
     if (submitting) return;
+    if (missing > 0 && !hasCustomer) {
+      setError('Bán nợ phải chọn khách hàng — không thể ghi nợ cho khách vãng lai.');
+      return;
+    }
     if (missing > 0 && !allowDebt) {
       setError('Số tiền khách đưa chưa đủ. Bật "Cho phép nợ" để tiếp tục.');
       return;
@@ -314,16 +320,23 @@ export default function PaymentDialog({
                 </span>
               </div>
             </div>
-            <label className="flex items-center gap-2 text-[11px] text-rose-700 select-none cursor-pointer">
-              <input
-                type="checkbox"
-                checked={allowDebt}
-                onChange={(e) => setAllowDebt(e.target.checked)}
-                aria-label="Cho phép nợ"
-                className="accent-rose-600"
-              />
-              Cho phép nợ — khách trả thiếu
-            </label>
+            {hasCustomer ? (
+              <label className="flex items-center gap-2 text-[11px] text-rose-700 select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={allowDebt}
+                  onChange={(e) => setAllowDebt(e.target.checked)}
+                  aria-label="Cho phép nợ"
+                  className="accent-rose-600"
+                />
+                Cho phép nợ — khách trả thiếu
+              </label>
+            ) : (
+              <p className="text-[11px] text-rose-700 leading-relaxed">
+                Phải chọn khách hàng mới được bán nợ — khoản nợ của khách vãng lai
+                sẽ không được thống kê. Hãy chọn khách hàng ở ô phía trên.
+              </p>
+            )}
           </div>
         ) : (
           <div className="px-6 py-4 text-xs text-slate-500">
