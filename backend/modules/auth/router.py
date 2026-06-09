@@ -20,8 +20,10 @@ from backend.modules.auth.schemas import (
     LoginRequest,
     LoginSuccessResponse,
     LoginTenantSelectionResponse,
+    LogoutRequest,
     MeResponse,
     MessageResponse,
+    RefreshRequest,
     RegisterRequest,
     RegisterResponse,
     TenantBrief,
@@ -30,7 +32,8 @@ from backend.modules.auth.schemas import (
 )
 
 
-limiter = Limiter(key_func=get_remote_address)
+from backend.config import settings as _settings
+limiter = Limiter(key_func=get_remote_address, enabled=_settings.APP_ENV != "test")
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -123,3 +126,38 @@ async def me(user: Annotated[User, Depends(get_current_user)]):
         user=UserBrief.model_validate(user),
         tenant=TenantBrief.model_validate(user._tenant),
     )
+
+
+# ---------- mobile (native app) ----------
+# Same service as web, but returns/accepts the refresh token in the JSON body
+# instead of an HttpOnly cookie (native clients have no cookie jar by default).
+
+@router.post(
+    "/mobile/login",
+    response_model=Union[LoginSuccessResponse, LoginTenantSelectionResponse],
+)
+@limiter.limit("5/5minute")
+async def mobile_login(
+    request: Request,
+    payload: LoginRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    return await auth_service.login(db, payload)
+
+
+@router.post("/mobile/refresh", response_model=LoginSuccessResponse)
+async def mobile_refresh(
+    payload: RefreshRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    return await auth_service.refresh_tokens(db, payload.refresh_token)
+
+
+@router.post("/mobile/logout", response_model=MessageResponse)
+async def mobile_logout(
+    payload: LogoutRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+):
+    await auth_service.logout(db, user.id, payload.refresh_token)
+    return MessageResponse(message="Đăng xuất thành công")
