@@ -641,6 +641,7 @@ export const handlers = [
       supplier_id?: number | null;
       items: Array<{ product_id: number; quantity: number; cost_price: number }>;
       paid_amount?: number;
+      payment_method?: string;
       note?: string;
     };
     const total = body.items.reduce(
@@ -655,6 +656,7 @@ export const handlers = [
         supplier_name: body.supplier_id ? 'NCC' : null,
         total,
         paid_amount: body.paid_amount ?? 0,
+        payment_method: body.payment_method ?? 'CASH',
         status: 'DRAFT',
         note: body.note ?? null,
         completed_at: null,

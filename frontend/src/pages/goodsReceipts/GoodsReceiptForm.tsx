@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as goodsReceiptApi from '../../api/goodsReceipt';
+import {
+  RECEIPT_PAYMENT_METHOD_LABELS,
+  type ReceiptPaymentMethod,
+} from '../../api/goodsReceipt';
 import * as supplierApi from '../../api/supplier';
 import type { SupplierResponse } from '../../api/supplier';
 import ProductPicker from '../../components/ProductPicker';
@@ -26,6 +30,7 @@ export default function GoodsReceiptForm() {
   const [lines, setLines] = useState<LineItem[]>([]);
   const [paidAmount, setPaidAmount] = useState<number>(0);
   const [payFull, setPayFull] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<ReceiptPaymentMethod>('CASH');
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -110,6 +115,7 @@ export default function GoodsReceiptForm() {
           cost_price: l.cost_price,
         })),
         paid_amount: paidAmount || 0,
+        payment_method: paymentMethod,
         note: note || null,
       });
       navigate(`/goods-receipts/${res.id}`);
@@ -249,6 +255,26 @@ export default function GoodsReceiptForm() {
             disabled={payFull}
           />
         </div>
+        {paidAmount > 0 && (
+          <div>
+            <label htmlFor="gr-payment-method" className="block text-sm text-slate-600 mb-1">
+              Phương thức thanh toán
+            </label>
+            <select
+              id="gr-payment-method"
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value as ReceiptPaymentMethod)}
+              className="w-full px-3 py-2 border border-slate-300 rounded"
+              aria-label="Phương thức thanh toán"
+            >
+              {Object.entries(RECEIPT_PAYMENT_METHOD_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div>
           <label className="block text-sm text-slate-600 mb-1">Ghi chú</label>
           <textarea

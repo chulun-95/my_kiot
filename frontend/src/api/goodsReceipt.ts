@@ -1,6 +1,13 @@
 import apiClient from './client';
 
 export type ReceiptStatus = 'DRAFT' | 'COMPLETED' | 'CANCELLED';
+export type ReceiptPaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'EWALLET';
+
+export const RECEIPT_PAYMENT_METHOD_LABELS: Record<ReceiptPaymentMethod, string> = {
+  CASH: 'Tiền mặt',
+  BANK_TRANSFER: 'Chuyển khoản',
+  EWALLET: 'Ví điện tử',
+};
 
 export interface Pagination {
   page: number;
@@ -44,6 +51,7 @@ export interface GoodsReceiptResponse {
   supplier_name: string | null;
   total: number | string;
   paid_amount: number | string;
+  payment_method: ReceiptPaymentMethod;
   status: ReceiptStatus;
   note: string | null;
   completed_at: string | null;
@@ -60,6 +68,7 @@ export interface GoodsReceiptCreatePayload {
   supplier_id?: number | null;
   items: GoodsReceiptItemInput[];
   paid_amount?: number;
+  payment_method?: ReceiptPaymentMethod;
   note?: string | null;
 }
 
@@ -67,6 +76,7 @@ export interface GoodsReceiptUpdatePayload {
   supplier_id?: number | null;
   items?: GoodsReceiptItemInput[];
   paid_amount?: number | null;
+  payment_method?: ReceiptPaymentMethod;
   note?: string | null;
 }
 

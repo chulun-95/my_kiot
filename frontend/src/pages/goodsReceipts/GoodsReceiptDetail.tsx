@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import * as goodsReceiptApi from '../../api/goodsReceipt';
+import { RECEIPT_PAYMENT_METHOD_LABELS } from '../../api/goodsReceipt';
 import type { GoodsReceiptResponse } from '../../api/goodsReceipt';
 import { useAuthStore } from '../../stores/authStore';
 import { formatVND, formatDate, formatQty } from '../../utils/format';
@@ -35,6 +36,15 @@ export default function GoodsReceiptDetail() {
 
   const onComplete = async () => {
     if (!receipt) return;
+    // Nhập nợ (trả thiếu) bắt buộc có NCC — nếu không công nợ phải trả sẽ không
+    // được thống kê. Chặn sớm ở FE, backend cũng chặn (DEBT_REQUIRES_SUPPLIER).
+    if (Number(receipt.paid_amount) < Number(receipt.total) && receipt.supplier_id == null) {
+      setError(
+        'Nhập nợ phải chọn nhà cung cấp — không thể ghi nợ khi chưa có NCC. ' +
+          'Hãy sửa phiếu để chọn NCC hoặc thanh toán đủ.',
+      );
+      return;
+    }
     if (!window.confirm('Bạn chắc chắn muốn hoàn tất phiếu nhập này?')) return;
     setBusy(true);
     setError(null);
@@ -142,7 +152,14 @@ export default function GoodsReceiptDetail() {
         <div className="text-slate-600">Tổng tiền</div>
         <div className="font-semibold">{formatVND(receipt.total as number)}</div>
         <div className="text-slate-600">Đã thanh toán</div>
-        <div>{formatVND(receipt.paid_amount as number)}</div>
+        <div>
+          {formatVND(receipt.paid_amount as number)}
+          {Number(receipt.paid_amount) > 0 && receipt.payment_method && (
+            <span className="text-slate-500">
+              {' '}({RECEIPT_PAYMENT_METHOD_LABELS[receipt.payment_method]})
+            </span>
+          )}
+        </div>
         <div className="text-slate-600">Ghi chú</div>
         <div>{receipt.note ?? '-'}</div>
       </div>
