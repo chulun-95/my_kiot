@@ -111,6 +111,7 @@ Navigation: **Bottom nav 4 tab** — Bán · Nhập · Tồn · Báo cáo. Màn 
 ### 4.1 Bán hàng (POS) — cốt lõi
 
 - **Tìm/quét SP:** ô tìm gọi `GET /products/search?q=` (tên/SKU/barcode); nút camera → ML Kit trả barcode → `GET /products/barcode/{code}` (nhận `matched_unit` nếu là barcode đơn vị); súng ngoài gõ vào chính ô tìm (kết thúc bằng Enter).
+- **Hành vi sau khi quét:** SP **vào thẳng giỏ, số lượng +1** (không popup xác nhận) để bán nhanh. Quét lại đúng SP + đơn vị đã có trong giỏ → **tăng số lượng +1** dòng đó thay vì tạo dòng mới (khớp theo `product_id` + `unit_id`; barcode đơn vị thì thêm đúng đơn vị `matched_unit`). Số lượng/giá/giảm giá vẫn sửa trực tiếp trên dòng giỏ — hàng bán cân chỉ cần quét rồi sửa số lượng (vd 1.5 kg) tại chỗ. Tìm bằng tên (gõ tay, không Enter) thì chọn từ danh sách gợi ý rồi mới thêm.
 - **Giỏ hàng:** danh sách dòng — sửa số lượng (DECIMAL, hỗ trợ bán cân), sửa giá, giảm giá dòng; tổng tiền realtime.
 - **Khách hàng:** `GET /customers/phone/{phone}` hoặc bỏ trống (khách vãng lai).
 - **Tạo & hoàn tất:** `POST /invoices` (DRAFT) → `POST /invoices/{id}/complete` với payments đa phương thức (CASH/BANK_TRANSFER/MOMO/VNPAY). Hiển thị tiền thối.
