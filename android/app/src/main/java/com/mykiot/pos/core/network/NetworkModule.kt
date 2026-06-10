@@ -90,4 +90,10 @@ object NetworkModule {
 
     @Provides @Singleton
     fun salesApi(retrofit: Retrofit): SalesApi = retrofit.create(SalesApi::class.java)
+
+    @Provides @Singleton
+    fun supplierApi(retrofit: Retrofit): SupplierApi = retrofit.create(SupplierApi::class.java)
+
+    @Provides @Singleton
+    fun inventoryApi(retrofit: Retrofit): InventoryApi = retrofit.create(InventoryApi::class.java)
 }
