@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.mykiot.pos.feature.pos.PosScreen
 
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
 
@@ -48,9 +49,14 @@ fun HomeScaffold(onLogout: () -> Unit) {
             }
         },
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-            val label = tabs.first { it.route == selected }.label
-            Text("Màn '$label' — sẽ phát triển ở phase sau")
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            when (selected) {
+                Routes.TAB_POS -> PosScreen()
+                else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    val label = tabs.first { it.route == selected }.label
+                    Text("Màn '$label' — sẽ phát triển ở phase sau")
+                }
+            }
         }
     }
 }

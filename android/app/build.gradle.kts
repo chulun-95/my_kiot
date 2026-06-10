@@ -79,6 +79,13 @@ dependencies {
     implementation(libs.okhttp.logging)
     implementation(libs.security.crypto)
 
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.camera.view)
+    implementation(libs.mlkit.barcode)
+    implementation(libs.escpos.thermal)
+    implementation(libs.accompanist.permissions)
+
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
