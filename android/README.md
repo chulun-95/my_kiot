@@ -7,7 +7,13 @@ Plan Phase 1: [`../docs/superpowers/plans/2026-06-09-android-pos-phase1-foundati
 
 ## Trạng thái
 
-**Phase 1 — Foundation + Login.** Bao gồm: networking + auth (token trong EncryptedSharedPreferences, auto-refresh khi 401), màn Đăng nhập tiếng Việt (kể cả chọn shop multi-tenant), shell 4 tab (Bán · Nhập · Tồn · Báo cáo) với body placeholder.
+**Đã viết code cả 4 phase (MVP đầy đủ):**
+- **Phase 1 — Foundation + Login:** networking + auth (token trong EncryptedSharedPreferences, auto-refresh 401), Đăng nhập tiếng Việt (kể cả multi-tenant), shell 4 tab.
+- **Phase 2 — Bán hàng (POS):** tìm/quét SP (camera ML Kit + súng HID), giỏ hàng (+1/gộp), thanh toán đa PT, in bill 58mm ESC/POS.
+- **Phase 3 — Nhập hàng:** chọn NCC, quét/tìm SP, sửa SL/giá vốn, tạo+hoàn tất phiếu nhập.
+- **Phase 4 — Tồn kho + Báo cáo:** danh sách tồn + tìm + badge sắp hết + thẻ kho (kardex); dashboard hôm nay + chốt ca EOD (OWNER).
+
+> ⚠️ **Toàn bộ code Android chưa được build/test trên máy phát triển ban đầu** (máy đó không có Android SDK). Lần đầu build PHẢI chạy `testDebugUnitTest` + `assembleDebug` và sửa lỗi biên dịch nhỏ nếu có. Tuyến phòng thủ chính là các unit test JVM cho logic thuần (Cart, ReceiptBasket, ReceiptLayout, Money) và các ViewModel (Login/Pos/Receipt/Inventory/Report).
 
 ## Yêu cầu môi trường
 
