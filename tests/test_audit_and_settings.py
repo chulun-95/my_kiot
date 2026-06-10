@@ -74,6 +74,7 @@ async def test_complete_invoice_writes_audit(client, shop, db_session):
     # Nhập hàng + bán
     r = (await client.post("/api/v1/goods-receipts", json={
         "items": [{"product_id": shop["p1"]["id"], "quantity": 10, "cost_price": 5000}],
+        "paid_amount": 10 * 5000,
     }, headers=h)).json()
     await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
     inv = (await client.post("/api/v1/invoices", json={
@@ -158,6 +159,7 @@ async def test_goods_receipt_writes_price_history_on_cost_change(
     # Nhập 10 cái giá 8000 (khác cost cũ 5000) → giá vốn bình quân thay đổi
     r = (await client.post("/api/v1/goods-receipts", json={
         "items": [{"product_id": pid, "quantity": 10, "cost_price": 8000}],
+        "paid_amount": 10 * 8000,
     }, headers=h)).json()
     await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
 
@@ -183,6 +185,7 @@ async def test_create_adjustment(client, shop, db_session):
     # Nhập 10 cái trước
     r = (await client.post("/api/v1/goods-receipts", json={
         "items": [{"product_id": pid, "quantity": 10, "cost_price": 5000}],
+        "paid_amount": 10 * 5000,
     }, headers=h)).json()
     await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
 

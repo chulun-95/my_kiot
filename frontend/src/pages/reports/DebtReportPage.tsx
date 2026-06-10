@@ -6,6 +6,7 @@ import { formatVND } from '../../utils/format';
 import { toFriendlyMessage } from '../../utils/errors';
 import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
+import MoneyInput from '../../components/MoneyInput';
 
 type Kind = 'CUSTOMER' | 'SUPPLIER';
 
@@ -13,11 +14,11 @@ function DebtTable({
   title, kind, items, onPaid,
 }: { title: string; kind: Kind; items: DebtItem[]; onPaid: () => void }) {
   const [payingId, setPayingId] = useState<number | null>(null);
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState(0);
   const [err, setErr] = useState<string | null>(null);
 
   const submit = async (partner: DebtItem) => {
-    const amt = Number(amount);
+    const amt = amount;
     if (!Number.isFinite(amt) || amt <= 0) { setErr('Số tiền phải lớn hơn 0'); return; }
     setErr(null);
     try {
@@ -30,7 +31,7 @@ function DebtTable({
         partner_id: partner.partner_id,
         partner_name: partner.partner_name,
       });
-      setPayingId(null); setAmount('');
+      setPayingId(null); setAmount(0);
       onPaid();
     } catch (e) { setErr(toFriendlyMessage(e)); }
   };
@@ -58,15 +59,16 @@ function DebtTable({
                 <td className="px-3 py-2 text-right">
                   {payingId === it.partner_id ? (
                     <span className="inline-flex items-center gap-1">
-                      <input type="number" min="1" value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        aria-label={`Số tiền ${label}`}
-                        className="w-28 px-2 py-1 border border-slate-300 rounded text-right" />
+                      <span className="inline-block w-32">
+                        <MoneyInput value={amount} onChange={setAmount}
+                          aria-label={`Số tiền ${label}`}
+                          className="w-full px-2 py-1 border border-slate-300 rounded text-right" />
+                      </span>
                       <button onClick={() => submit(it)} className="px-2 py-1 rounded bg-slate-900 text-white text-xs">Lưu</button>
                       <button onClick={() => { setPayingId(null); setErr(null); }} className="px-2 py-1 rounded border text-xs">Hủy</button>
                     </span>
                   ) : (
-                    <button onClick={() => { setPayingId(it.partner_id); setAmount(''); }}
+                    <button onClick={() => { setPayingId(it.partner_id); setAmount(0); }}
                       className="px-2 py-1 rounded border border-slate-300 text-xs">{label}</button>
                   )}
                 </td>

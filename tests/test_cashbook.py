@@ -96,7 +96,13 @@ async def _stock_product(client, h, sku, sale, cost, qty):
     p = (await client.post("/api/v1/products", json={
         "name": sku, "sku": sku, "sale_price": sale, "cost_price": cost,
     }, headers=h)).json()
+    # Gắn NCC + chưa trả tiền (paid=0) → nhập nợ, KHÔNG sinh dòng tiền để giữ
+    # sổ quỹ sạch cho các assert về balance.
+    sup = (await client.post("/api/v1/suppliers", json={
+        "name": f"NCC {sku}",
+    }, headers=h)).json()
     r = (await client.post("/api/v1/goods-receipts", json={
+        "supplier_id": sup["id"],
         "items": [{"product_id": p["id"], "quantity": qty, "cost_price": cost}],
         "paid_amount": 0,
     }, headers=h)).json()

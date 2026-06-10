@@ -19,8 +19,12 @@ async def shop(client, registered_owner):
         "name": "Pepsi 1.5L", "sku": "PEP-1500",
         "sale_price": 25000, "cost_price": 20000,
     }, headers=h)).json()
-    # Nhập kho để có tồn
+    # Nhập kho để có tồn (gắn NCC, chưa trả tiền → không phát sinh dòng tiền)
+    sup = (await client.post("/api/v1/suppliers", json={
+        "name": "NCC Test",
+    }, headers=h)).json()
     r = (await client.post("/api/v1/goods-receipts", json={
+        "supplier_id": sup["id"],
         "items": [
             {"product_id": p1["id"], "quantity": 100, "cost_price": 9000},
             {"product_id": p2["id"], "quantity": 50, "cost_price": 20000},
@@ -34,6 +38,7 @@ async def shop(client, registered_owner):
         "headers": h,
         "p1": p1,
         "p2": p2,
+        "supplier": sup,
         "customer": cust,
         "token": registered_owner["access_token"],
         "user_id": registered_owner["user"]["id"],
@@ -197,6 +202,7 @@ async def test_complete_invoice_insufficient_payment_rejected(client, shop):
 async def test_complete_invoice_allow_debt(client, shop):
     h = shop["headers"]
     inv = (await client.post("/api/v1/invoices", json={
+        "customer_id": shop["customer"]["id"],
         "items": [{"product_id": shop["p1"]["id"], "quantity": 5}],
     }, headers=h)).json()
 
@@ -209,6 +215,22 @@ async def test_complete_invoice_allow_debt(client, shop):
     assert body["status"] == "COMPLETED"
     assert float(body["paid_amount"]) == 10000
     assert float(body["change_amount"]) == 0
+
+
+@pytest.mark.asyncio
+async def test_complete_invoice_debt_without_customer_rejected(client, shop):
+    """Bán nợ (trả thiếu) cho khách vãng lai phải bị chặn — nợ sẽ không thống kê được."""
+    h = shop["headers"]
+    inv = (await client.post("/api/v1/invoices", json={
+        "items": [{"product_id": shop["p1"]["id"], "quantity": 5}],
+    }, headers=h)).json()
+
+    r = await client.post(f"/api/v1/invoices/{inv['id']}/complete", json={
+        "payments": [{"method": "CASH", "amount": 10000}],
+        "allow_debt": True,
+    }, headers=h)
+    assert r.status_code == 400
+    assert r.json()["error"]["code"] == "DEBT_REQUIRES_CUSTOMER"
 
 
 @pytest.mark.asyncio
@@ -389,6 +411,7 @@ async def test_cashier_cannot_cancel_completed_invoice(client, registered_owner)
     }, headers=owner_h)).json()
     r = (await client.post("/api/v1/goods-receipts", json={
         "items": [{"product_id": p1["id"], "quantity": 10, "cost_price": 5000}],
+        "paid_amount": 10 * 5000,
     }, headers=owner_h)).json()
     await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=owner_h)
 
@@ -567,6 +590,7 @@ async def test_tenant_settings_allow_debt(client, shop, db_session):
 
     h = shop["headers"]
     inv = (await client.post("/api/v1/invoices", json={
+        "customer_id": shop["customer"]["id"],
         "items": [{"product_id": shop["p1"]["id"], "quantity": 5}],
     }, headers=h)).json()
 

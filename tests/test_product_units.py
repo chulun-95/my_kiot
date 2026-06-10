@@ -141,6 +141,7 @@ async def test_goods_receipt_with_unit_converts_to_base(client, registered_owner
 
     receipt = (await client.post("/api/v1/goods-receipts", json={
         "items": [{"product_id": p["id"], "unit_id": u["id"], "quantity": 2, "cost_price": 240000}],
+        "paid_amount": 2 * 240000,
     }, headers=h)).json()
 
     await client.post(f"/api/v1/goods-receipts/{receipt['id']}/complete", headers=h)
@@ -166,6 +167,7 @@ async def test_goods_receipt_cost_per_base_unit(client, registered_owner):
 
     receipt = (await client.post("/api/v1/goods-receipts", json={
         "items": [{"product_id": p["id"], "unit_id": u["id"], "quantity": 2, "cost_price": 240000}],
+        "paid_amount": 2 * 240000,
     }, headers=h)).json()
     await client.post(f"/api/v1/goods-receipts/{receipt['id']}/complete", headers=h)
 
@@ -190,6 +192,7 @@ async def test_invoice_with_unit_deducts_base_qty(client, registered_owner):
     # Stock up 48 lon
     receipt = (await client.post("/api/v1/goods-receipts", json={
         "items": [{"product_id": p["id"], "quantity": 48, "cost_price": 8000}],
+        "paid_amount": 48 * 8000,
     }, headers=h)).json()
     await client.post(f"/api/v1/goods-receipts/{receipt['id']}/complete", headers=h)
 
@@ -222,6 +225,7 @@ async def test_inventory_units_breakdown(client, registered_owner):
 
     receipt = (await client.post("/api/v1/goods-receipts", json={
         "items": [{"product_id": p["id"], "quantity": 48, "cost_price": 8000}],
+        "paid_amount": 48 * 8000,
     }, headers=h)).json()
     await client.post(f"/api/v1/goods-receipts/{receipt['id']}/complete", headers=h)
 
@@ -350,6 +354,7 @@ async def test_cancel_completed_receipt_with_unit_restores_base_qty(client, regi
 
     receipt = (await client.post("/api/v1/goods-receipts", json={
         "items": [{"product_id": p["id"], "unit_id": u["id"], "quantity": 2, "cost_price": 240000}],
+        "paid_amount": 2 * 240000,
     }, headers=h)).json()
     await client.post(f"/api/v1/goods-receipts/{receipt['id']}/complete", headers=h)
 

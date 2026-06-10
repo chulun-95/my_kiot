@@ -6,7 +6,12 @@
       "Bash(git log *)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "PowerShell",
+      "mcp__playwright",
+      "mcp__plugin_playwright_playwright",
+      "WebFetch(domain:kiotviet.vn)",
+      "WebFetch(domain:www.kiotviet.vn)"
     ]
   },
   "enabledPlugins": {

@@ -1,3 +1,4 @@
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -13,6 +14,14 @@ engine = create_async_engine(
     pool_pre_ping=True,
     future=True,
 )
+
+# SQLite (used in tests) needs custom functions that PostgreSQL provides natively.
+if settings.DATABASE_URL.startswith("sqlite"):
+    from backend.shared.text import vi_unaccent
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def _register_sqlite_funcs(dbapi_conn, _):
+        dbapi_conn.create_function("immutable_unaccent", 1, vi_unaccent)
 
 async_session_maker = async_sessionmaker(
     engine,

@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as api from '../../api/salesReturn';
-import type { ReturnableLine } from '../../api/salesReturn';
 import { formatVND, formatQty } from '../../utils/format';
 import { toFriendlyMessage } from '../../utils/errors';
-import { viValidity } from '../../utils/validity';
+import QtyInput from '../../components/QtyInput';
 
 interface FormRow {
   invoice_item_id: number;
@@ -135,20 +134,13 @@ export default function ReturnForm() {
                   <td className="px-3 py-2 text-right">{formatQty(r.sold_quantity)}</td>
                   <td className="px-3 py-2 text-right">{formatQty(r.returnable_quantity)}</td>
                   <td className="px-3 py-2 text-right">
-                    <input
-                      type="number"
-                      step="0.001"
-                      min="0"
-                      max={r.returnable_quantity}
+                    <QtyInput
+                      decimal
                       value={r.return_quantity}
-                      onChange={(e) => updateRow(idx, { return_quantity: Number(e.target.value) })}
+                      onChange={(v) => updateRow(idx, { return_quantity: v })}
+                      max={r.returnable_quantity}
                       className="w-24 px-2 py-1 border border-slate-300 rounded text-right"
                       aria-label={`Trả ${r.product_name}`}
-                      {...viValidity({
-                        rangeUnderflow: 'Không được nhỏ hơn 0',
-                        rangeOverflow: `Không được vượt quá ${r.returnable_quantity}`,
-                        typeMismatch: 'Vui lòng nhập số',
-                      })}
                     />
                   </td>
                   <td className="px-3 py-2 text-right text-rose-700">
