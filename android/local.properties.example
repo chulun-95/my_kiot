@@ -1,0 +1,9 @@
+# Copy to local.properties (gitignored) and adjust.
+# Android SDK location (required by Gradle):
+sdk.dir=C\:\\Users\\YOURNAME\\AppData\\Local\\Android\\Sdk
+
+# API base URLs (optional — sensible defaults baked into app/build.gradle.kts):
+# Debug: emulator reaches host machine's localhost via 10.0.2.2
+BASE_URL_DEBUG=http://10.0.2.2:8000/api/v1/
+# Release: production HTTPS
+BASE_URL_RELEASE=https://api.example.com/api/v1/

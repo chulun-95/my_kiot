@@ -1,0 +1,5 @@
+-keepattributes *Annotation*, InnerClasses
+-dontnote kotlinx.serialization.**
+-keep,includedescriptorclasses class com.mykiot.pos.**$$serializer { *; }
+-keepclassmembers class com.mykiot.pos.** { *** Companion; }
+-keepclasseswithmembers class com.mykiot.pos.** { kotlinx.serialization.KSerializer serializer(...); }
