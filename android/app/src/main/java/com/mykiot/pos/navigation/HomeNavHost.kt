@@ -28,7 +28,10 @@ import com.mykiot.pos.feature.customer.AddCustomerScreen
 import com.mykiot.pos.feature.customer.CustomerDetailScreen
 import com.mykiot.pos.feature.customer.CustomerListScreen
 import com.mykiot.pos.feature.inventory.InventoryScreen
+import com.mykiot.pos.feature.invoice.InvoiceListScreen
+import com.mykiot.pos.feature.invoice.ReturnsScreen
 import com.mykiot.pos.feature.pos.PosScreen
+import com.mykiot.pos.feature.product.ProductListScreen
 import com.mykiot.pos.feature.receipt.ReceiptScreen
 import com.mykiot.pos.feature.report.ReportScreen
 
@@ -90,10 +93,15 @@ private fun HomeNavHost(onOpenPos: () -> Unit, onLogout: () -> Unit) {
             )
         }
 
-        // ----- Feature hướng A còn lại: placeholder, thay ở từng phase -----
-        composable(Routes.PRODUCTS) { PlaceholderScreen("Sản phẩm", onBack = { nav.popBackStack() }) }
-        composable(Routes.INVOICE_HISTORY) { PlaceholderScreen("Hóa đơn", onBack = { nav.popBackStack() }) }
-        composable(Routes.RETURNS) { PlaceholderScreen("Trả hàng", onBack = { nav.popBackStack() }) }
+        composable(Routes.PRODUCTS) {
+            ProductListScreen(onBack = { nav.popBackStack() })
+        }
+        composable(Routes.INVOICE_HISTORY) {
+            FeatureScaffold("Hóa đơn", onBack = { nav.popBackStack() }) { InvoiceListScreen() }
+        }
+        composable(Routes.RETURNS) {
+            FeatureScaffold("Trả hàng", onBack = { nav.popBackStack() }) { ReturnsScreen() }
+        }
         composable(Routes.CHANGE_PASSWORD) { PlaceholderScreen("Đổi mật khẩu", onBack = { nav.popBackStack() }) }
     }
 }
