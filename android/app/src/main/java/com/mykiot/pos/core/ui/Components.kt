@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -64,7 +65,7 @@ fun AppSearchField(
             cursorColor = MaterialTheme.colorScheme.onSurface,
         ),
         textStyle = LocalTextStyle.current.copy(fontWeight = FontWeight.Medium),
-        modifier = modifier,
+        modifier = modifier.height(56.dp),
     )
 }
 
@@ -82,6 +83,7 @@ fun AppTextField(
     keyboardType: KeyboardType = KeyboardType.Text,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     supporting: String? = null,
+    trailingIcon: @Composable (() -> Unit)? = null,
 ) {
     OutlinedTextField(
         value = value,
@@ -89,6 +91,7 @@ fun AppTextField(
         label = { Text(label) },
         placeholder = placeholder?.let { { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) } },
         supportingText = supporting?.let { { Text(it) } },
+        trailingIcon = trailingIcon,
         singleLine = singleLine,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         visualTransformation = visualTransformation,
