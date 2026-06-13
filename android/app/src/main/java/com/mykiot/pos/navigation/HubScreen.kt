@@ -18,15 +18,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.AssignmentReturn
-import androidx.compose.material.icons.automirrored.filled.ReceiptLong
-import androidx.compose.material.icons.filled.Assessment
-import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.PointOfSale
-import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material.icons.filled.Sell
+import androidx.compose.material.icons.automirrored.outlined.AssignmentReturn
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+import androidx.compose.material.icons.outlined.Assessment
+import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.PointOfSale
+import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -55,34 +56,34 @@ private val hubGroups = listOf(
     HubGroup(
         "Kho",
         listOf(
-            HubItem("Nhập hàng", Routes.RECEIPT, Icons.Filled.Receipt),
-            HubItem("Tồn kho", Routes.INVENTORY, Icons.Filled.Inventory2),
-            HubItem("Trả hàng", Routes.RETURNS, Icons.AutoMirrored.Filled.AssignmentReturn),
+            HubItem("Nhập hàng", Routes.RECEIPT, Icons.AutoMirrored.Outlined.ReceiptLong),
+            HubItem("Tồn kho", Routes.INVENTORY, Icons.Outlined.Inventory2),
+            HubItem("Trả hàng", Routes.RETURNS, Icons.AutoMirrored.Outlined.AssignmentReturn),
         ),
     ),
     HubGroup(
         "Danh mục",
         listOf(
-            HubItem("Sản phẩm", Routes.PRODUCTS, Icons.Filled.Sell),
-            HubItem("Khách hàng", Routes.CUSTOMERS, Icons.Filled.People),
+            HubItem("Sản phẩm", Routes.PRODUCTS, Icons.Outlined.Sell),
+            HubItem("Khách hàng", Routes.CUSTOMERS, Icons.Outlined.Group),
         ),
     ),
     HubGroup(
         "Bán hàng",
         listOf(
-            HubItem("Hóa đơn", Routes.INVOICE_HISTORY, Icons.AutoMirrored.Filled.ReceiptLong),
+            HubItem("Hóa đơn", Routes.INVOICE_HISTORY, Icons.Outlined.Description),
         ),
     ),
     HubGroup(
         "Báo cáo",
         listOf(
-            HubItem("Tổng quan", Routes.REPORT, Icons.Filled.Assessment),
+            HubItem("Tổng quan", Routes.REPORT, Icons.Outlined.Assessment),
         ),
     ),
     HubGroup(
         "Hệ thống",
         listOf(
-            HubItem("Đổi mật khẩu", Routes.CHANGE_PASSWORD, Icons.Filled.Lock),
+            HubItem("Đổi mật khẩu", Routes.CHANGE_PASSWORD, Icons.Outlined.Lock),
         ),
     ),
 )
@@ -144,6 +145,7 @@ private fun PosButton(onClick: () -> Unit) {
         shape = RoundedCornerShape(18.dp),
         color = MaterialTheme.colorScheme.primary,
         contentColor = MaterialTheme.colorScheme.onPrimary,
+        shadowElevation = 2.dp,
         modifier = Modifier
             .fillMaxWidth()
             .height(76.dp),
@@ -154,7 +156,7 @@ private fun PosButton(onClick: () -> Unit) {
                 .padding(horizontal = 22.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(Icons.Filled.PointOfSale, contentDescription = null)
+            Icon(Icons.Outlined.PointOfSale, contentDescription = null)
             Spacer(Modifier.width(14.dp))
             Column {
                 Text("BÁN HÀNG", style = MaterialTheme.typography.titleLarge)
@@ -175,6 +177,7 @@ private fun HubCard(item: HubItem, onClick: () -> Unit) {
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        shadowElevation = 1.dp,
         modifier = Modifier
             .fillMaxWidth()
             .height(96.dp),
@@ -185,11 +188,22 @@ private fun HubCard(item: HubItem, onClick: () -> Unit) {
                 .padding(14.dp),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
-            Icon(
-                item.icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface,
-            )
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top,
+            ) {
+                Icon(
+                    item.icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+                Icon(
+                    Icons.Outlined.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.outline,
+                )
+            }
             Text(
                 item.label,
                 style = MaterialTheme.typography.titleMedium,
