@@ -24,6 +24,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.mykiot.pos.core.ui.AppHeader
+import com.mykiot.pos.feature.customer.AddCustomerScreen
+import com.mykiot.pos.feature.customer.CustomerDetailScreen
+import com.mykiot.pos.feature.customer.CustomerListScreen
 import com.mykiot.pos.feature.inventory.InventoryScreen
 import com.mykiot.pos.feature.pos.PosScreen
 import com.mykiot.pos.feature.receipt.ReceiptScreen
@@ -65,13 +68,29 @@ private fun HomeNavHost(onOpenPos: () -> Unit, onLogout: () -> Unit) {
             FeatureScaffold("Báo cáo", onBack = { nav.popBackStack() }) { ReportScreen() }
         }
 
-        // ----- Feature hướng A: placeholder, thay ở từng phase -----
-        composable(Routes.CUSTOMERS) { PlaceholderScreen("Khách hàng", onBack = { nav.popBackStack() }) }
+        // ----- Khách hàng (Phase 1) -----
+        composable(Routes.CUSTOMERS) {
+            CustomerListScreen(
+                onBack = { nav.popBackStack() },
+                onOpenDetail = { nav.navigate(Routes.customerDetail(it)) },
+                onAdd = { nav.navigate(Routes.CUSTOMER_ADD) },
+            )
+        }
         composable(
             Routes.CUSTOMER_DETAIL,
             arguments = listOf(navArgument("id") { type = NavType.LongType }),
-        ) { PlaceholderScreen("Chi tiết khách hàng", onBack = { nav.popBackStack() }) }
-        composable(Routes.CUSTOMER_ADD) { PlaceholderScreen("Thêm khách hàng", onBack = { nav.popBackStack() }) }
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getLong("id") ?: 0L
+            CustomerDetailScreen(customerId = id, onBack = { nav.popBackStack() })
+        }
+        composable(Routes.CUSTOMER_ADD) {
+            AddCustomerScreen(
+                onCreated = { nav.popBackStack() },
+                onCancel = { nav.popBackStack() },
+            )
+        }
+
+        // ----- Feature hướng A còn lại: placeholder, thay ở từng phase -----
         composable(Routes.PRODUCTS) { PlaceholderScreen("Sản phẩm", onBack = { nav.popBackStack() }) }
         composable(Routes.INVOICE_HISTORY) { PlaceholderScreen("Hóa đơn", onBack = { nav.popBackStack() }) }
         composable(Routes.RETURNS) { PlaceholderScreen("Trả hàng", onBack = { nav.popBackStack() }) }
