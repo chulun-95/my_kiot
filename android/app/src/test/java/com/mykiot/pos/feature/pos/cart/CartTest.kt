@@ -47,7 +47,7 @@ class CartTest {
         assertEquals(2L, cart.lines.first().productId)
     }
 
-    @Test fun `lineTotal = qty x price - discount; subtotal sums lines`() {
+    @Test fun `lineTotal = qty x price - discount, subtotal sums lines`() {
         val cart = Cart()
             .addScanned(line(1, null, "2", "10000"))        // 20000
             .addScanned(line(2, null, "1", "5000"))         // 5000

@@ -22,7 +22,7 @@ fun AppNav(startLoggedIn: Boolean) {
             )
         }
         composable(Routes.HOME) {
-            HomeScaffold(
+            HomeRoot(
                 onLogout = {
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(Routes.HOME) { inclusive = true }
