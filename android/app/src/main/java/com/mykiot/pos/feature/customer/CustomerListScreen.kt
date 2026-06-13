@@ -1,19 +1,24 @@
 package com.mykiot.pos.feature.customer
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -21,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -47,7 +53,12 @@ fun CustomerListScreen(
             AppHeader(title = "Khách hàng", onBack = onBack, modifier = Modifier.padding(horizontal = 16.dp))
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAdd) {
+            FloatingActionButton(
+                onClick = onAdd,
+                shape = RoundedCornerShape(18.dp),
+                containerColor = MaterialTheme.colorScheme.onSurface,
+                contentColor = MaterialTheme.colorScheme.surface,
+            ) {
                 Icon(Icons.Filled.Add, contentDescription = "Thêm khách hàng")
             }
         },
@@ -64,7 +75,7 @@ fun CustomerListScreen(
                 placeholder = "Tìm theo tên / SĐT",
                 modifier = Modifier.fillMaxWidth(),
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
             if (state.items.isEmpty() && !state.loading) {
                 Text(
                     state.errorMessage ?: "Chưa có khách hàng",
@@ -74,21 +85,35 @@ fun CustomerListScreen(
             }
             LazyColumn(Modifier.fillMaxSize()) {
                 items(state.items, key = { it.id }) { c ->
-                    Column(
-                        Modifier
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                        modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onOpenDetail(c.id) }
-                            .padding(vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                            .padding(bottom = 10.dp)
+                            .clickable { onOpenDetail(c.id) },
                     ) {
-                        Text(c.name, fontWeight = FontWeight.SemiBold)
-                        Text(
-                            "${c.phone ?: "—"} · ${formatVnd(BigDecimal.valueOf(c.totalSpent))}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        Row(
+                            Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(c.name, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    "${c.phone ?: "—"} · ${formatVnd(BigDecimal.valueOf(c.totalSpent))}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Icon(
+                                Icons.Outlined.ChevronRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.outline,
+                            )
+                        }
                     }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
         }

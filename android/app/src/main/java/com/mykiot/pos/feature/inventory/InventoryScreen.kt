@@ -1,15 +1,21 @@
 package com.mykiot.pos.feature.inventory
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -20,9 +26,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mykiot.pos.core.ui.AppSearchField
+import com.mykiot.pos.core.ui.LoadingDialog
+import com.mykiot.pos.core.ui.MonoBadge
 import java.math.BigDecimal
 
 @Composable
@@ -39,36 +49,65 @@ fun InventoryScreen(viewModel: InventoryViewModel = hiltViewModel()) {
         MovementsDialog(item = item, movements = state.movements, onDismiss = viewModel::closeMovements)
     }
 
-    Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).padding(12.dp)) {
-            OutlinedTextField(
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
+        containerColor = MaterialTheme.colorScheme.background,
+    ) { padding ->
+        Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp, vertical = 4.dp)) {
+            AppSearchField(
                 value = state.query,
                 onValueChange = viewModel::onQueryChange,
-                label = { Text("Tìm sản phẩm") },
-                singleLine = true,
+                placeholder = "Lọc theo tên / SKU",
                 modifier = Modifier.fillMaxWidth(),
             )
-            LazyColumn(Modifier.fillMaxSize().padding(top = 8.dp)) {
-                itemsIndexed(state.items) { _, it ->
+            Spacer(Modifier.height(12.dp))
+
+            LazyColumn(Modifier.fillMaxSize()) {
+                items(state.items) { it ->
                     val qty = it.quantity.toBigDecimalOrZero()
-                    val low = qty <= BigDecimal(it.minStock)
-                    Row(
-                        Modifier.fillMaxWidth().clickable { viewModel.openMovements(it) }
-                            .padding(vertical = 8.dp),
+                    val out = qty.signum() <= 0
+                    val low = !out && qty <= BigDecimal(it.minStock)
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
+                            .clickable { viewModel.openMovements(it) },
                     ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(it.productName)
-                            Text("${it.productSku} • ${it.unit}")
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text("Tồn: ${it.quantity}")
-                            if (low) Text("Sắp hết", color = MaterialTheme.colorScheme.error)
+                        Row(
+                            Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(it.productName, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    "${it.productSku} • ${it.unit}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(it.quantity, style = MaterialTheme.typography.titleMedium)
+                                when {
+                                    out -> {
+                                        Spacer(Modifier.height(4.dp))
+                                        MonoBadge("Hết", filled = true)
+                                    }
+                                    low -> {
+                                        Spacer(Modifier.height(4.dp))
+                                        MonoBadge("Sắp hết", filled = false)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
         }
     }
+
+    LoadingDialog(visible = state.loading && state.items.isEmpty(), message = "Đang tải tồn kho...")
 }
 
 private fun String.toBigDecimalOrZero(): BigDecimal =

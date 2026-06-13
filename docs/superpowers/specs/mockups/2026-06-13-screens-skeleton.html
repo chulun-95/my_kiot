@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>my_kiot — Khung thiết kế từng màn (sizing chuẩn Material)</title>
+<style>
+  :root{
+    --ink:#0F172A; --ink-soft:#64748B; --paper:#FFFFFF; --bg:#F8FAFC;
+    --fill:#F1F5F9; --line:#E2E8F0;
+    --d-profit:#16A34A; --d-warn:#F59E0B;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#E5E9F0;color:var(--ink);
+    font-family:'Inter',-apple-system,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased;padding:28px 18px}
+  h1.page{font-size:15px;font-weight:600;color:#475569;text-align:center;margin:0 0 6px}
+  p.note{font-size:12px;color:#64748b;text-align:center;margin:0 0 22px}
+  .legend{max-width:980px;margin:0 auto 26px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 18px;
+    display:flex;flex-wrap:wrap;gap:10px 22px;font-size:12px;color:#334155}
+  .legend b{color:#0f172a}
+  .legend .sz{display:inline-block;font-family:ui-monospace,monospace;background:#0f172a;color:#fff;border-radius:5px;padding:1px 6px;font-size:11px;margin-right:5px}
+  .stage{display:flex;gap:34px;justify-content:center;flex-wrap:wrap;align-items:flex-start}
+  .col{display:flex;flex-direction:column;align-items:center}
+  .phone{width:392px;background:var(--bg);border-radius:36px;overflow:hidden;
+    box-shadow:0 24px 60px -20px rgba(15,23,42,.45),0 0 0 10px #0b1220,0 0 0 11px #1e293b}
+  .screen{height:780px;overflow:hidden;display:flex;flex-direction:column}
+  .label{font-size:12px;font-weight:600;color:#475569;margin-top:13px;text-transform:uppercase;letter-spacing:.4px}
+
+  /* size badge */
+  .row-an{position:relative}
+  .an{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-family:ui-monospace,monospace;
+    font-size:10px;background:rgba(15,23,42,.08);color:#0f172a;border-radius:4px;padding:1px 5px;pointer-events:none}
+  .an.tr{top:8px;transform:none}
+
+  /* app bar 64dp */
+  .appbar{height:64px;min-height:64px;display:flex;align-items:center;gap:8px;padding:0 8px 0 6px;background:var(--bg)}
+  .appbar .back{width:48px;height:48px;display:flex;align-items:center;justify-content:center}
+  .appbar .title{font-size:21px;font-weight:800;letter-spacing:-.4px;flex:1}
+  .appbar .act{font-size:13px;font-weight:600;color:var(--ink-soft);padding:0 8px}
+
+  .body{flex:1;overflow:auto;padding:0 16px}
+  .body::-webkit-scrollbar{width:0}
+
+  /* search 56dp pill */
+  .search{height:56px;display:flex;align-items:center;gap:10px;background:var(--fill);
+    border:1px solid var(--line);border-radius:28px;padding:0 16px;margin:8px 0}
+  .search svg{width:20px;height:20px;stroke:var(--ink-soft);stroke-width:1.8;fill:none}
+  .search .ph{color:var(--ink-soft);font-size:15px;flex:1}
+  .search .scan{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+
+  /* outlined button 56dp */
+  .obtn{height:56px;display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:14px;padding:0 16px;background:#fff;margin:8px 0;font-size:15px;font-weight:500}
+  .obtn svg{width:20px;height:20px;stroke:var(--ink);stroke-width:1.8;fill:none}
+
+  .section{font-size:12px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 8px}
+
+  /* list item card */
+  .item{min-height:72px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:10px;
+    display:flex;align-items:center;gap:12px}
+  .item .nm{font-weight:600;font-size:15px}
+  .item .sub{font-size:12px;color:var(--ink-soft);margin-top:3px}
+  .item .grow{flex:1;min-width:0}
+  .item .right{text-align:right}
+  .badge{display:inline-block;background:#0f172a;color:#fff;border-radius:50px;padding:2px 9px;font-size:11px;font-weight:600;margin-top:4px}
+  .badge.warn{background:var(--d-warn)}
+
+  /* qty stepper */
+  .stp{display:flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .stp button{width:40px;height:40px;border:0;background:#fff;font-size:18px;color:#0f172a}
+  .stp .q{width:40px;text-align:center;font-weight:600}
+  .costinput{width:104px;height:44px;border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;padding:0 10px;font-size:14px;color:#334155}
+
+  /* search results dropdown */
+  .results{background:#fff;border:1px solid var(--line);border-radius:16px;margin-top:8px;overflow:hidden}
+  .results .r{padding:12px 14px;display:flex;justify-content:space-between;border-bottom:1px solid var(--line);font-size:14px}
+  .results .r:last-child{border-bottom:0}
+
+  /* bottom total bar + CTA */
+  .footer{padding:12px 16px 18px;background:var(--bg);border-top:1px solid var(--line)}
+  .totalcard{background:var(--fill);border-radius:20px;padding:16px}
+  .totalrow{display:flex;justify-content:space-between;align-items:center}
+  .totalrow .lbl{color:var(--ink-soft);font-size:14px}
+  .totalrow .val{font-size:21px;font-weight:800}
+  .cta{height:56px;border-radius:14px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;margin-top:12px}
+
+  /* FAB 56dp */
+  .fabwrap{position:relative;height:0}
+  .fab{position:absolute;right:16px;bottom:16px;width:56px;height:56px;border-radius:18px;background:var(--ink);color:#fff;
+    display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px -6px rgba(15,23,42,.5);font-size:26px}
+  .ic{width:22px;height:22px;stroke:var(--ink);stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+</style>
+</head>
+<body>
+<h1 class="page">my_kiot — Khung thiết kế từng màn (component hiện rõ + kích thước chuẩn Material 3)</h1>
+<p class="note">Số <span style="font-family:monospace">xx dp</span> = chiều cao/kích thước chuẩn. Lưới 8pt · lề ngang 16dp · touch target ≥ 48dp · 1 nút primary/màn (đáy, vùng ngón cái).</p>
+
+<div class="legend">
+  <span><span class="sz">64dp</span><b>App bar</b> (tiêu đề + back 48dp)</span>
+  <span><span class="sz">56dp</span><b>Ô tìm</b> pill, viền rõ</span>
+  <span><span class="sz">56dp</span><b>Nút outlined</b> chọn NCC</span>
+  <span><span class="sz">≥72dp</span><b>List item</b> 2 dòng</span>
+  <span><span class="sz">48dp</span><b>Touch target</b> tối thiểu</span>
+  <span><span class="sz">40dp</span><b>Stepper</b> ± số lượng</span>
+  <span><span class="sz">56dp</span><b>Nút primary</b> đáy màn</span>
+  <span><span class="sz">56dp</span><b>FAB</b> thêm mới</span>
+</div>
+
+<div class="stage">
+
+  <!-- ===== POS ===== -->
+  <div class="col"><div class="phone"><div class="screen">
+    <div class="appbar row-an">
+      <div class="back"><svg class="ic" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></div>
+      <div class="title">Bán hàng</div>
+      <span class="an tr">64dp</span>
+    </div>
+    <div class="body">
+      <div class="search row-an">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+        <span class="ph">Tìm sản phẩm (tên / SKU / mã vạch)</span>
+        <div class="scan"><svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:#0f172a;stroke-width:1.8;fill:none"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 7h10v10H7z"/></svg></div>
+        <span class="an">56dp</span>
+      </div>
+      <div class="section">Giỏ hàng</div>
+      <div class="item row-an">
+        <div class="grow"><div class="nm">Mì Hảo Hảo</div><div class="sub">20.000 đ / gói</div></div>
+        <div class="stp"><button>−</button><div class="q">2</div><button>+</button></div>
+        <span class="an tr">72dp</span>
+      </div>
+      <div class="item">
+        <div class="grow"><div class="nm">Coca 330ml</div><div class="sub">12.000 đ / lon</div></div>
+        <div class="stp"><button>−</button><div class="q">1</div><button>+</button></div>
+      </div>
+      <div class="item">
+        <div class="grow"><div class="nm">Nước suối Aqua</div><div class="sub">6.000 đ / chai</div></div>
+        <div class="stp"><button>−</button><div class="q">3</div><button>+</button></div>
+      </div>
+    </div>
+    <div class="footer row-an">
+      <div class="totalcard">
+        <div class="totalrow"><span class="lbl">Tổng cộng</span><span class="val">76.000 đ</span></div>
+        <div class="cta">Thanh toán</div>
+      </div>
+      <span class="an" style="top:auto;bottom:30px;transform:none">CTA 56dp</span>
+    </div>
+  </div></div><div class="label">Bán hàng (POS)</div></div>
+
+  <!-- ===== NHẬP HÀNG ===== -->
+  <div class="col"><div class="phone"><div class="screen">
+    <div class="appbar row-an">
+      <div class="back"><svg class="ic" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></div>
+      <div class="title">Nhập hàng</div>
+      <span class="an tr">64dp</span>
+    </div>
+    <div class="body">
+      <div class="obtn row-an">
+        <svg viewBox="0 0 24 24"><path d="M3 9l1-5h16l1 5M4 9v11h16V9M9 13h6"/></svg>
+        <span style="flex:1">Chọn nhà cung cấp</span>
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#94a3b8;stroke-width:1.8;fill:none"><path d="M9 18l6-6-6-6"/></svg>
+        <span class="an">56dp</span>
+      </div>
+      <div class="search row-an">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+        <span class="ph">Tìm sản phẩm để nhập</span>
+        <div class="scan"><svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:#0f172a;stroke-width:1.8;fill:none"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 7h10v10H7z"/></svg></div>
+        <span class="an">56dp</span>
+      </div>
+      <div class="section">Sản phẩm nhập</div>
+      <div class="item row-an" style="flex-direction:column;align-items:stretch;gap:10px">
+        <div style="display:flex;align-items:center"><div class="grow"><div class="nm">Mì Hảo Hảo</div><div class="sub">SP000001 · gói</div></div>
+          <div class="stp"><button>−</button><div class="q">10</div><button>+</button></div></div>
+        <div style="display:flex;align-items:center;gap:10px"><span class="sub" style="flex:1">Giá nhập</span><div class="costinput">3.500 đ</div></div>
+      </div>
+      <div class="item" style="flex-direction:column;align-items:stretch;gap:10px">
+        <div style="display:flex;align-items:center"><div class="grow"><div class="nm">Coca 330ml</div><div class="sub">SP000002 · lon</div></div>
+          <div class="stp"><button>−</button><div class="q">24</div><button>+</button></div></div>
+        <div style="display:flex;align-items:center;gap:10px"><span class="sub" style="flex:1">Giá nhập</span><div class="costinput">7.000 đ</div></div>
+      </div>
+    </div>
+    <div class="footer">
+      <div class="totalcard">
+        <div class="totalrow"><span class="lbl">Tổng nhập</span><span class="val">203.000 đ</span></div>
+        <div class="cta">Hoàn tất nhập</div>
+      </div>
+    </div>
+  </div></div><div class="label">Nhập hàng</div></div>
+
+  <!-- ===== TỒN KHO ===== -->
+  <div class="col"><div class="phone"><div class="screen">
+    <div class="appbar row-an">
+      <div class="back"><svg class="ic" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></div>
+      <div class="title">Tồn kho</div>
+      <span class="an tr">64dp</span>
+    </div>
+    <div class="body">
+      <div class="search row-an">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+        <span class="ph">Lọc theo tên / SKU</span>
+        <span class="an">56dp</span>
+      </div>
+      <div style="height:8px"></div>
+      <div class="item row-an">
+        <div class="grow"><div class="nm">Mì Hảo Hảo</div><div class="sub">SP000001 • gói</div></div>
+        <div class="right"><div class="nm">128</div></div>
+        <span class="an tr">72dp</span>
+      </div>
+      <div class="item">
+        <div class="grow"><div class="nm">Coca 330ml</div><div class="sub">SP000002 • lon</div></div>
+        <div class="right"><div class="nm">4</div><div class="badge warn">Sắp hết</div></div>
+      </div>
+      <div class="item">
+        <div class="grow"><div class="nm">Nước suối Aqua</div><div class="sub">SP000003 • chai</div></div>
+        <div class="right"><div class="nm">60</div></div>
+      </div>
+      <div class="item">
+        <div class="grow"><div class="nm">Bánh Choco-pie</div><div class="sub">SP000004 • hộp</div></div>
+        <div class="right"><div class="nm">0</div><div class="badge">Hết</div></div>
+      </div>
+    </div>
+  </div></div><div class="label">Tồn kho (chạm item → thẻ kho)</div></div>
+
+  <!-- ===== KHÁCH HÀNG ===== -->
+  <div class="col"><div class="phone"><div class="screen">
+    <div class="appbar row-an">
+      <div class="back"><svg class="ic" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></div>
+      <div class="title">Khách hàng</div>
+      <span class="an tr">64dp</span>
+    </div>
+    <div class="body">
+      <div class="search row-an">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+        <span class="ph">Tìm theo tên / SĐT</span>
+        <span class="an">56dp</span>
+      </div>
+      <div style="height:8px"></div>
+      <div class="item row-an">
+        <div class="grow"><div class="nm">Anh Ba</div><div class="sub">0900 000 000 · 2.450.000 đ</div></div>
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#94a3b8;stroke-width:1.8;fill:none"><path d="M9 18l6-6-6-6"/></svg>
+        <span class="an tr">72dp</span>
+      </div>
+      <div class="item">
+        <div class="grow"><div class="nm">Chị Tư</div><div class="sub">0911 111 111 · 870.000 đ</div></div>
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#94a3b8;stroke-width:1.8;fill:none"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+      <div class="item">
+        <div class="grow"><div class="nm">Anh Năm</div><div class="sub">0922 222 222 · 1.230.000 đ</div></div>
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#94a3b8;stroke-width:1.8;fill:none"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    </div>
+    <div class="fabwrap"><div class="fab" title="FAB 56dp">+</div></div>
+  </div></div><div class="label">Khách hàng (FAB thêm — vùng ngón cái)</div></div>
+
+</div>
+</body>
+</html>
