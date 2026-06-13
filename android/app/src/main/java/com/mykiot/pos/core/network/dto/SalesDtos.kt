@@ -72,8 +72,18 @@ data class InvoiceBriefDto(
     val total: String,
     @SerialName("paid_amount") val paidAmount: String,
     val status: String,
+    @SerialName("completed_at") val completedAt: String? = null,
     @SerialName("created_at") val createdAt: String,
 )
 
 @Serializable
 data class InvoiceDraftListDto(val items: List<InvoiceBriefDto> = emptyList())
+
+@Serializable
+data class InvoiceListDto(
+    val items: List<InvoiceBriefDto> = emptyList(),
+    val pagination: PaginationDto? = null,
+)
+
+@Serializable
+data class CancelInvoiceDto(val reason: String)
