@@ -4,6 +4,8 @@ import com.mykiot.pos.core.network.ApiError
 import com.mykiot.pos.core.network.ApiResult
 import com.mykiot.pos.core.network.dto.DashboardDto
 import com.mykiot.pos.core.network.dto.EndOfDayDto
+import com.mykiot.pos.core.network.dto.RevenueDto
+import com.mykiot.pos.core.network.dto.TopProductsDto
 import com.mykiot.pos.feature.report.data.ReportRepository
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -68,5 +70,31 @@ class ReportViewModelTest {
         assertNull(vm.state.value.eod)
         assertNull(vm.state.value.errorMessage)
         assertEquals(12, vm.state.value.dashboard?.todayInvoices)
+    }
+
+    @Test fun `revenue and top products loaded for owner`() = runTest {
+        coEvery { repo.dashboard() } returns ApiResult.Success(dashboard())
+        coEvery { repo.revenueLast7Days() } returns ApiResult.Success(
+            RevenueDto(totalRevenue = 500000.0, series = emptyList()),
+        )
+        coEvery { repo.topProducts(any()) } returns ApiResult.Success(TopProductsDto(items = emptyList()))
+        val vm = ReportViewModel(repo)
+
+        vm.load()
+
+        assertEquals(500000.0, vm.state.value.revenue7d?.totalRevenue ?: 0.0, 0.001)
+        assertEquals(0, vm.state.value.topProducts?.items?.size)
+    }
+
+    @Test fun `revenue and top products hidden for cashier 403`() = runTest {
+        coEvery { repo.dashboard() } returns ApiResult.Success(dashboard())
+        coEvery { repo.revenueLast7Days() } returns ApiResult.Failure(ApiError("FORBIDDEN", "x", 403))
+        coEvery { repo.topProducts(any()) } returns ApiResult.Failure(ApiError("FORBIDDEN", "x", 403))
+        val vm = ReportViewModel(repo)
+
+        vm.load()
+
+        assertNull(vm.state.value.revenue7d)
+        assertNull(vm.state.value.topProducts)
     }
 }

@@ -27,10 +27,18 @@ class ReportViewModel @Inject constructor(
                 is ApiResult.Success -> _state.update { it.copy(loading = false, dashboard = r.data) }
                 is ApiResult.Failure -> _state.update { it.copy(loading = false, errorMessage = r.error.message) }
             }
-            // EOD chỉ dành cho OWNER; nếu CASHIER bị 403 → bỏ qua, không báo lỗi.
+            // Các nguồn OWNER-only: 403 (CASHIER) → bỏ qua, không báo lỗi.
             when (val e = repository.endOfDay()) {
                 is ApiResult.Success -> _state.update { it.copy(eod = e.data) }
                 is ApiResult.Failure -> _state.update { it.copy(eod = null) }
+            }
+            when (val rev = repository.revenueLast7Days()) {
+                is ApiResult.Success -> _state.update { it.copy(revenue7d = rev.data) }
+                is ApiResult.Failure -> _state.update { it.copy(revenue7d = null) }
+            }
+            when (val tp = repository.topProducts(5)) {
+                is ApiResult.Success -> _state.update { it.copy(topProducts = tp.data) }
+                is ApiResult.Failure -> _state.update { it.copy(topProducts = null) }
             }
         }
     }

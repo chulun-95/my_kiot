@@ -35,3 +35,32 @@ data class EndOfDayDto(
     @SerialName("sales_revenue") val salesRevenue: String,
     @SerialName("sales_invoices") val salesInvoices: Int,
 )
+
+@Serializable
+data class RevenuePointDto(
+    val period: String,
+    val revenue: Double = 0.0,
+    val invoices: Int = 0,
+    val profit: Double = 0.0,
+)
+
+@Serializable
+data class RevenueDto(
+    @SerialName("total_revenue") val totalRevenue: Double = 0.0,
+    @SerialName("total_profit") val totalProfit: Double = 0.0,
+    val series: List<RevenuePointDto> = emptyList(),
+)
+
+@Serializable
+data class TopProductItemDto(
+    @SerialName("product_id") val productId: Long,
+    @SerialName("product_name") val productName: String,
+    val revenue: Double = 0.0,
+    @SerialName("quantity_sold") val quantitySold: Double = 0.0,
+    val profit: Double = 0.0,
+)
+
+@Serializable
+data class TopProductsDto(
+    val items: List<TopProductItemDto> = emptyList(),
+)
