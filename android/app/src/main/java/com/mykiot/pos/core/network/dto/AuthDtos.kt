@@ -21,6 +21,13 @@ data class LogoutRequest(
 )
 
 @Serializable
+data class ChangePasswordRequest(
+    @SerialName("current_password") val currentPassword: String,
+    @SerialName("new_password") val newPassword: String,
+    @SerialName("confirm_password") val confirmPassword: String,
+)
+
+@Serializable
 data class UserDto(
     val id: Long,
     @SerialName("full_name") val fullName: String,

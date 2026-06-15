@@ -4,6 +4,7 @@ import com.mykiot.pos.core.network.ApiError
 import com.mykiot.pos.core.network.ApiResult
 import com.mykiot.pos.core.network.AuthApi
 import com.mykiot.pos.core.network.ErrorMapper
+import com.mykiot.pos.core.network.dto.ChangePasswordRequest
 import com.mykiot.pos.core.network.dto.LoginResponseDto
 import com.mykiot.pos.core.network.dto.LogoutRequest
 import com.mykiot.pos.core.network.dto.MobileLoginRequest
@@ -64,4 +65,14 @@ class AuthRepository @Inject constructor(
         }
         tokenStore.clear()
     }
+
+    /** Đổi mật khẩu: backend thu hồi token cũ + cấp cặp mới → lưu lại để khỏi bị đăng xuất. */
+    suspend fun changePassword(current: String, newPass: String, confirm: String): ApiResult<Unit> =
+        try {
+            val dto = api.changePassword(ChangePasswordRequest(current, newPass, confirm))
+            tokenStore.save(dto.accessToken, dto.refreshToken)
+            ApiResult.Success(Unit)
+        } catch (t: Throwable) {
+            ApiResult.Failure(errorMapper.map(t))
+        }
 }

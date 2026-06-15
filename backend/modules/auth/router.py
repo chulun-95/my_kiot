@@ -161,3 +161,15 @@ async def mobile_logout(
 ):
     await auth_service.logout(db, user.id, payload.refresh_token)
     return MessageResponse(message="Đăng xuất thành công")
+
+
+@router.put("/mobile/change-password", response_model=TokenPair)
+async def mobile_change_password(
+    payload: ChangePasswordRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+):
+    # Đổi mật khẩu thu hồi mọi refresh token; trả cặp token mới TRONG BODY
+    # để app native lưu lại (không dùng cookie như web) → không bị đăng xuất.
+    access, refresh = await auth_service.change_password(db, user, payload)
+    return TokenPair(access_token=access, refresh_token=refresh)

@@ -24,6 +24,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.mykiot.pos.core.ui.AppHeader
+import com.mykiot.pos.feature.account.ChangePasswordScreen
 import com.mykiot.pos.feature.customer.AddCustomerScreen
 import com.mykiot.pos.feature.customer.CustomerDetailScreen
 import com.mykiot.pos.feature.customer.CustomerListScreen
@@ -102,7 +103,9 @@ private fun HomeNavHost(onOpenPos: () -> Unit, onLogout: () -> Unit) {
         composable(Routes.RETURNS) {
             FeatureScaffold("Trả hàng", onBack = { nav.popBackStack() }) { ReturnsScreen() }
         }
-        composable(Routes.CHANGE_PASSWORD) { PlaceholderScreen("Đổi mật khẩu", onBack = { nav.popBackStack() }) }
+        composable(Routes.CHANGE_PASSWORD) {
+            ChangePasswordScreen(onBack = { nav.popBackStack() }, onDone = { nav.popBackStack() })
+        }
     }
 }
 
