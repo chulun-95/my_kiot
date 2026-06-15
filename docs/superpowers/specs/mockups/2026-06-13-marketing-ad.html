@@ -1,0 +1,938 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>my_kiot — Quảng cáo sản phẩm</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+  :root {
+    --ink: #0F172A;
+    --ink-soft: #64748B;
+    --paper: #FFFFFF;
+    --bg: #F8FAFC;
+    --fill: #F1F5F9;
+    --line: #E2E8F0;
+    --accent: #2563EB;
+    --warn: #F59E0B;
+    --profit: #16A34A;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background: #0B1120;
+    min-height: 100vh;
+  }
+
+  /* =====================
+     HERO BANNER (1200×628 — Facebook link/landscape)
+  ===================== */
+  .banner {
+    width: 1200px;
+    height: 628px;
+    background: linear-gradient(135deg, #0B1120 0%, #0F2044 60%, #0B1120 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 48px 64px;
+    position: relative;
+    overflow: hidden;
+    margin: 0 auto 80px;
+  }
+
+  .banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 600px 400px at 70% 50%, rgba(37,99,235,.15) 0%, transparent 70%),
+      radial-gradient(ellipse 300px 300px at 20% 80%, rgba(22,163,74,.08) 0%, transparent 70%);
+  }
+
+  /* left copy */
+  .copy {
+    position: relative;
+    z-index: 1;
+    max-width: 420px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+
+  .brand-logo {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, #2563EB, #1D4ED8);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .brand-logo svg {
+    width: 24px;
+    height: 24px;
+    fill: #fff;
+  }
+
+  .brand-name {
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -.3px;
+  }
+
+  .headline {
+    font-size: 42px;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.1;
+    letter-spacing: -.8px;
+    margin-bottom: 16px;
+  }
+
+  .headline em {
+    font-style: normal;
+    background: linear-gradient(90deg, #60A5FA, #34D399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subline {
+    font-size: 16px;
+    color: #94A3B8;
+    line-height: 1.6;
+    margin-bottom: 36px;
+  }
+
+  .pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 50px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #CBD5E1;
+  }
+
+  .pill-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #34D399;
+    flex-shrink: 0;
+  }
+
+  /* right phones — 2 phones stacked/offset */
+  .phones-wrap {
+    position: relative;
+    z-index: 1;
+    width: 520px;
+    height: 520px;
+    flex-shrink: 0;
+  }
+
+  .ph-frame {
+    position: absolute;
+    background: var(--bg);
+    border-radius: 36px;
+    overflow: hidden;
+    box-shadow:
+      0 32px 80px -24px rgba(0,0,0,.8),
+      0 0 0 8px #0F1F3D,
+      0 0 0 9px #1E3A5F;
+  }
+
+  .ph-frame.main {
+    width: 220px;
+    height: 440px;
+    top: 40px;
+    left: 0;
+  }
+
+  .ph-frame.side {
+    width: 200px;
+    height: 400px;
+    top: 80px;
+    left: 220px;
+    /* scale down slightly */
+    transform: scale(.92);
+    transform-origin: top right;
+    opacity: .9;
+  }
+
+  /* phone screen content (scaled 0.56 from 392px → ~220px) */
+  .ph-screen {
+    width: 392px;
+    height: 784px;
+    transform-origin: top left;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .ph-frame.main .ph-screen {
+    transform: scale(.561);
+    /* 392×0.561=220px width, 784×0.561=440px height */
+  }
+
+  .ph-frame.side .ph-screen {
+    transform: scale(.510);
+  }
+
+  /* =====================
+     QUAD GRID (1080×1080 — Facebook square)
+  ===================== */
+  .quad-banner {
+    width: 1080px;
+    min-height: 1080px;
+    background: linear-gradient(160deg, #0B1120 0%, #0F2044 50%, #071830 100%);
+    margin: 0 auto 80px;
+    padding: 56px 48px 64px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .quad-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 700px 500px at 50% 30%, rgba(37,99,235,.12) 0%, transparent 70%),
+      radial-gradient(ellipse 400px 400px at 10% 90%, rgba(22,163,74,.07) 0%, transparent 70%);
+  }
+
+  .quad-top {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    margin-bottom: 52px;
+  }
+
+  .quad-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .quad-brand-logo {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #2563EB, #1D4ED8);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .quad-brand-name {
+    font-size: 26px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -.3px;
+  }
+
+  .quad-headline {
+    font-size: 38px;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.15;
+    letter-spacing: -.6px;
+    margin-bottom: 12px;
+  }
+
+  .quad-headline em {
+    font-style: normal;
+    background: linear-gradient(90deg, #60A5FA, #34D399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .quad-sub {
+    font-size: 16px;
+    color: #94A3B8;
+  }
+
+  /* grid of 4 phones */
+  .quad-grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+
+  .phone-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .phone-shell {
+    width: 204px;
+    height: 408px;
+    background: var(--bg);
+    border-radius: 32px;
+    overflow: hidden;
+    box-shadow:
+      0 24px 60px -16px rgba(0,0,0,.9),
+      0 0 0 7px #0F1F3D,
+      0 0 0 8px #1E3A5F;
+    flex-shrink: 0;
+  }
+
+  .phone-inner {
+    width: 392px;
+    height: 784px;
+    transform: scale(.52);
+    transform-origin: top left;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .phone-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #94A3B8;
+    text-align: center;
+    letter-spacing: .2px;
+  }
+
+  .phone-feature {
+    font-size: 12px;
+    color: #64748B;
+    text-align: center;
+    line-height: 1.5;
+    max-width: 180px;
+  }
+
+  /* bottom tagline */
+  .quad-footer {
+    position: relative;
+    z-index: 1;
+    margin-top: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .quad-footer-pills {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .quad-cta {
+    background: linear-gradient(90deg, #2563EB, #1D4ED8);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 14px 28px;
+    border-radius: 14px;
+    letter-spacing: -.1px;
+    white-space: nowrap;
+    box-shadow: 0 8px 24px -6px rgba(37,99,235,.5);
+  }
+
+  /* =====================
+     REUSABLE SCREEN COMPONENTS
+  ===================== */
+  .appbar {
+    height: 64px;
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px 0 6px;
+    background: var(--bg);
+  }
+
+  .appbar .back {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .appbar .title {
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: -.4px;
+    flex: 1;
+    color: var(--ink);
+  }
+
+  .appbar .act {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    padding: 0 8px;
+  }
+
+  .body-scroll {
+    flex: 1;
+    overflow: hidden;
+    padding: 0 16px;
+  }
+
+  .search-bar {
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--fill);
+    border: 1.5px solid var(--line);
+    border-radius: 28px;
+    padding: 0 16px;
+    margin: 8px 0;
+  }
+
+  .search-bar svg {
+    width: 20px;
+    height: 20px;
+    stroke: var(--ink-soft);
+    stroke-width: 1.8;
+    fill: none;
+    flex-shrink: 0;
+  }
+
+  .search-bar .ph {
+    color: var(--ink-soft);
+    font-size: 15px;
+    flex: 1;
+  }
+
+  .search-bar .scan-btn {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--ink);
+  }
+
+  .search-bar .scan-btn svg {
+    stroke: #fff;
+    width: 18px;
+    height: 18px;
+  }
+
+  .section-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    margin: 16px 0 8px;
+  }
+
+  .list-item {
+    min-height: 72px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .item-nm { font-weight: 600; font-size: 15px; color: var(--ink); }
+  .item-sub { font-size: 12px; color: var(--ink-soft); margin-top: 3px; }
+  .item-grow { flex: 1; min-width: 0; }
+  .item-right { text-align: right; }
+
+  .badge {
+    display: inline-block;
+    background: var(--ink);
+    color: #fff;
+    border-radius: 50px;
+    padding: 2px 9px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 4px;
+  }
+
+  .badge.warn { background: var(--warn); }
+
+  .stepper {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .stepper button {
+    width: 40px;
+    height: 40px;
+    border: 0;
+    background: #fff;
+    font-size: 18px;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .stepper .qty {
+    width: 40px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--ink);
+  }
+
+  .cost-input {
+    width: 104px;
+    height: 44px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-size: 14px;
+    color: #334155;
+    background: #fff;
+  }
+
+  .supplier-btn {
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 0 16px;
+    background: #fff;
+    margin: 8px 0;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .footer-bar {
+    padding: 12px 16px 20px;
+    background: var(--bg);
+    border-top: 1px solid var(--line);
+  }
+
+  .total-card {
+    background: var(--fill);
+    border-radius: 20px;
+    padding: 16px;
+  }
+
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .total-lbl { color: var(--ink-soft); font-size: 14px; }
+  .total-val { font-size: 22px; font-weight: 900; color: var(--ink); }
+
+  .cta-btn {
+    height: 56px;
+    border-radius: 14px;
+    background: var(--ink);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -.1px;
+  }
+
+  .fab-wrap { position: relative; height: 0; }
+  .fab {
+    position: absolute;
+    right: 16px;
+    bottom: -24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    background: var(--ink);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 18px -6px rgba(15,23,42,.5);
+    font-size: 26px;
+    font-weight: 400;
+  }
+
+  .ic {
+    width: 22px;
+    height: 22px;
+    stroke: var(--ink);
+    stroke-width: 1.8;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* customer chevron */
+  .chevron {
+    width: 18px;
+    height: 18px;
+    stroke: #94a3b8;
+    stroke-width: 1.8;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+  }
+
+  /* section divider between banners */
+  .section-sep {
+    text-align: center;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin: 0 auto 16px;
+    padding: 8px 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- =====================================================================
+     BANNER 1: 1200 × 628 — Facebook link/landscape (chụp nguyên khối)
+===================================================================== -->
+<div class="section-sep" style="color:#475569;padding:24px 0 8px">▼ Banner Facebook ngang — 1200 × 628</div>
+<div class="banner">
+
+  <!-- LEFT: copy -->
+  <div class="copy">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24"><path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/><path d="M3 9l2-5h14l2 5"/><path d="M12 12v4m-2-2h4" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+      <span class="brand-name">my_kiot</span>
+    </div>
+
+    <div class="headline">Quản lý tạp hóa<br><em>đơn giản &amp; nhanh</em></div>
+    <div class="subline">Bán hàng, nhập kho, quản lý khách hàng — tất cả trong 1 ứng dụng. Không cần kinh nghiệm, dùng được ngay.</div>
+
+    <div class="pills">
+      <div class="pill"><span class="pill-dot"></span>Bán hàng POS</div>
+      <div class="pill"><span class="pill-dot"></span>Nhập kho tự động</div>
+      <div class="pill"><span class="pill-dot"></span>Theo dõi tồn kho</div>
+      <div class="pill"><span class="pill-dot"></span>Quản lý khách hàng</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: 2 phones overlapping -->
+  <div class="phones-wrap">
+
+    <!-- MAIN phone: POS screen -->
+    <div class="ph-frame main">
+      <div class="ph-screen">
+        <div class="appbar">
+          <div class="back"><svg class="ic" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></div>
+          <div class="title">Bán hàng</div>
+        </div>
+        <div class="body-scroll">
+          <div class="search-bar">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+            <span class="ph">Tìm sản phẩm (tên / SKU / mã vạch)</span>
+            <div class="scan-btn">
+              <svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 7h10v10H7z"/></svg>
+            </div>
+          </div>
+          <div class="section-label">Giỏ hàng</div>
+          <div class="list-item">
+            <div class="item-grow"><div class="item-nm">Mì Hảo Hảo</div><div class="item-sub">20.000 đ / gói</div></div>
+            <div class="stepper"><button>−</button><div class="qty">2</div><button>+</button></div>
+          </div>
+          <div class="list-item">
+            <div class="item-grow"><div class="item-nm">Coca 330ml</div><div class="item-sub">12.000 đ / lon</div></div>
+            <div class="stepper"><button>−</button><div class="qty">1</div><button>+</button></div>
+          </div>
+          <div class="list-item">
+            <div class="item-grow"><div class="item-nm">Nước suối Aqua</div><div class="item-sub">6.000 đ / chai</div></div>
+            <div class="stepper"><button>−</button><div class="qty">3</div><button>+</button></div>
+          </div>
+        </div>
+        <div class="footer-bar">
+          <div class="total-card">
+            <div class="total-row"><span class="total-lbl">Tổng cộng</span><span class="total-val">76.000 đ</span></div>
+            <div class="cta-btn">Thanh toán</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIDE phone: Tồn kho screen -->
+    <div class="ph-frame side">
+      <div class="ph-screen">
+        <div class="appbar">
+          <div class="back"><svg class="ic" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></div>
+          <div class="title">Tồn kho</div>
+        </div>
+        <div class="body-scroll">
+          <div class="search-bar">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+            <span class="ph">Lọc theo tên / SKU</span>
+          </div>
+          <div style="height:8px"></div>
+          <div class="list-item">
+            <div class="item-grow"><div class="item-nm">Mì Hảo Hảo</div><div class="item-sub">SP000001 • gói</div></div>
+            <div class="item-right"><div class="item-nm">128</div></div>
+          </div>
+          <div class="list-item">
+            <div class="item-grow"><div class="item-nm">Coca 330ml</div><div class="item-sub">SP000002 • lon</div></div>
+            <div class="item-right"><div class="item-nm">4</div><div class="badge warn">Sắp hết</div></div>
+          </div>
+          <div class="list-item">
+            <div class="item-grow"><div class="item-nm">Nước suối Aqua</div><div class="item-sub">SP000003 • chai</div></div>
+            <div class="item-right"><div class="item-nm">60</div></div>
+          </div>
+          <div class="list-item">
+            <div class="item-grow"><div class="item-nm">Bánh Choco-pie</div><div class="item-sub">SP000004 • hộp</div></div>
+            <div class="item-right"><div class="item-nm">0</div><div class="badge">Hết</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.phones-wrap -->
+</div><!-- /.banner -->
+
+
+<!-- =====================================================================
+     BANNER 2: 1080 × 1080 — Facebook vuông (chụp nguyên khối)
+===================================================================== -->
+<div class="section-sep" style="color:#475569;padding:24px 0 8px">▼ Banner Facebook vuông — 1080 × 1080</div>
+<div class="quad-banner">
+
+  <!-- TOP: branding + headline -->
+  <div class="quad-top">
+    <div class="quad-brand">
+      <div class="quad-brand-logo">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="#fff"><path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/><path d="M3 9l2-5h14l2 5"/><path d="M12 12v4m-2-2h4" stroke="#0B1120" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+      <span class="quad-brand-name">my_kiot</span>
+    </div>
+    <div class="quad-headline">Ứng dụng quản lý tạp hóa<br><em>thông minh &amp; dễ dùng</em></div>
+    <div class="quad-sub">Bán hàng · Nhập kho · Tồn kho · Khách hàng — tất cả trong 1 app</div>
+  </div>
+
+  <!-- 4 PHONES GRID -->
+  <div class="quad-grid">
+
+    <!-- Phone 1: Bán hàng POS -->
+    <div class="phone-col">
+      <div class="phone-shell">
+        <div class="phone-inner">
+          <div class="appbar">
+            <div class="back"><svg class="ic" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></div>
+            <div class="title">Bán hàng</div>
+          </div>
+          <div class="body-scroll">
+            <div class="search-bar">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+              <span class="ph">Tìm sản phẩm</span>
+              <div class="scan-btn">
+                <svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 7h10v10H7z"/></svg>
+              </div>
+            </div>
+            <div class="section-label">Giỏ hàng</div>
+            <div class="list-item">
+              <div class="item-grow"><div class="item-nm">Mì Hảo Hảo</div><div class="item-sub">20.000 đ / gói</div></div>
+              <div class="stepper"><button>−</button><div class="qty">2</div><button>+</button></div>
+            </div>
+            <div class="list-item">
+              <div class="item-grow"><div class="item-nm">Coca 330ml</div><div class="item-sub">12.000 đ / lon</div></div>
+              <div class="stepper"><button>−</button><div class="qty">1</div><button>+</button></div>
+            </div>
+            <div class="list-item">
+              <div class="item-grow"><div class="item-nm">Nước suối Aqua</div><div class="item-sub">6.000 đ / chai</div></div>
+              <div class="stepper"><button>−</button><div class="qty">3</div><button>+</button></div>
+            </div>
+          </div>
+          <div class="footer-bar">
+            <div class="total-card">
+              <div class="total-row"><span class="total-lbl">Tổng cộng</span><span class="total-val">76.000 đ</span></div>
+              <div class="cta-btn">Thanh toán</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Bán hàng (POS)</div>
+      <div class="phone-feature">Quét mã vạch, tính tiền và thanh toán trong vài giây</div>
+    </div>
+
+    <!-- Phone 2: Nhập hàng -->
+    <div class="phone-col">
+      <div class="phone-shell">
+        <div class="phone-inner">
+          <div class="appbar">
+            <div class="back"><svg class="ic" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></div>
+            <div class="title">Nhập hàng</div>
+          </div>
+          <div class="body-scroll">
+            <div class="supplier-btn">
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="#0F172A" stroke-width="1.8" fill="none"><path d="M3 9l1-5h16l1 5M4 9v11h16V9M9 13h6"/></svg>
+              <span style="flex:1">Chọn nhà cung cấp</span>
+              <svg viewBox="0 0 24 24" class="chevron"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+            <div class="search-bar">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+              <span class="ph">Tìm sản phẩm để nhập</span>
+              <div class="scan-btn">
+                <svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 7h10v10H7z"/></svg>
+              </div>
+            </div>
+            <div class="section-label">Sản phẩm nhập</div>
+            <div class="list-item" style="flex-direction:column;align-items:stretch;gap:10px">
+              <div style="display:flex;align-items:center">
+                <div class="item-grow"><div class="item-nm">Mì Hảo Hảo</div><div class="item-sub">SP000001 · gói</div></div>
+                <div class="stepper"><button>−</button><div class="qty">10</div><button>+</button></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span class="item-sub" style="flex:1">Giá nhập</span>
+                <div class="cost-input">3.500 đ</div>
+              </div>
+            </div>
+            <div class="list-item" style="flex-direction:column;align-items:stretch;gap:10px">
+              <div style="display:flex;align-items:center">
+                <div class="item-grow"><div class="item-nm">Coca 330ml</div><div class="item-sub">SP000002 · lon</div></div>
+                <div class="stepper"><button>−</button><div class="qty">24</div><button>+</button></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span class="item-sub" style="flex:1">Giá nhập</span>
+                <div class="cost-input">7.000 đ</div>
+              </div>
+            </div>
+          </div>
+          <div class="footer-bar">
+            <div class="total-card">
+              <div class="total-row"><span class="total-lbl">Tổng nhập</span><span class="total-val">203.000 đ</span></div>
+              <div class="cta-btn">Hoàn tất nhập</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Nhập hàng</div>
+      <div class="phone-feature">Nhập từ nhà cung cấp, tự động cập nhật tồn kho &amp; giá vốn</div>
+    </div>
+
+    <!-- Phone 3: Tồn kho -->
+    <div class="phone-col">
+      <div class="phone-shell">
+        <div class="phone-inner">
+          <div class="appbar">
+            <div class="back"><svg class="ic" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></div>
+            <div class="title">Tồn kho</div>
+          </div>
+          <div class="body-scroll">
+            <div class="search-bar">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+              <span class="ph">Lọc theo tên / SKU</span>
+            </div>
+            <div style="height:8px"></div>
+            <div class="list-item">
+              <div class="item-grow"><div class="item-nm">Mì Hảo Hảo</div><div class="item-sub">SP000001 • gói</div></div>
+              <div class="item-right"><div class="item-nm">128</div></div>
+            </div>
+            <div class="list-item">
+              <div class="item-grow"><div class="item-nm">Coca 330ml</div><div class="item-sub">SP000002 • lon</div></div>
+              <div class="item-right"><div class="item-nm">4</div><div class="badge warn">Sắp hết</div></div>
+            </div>
+            <div class="list-item">
+              <div class="item-grow"><div class="item-nm">Nước suối Aqua</div><div class="item-sub">SP000003 • chai</div></div>
+              <div class="item-right"><div class="item-nm">60</div></div>
+            </div>
+            <div class="list-item">
+              <div class="item-grow"><div class="item-nm">Bánh Choco-pie</div><div class="item-sub">SP000004 • hộp</div></div>
+              <div class="item-right"><div class="item-nm">0</div><div class="badge">Hết</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Tồn kho</div>
+      <div class="phone-feature">Cảnh báo hàng sắp hết, theo dõi thẻ kho realtime</div>
+    </div>
+
+    <!-- Phone 4: Khách hàng -->
+    <div class="phone-col">
+      <div class="phone-shell">
+        <div class="phone-inner">
+          <div class="appbar">
+            <div class="back"><svg class="ic" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></div>
+            <div class="title">Khách hàng</div>
+          </div>
+          <div class="body-scroll">
+            <div class="search-bar">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+              <span class="ph">Tìm theo tên / SĐT</span>
+            </div>
+            <div style="height:8px"></div>
+            <div class="list-item">
+              <div class="item-grow"><div class="item-nm">Anh Ba</div><div class="item-sub">0900 000 000 · 2.450.000 đ</div></div>
+              <svg class="chevron" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+            <div class="list-item">
+              <div class="item-grow"><div class="item-nm">Chị Tư</div><div class="item-sub">0911 111 111 · 870.000 đ</div></div>
+              <svg class="chevron" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+            <div class="list-item">
+              <div class="item-grow"><div class="item-nm">Anh Năm</div><div class="item-sub">0922 222 222 · 1.230.000 đ</div></div>
+              <svg class="chevron" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+          </div>
+          <div class="fab-wrap"><div class="fab">+</div></div>
+        </div>
+      </div>
+      <div class="phone-label">Khách hàng</div>
+      <div class="phone-feature">Lưu thông tin, lịch sử mua và tổng chi tiêu từng khách</div>
+    </div>
+
+  </div><!-- /.quad-grid -->
+
+  <!-- BOTTOM: pills + CTA -->
+  <div class="quad-footer">
+    <div class="quad-footer-pills">
+      <div class="pill"><span class="pill-dot"></span>Miễn phí giai đoạn đầu</div>
+      <div class="pill"><span class="pill-dot"></span>Không cần cài đặt phức tạp</div>
+      <div class="pill"><span class="pill-dot"></span>Hỗ trợ tiếng Việt 100%</div>
+    </div>
+    <div class="quad-cta">Dùng thử ngay →</div>
+  </div>
+
+</div><!-- /.quad-banner -->
+
+</body>
+</html>

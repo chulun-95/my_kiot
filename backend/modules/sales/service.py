@@ -407,14 +407,18 @@ async def complete_invoice(
             shortages.append({
                 "product_id": pid,
                 "product_name": product.name,
-                "need": str(need),
-                "have": str(have),
+                "need": f"{need:f}".rstrip("0").rstrip("."),
+                "have": f"{have:f}".rstrip("0").rstrip("."),
             })
     if shortages:
+        lines = "\n".join(
+            f"· {s['product_name']}: cần {s['need']}, còn {s['have']}"
+            for s in shortages
+        )
         raise AppError(
             400,
             "INSUFFICIENT_STOCK",
-            "Không đủ tồn kho",
+            f"Tồn kho không đủ:\n{lines}",
             {"shortages": shortages},
         )
 

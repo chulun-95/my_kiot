@@ -57,10 +57,13 @@ export default function PaymentDialog({
   if (!open) return null;
 
   const paid = rows.reduce((s, r) => s + (r.amount || 0), 0);
-  const treatAsExact = paid === 0;
-  const effectivePaid = treatAsExact ? total : paid;
+  const noAmountEntered = paid === 0;
+  // payInFull: không nhập tiền + không chọn nợ → coi như trả đúng đủ
+  const payInFull = noAmountEntered && !allowDebt;
+  const effectivePaid = payInFull ? total : paid;
   const change = Math.max(0, effectivePaid - total);
   const missing = Math.max(0, total - effectivePaid);
+  const treatAsExact = payInFull;
 
   const updateRow = (idx: number, patch: Partial<PaymentRow>) => {
     setRows((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
@@ -85,10 +88,10 @@ export default function PaymentDialog({
     try {
       let payments: PaymentInput[];
       if (treatAsExact) {
-        // Không tự chế số ở FE — đẩy cờ pay-in-full xuống store để dùng đúng
-        // invoice.total backend đã tính (tránh lệch precision/discount snapshot).
+        // Gửi FE total để tránh trường hợp backend allow_debt=true nhận amount=0 mà accept.
+        // Store sẽ override bằng backendTotal (authoritative) khi payInFull=true.
         const method = rows[0]?.method ?? 'CASH';
-        payments = [{ method, amount: 0 }];
+        payments = [{ method, amount: total }];
       } else {
         payments = rows
           .filter((r) => r.amount > 0)
@@ -271,15 +274,29 @@ export default function PaymentDialog({
 
         {/* Result strip */}
         {treatAsExact ? (
-          <div className="px-6 py-4 text-xs text-slate-500 flex items-baseline justify-between">
-            <span>Để trống nếu khách trả đúng đủ</span>
-            <span className="text-slate-400">
-              bấm{' '}
-              <kbd className="font-mono text-[10px] px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-600">
-                Enter
-              </kbd>{' '}
-              là xong
-            </span>
+          <div className="px-6 py-4 space-y-2.5">
+            <div className="text-xs text-slate-500 flex items-baseline justify-between">
+              <span>Để trống nếu khách trả đúng đủ</span>
+              <span className="text-slate-400">
+                bấm{' '}
+                <kbd className="font-mono text-[10px] px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-600">
+                  Enter
+                </kbd>{' '}
+                là xong
+              </span>
+            </div>
+            {hasCustomer && (
+              <label className="flex items-center gap-2 text-[11px] text-slate-600 select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={allowDebt}
+                  onChange={(e) => setAllowDebt(e.target.checked)}
+                  aria-label="Cho phép nợ"
+                  className="accent-rose-600"
+                />
+                Ghi nợ — khách chưa trả lần này
+              </label>
+            )}
           </div>
         ) : change > 0 ? (
           <div

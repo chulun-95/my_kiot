@@ -46,7 +46,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.mykiot.pos.core.hardware.scanner.HidScanField
 import com.mykiot.pos.core.hardware.scanner.MlKitScannerScreen
 import com.mykiot.pos.core.ui.AppSearchField
 import com.mykiot.pos.core.ui.LoadingDialog
@@ -131,8 +130,6 @@ fun ReceiptScreen(viewModel: ReceiptViewModel = hiltViewModel()) {
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp, vertical = 4.dp)) {
-            HidScanField(enabled = !showScanner, onScanned = viewModel::onBarcodeScanned)
-
             // Chọn nhà cung cấp
             OutlinedButton(
                 onClick = { showSupplier = true },

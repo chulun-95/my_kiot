@@ -4,6 +4,7 @@ __pycache__/
 *.so
 .Python
 .env
+.env.prod
 .venv
 venv/
 env/
@@ -25,6 +26,10 @@ dist/
 .vscode/
 *.swp
 *.swo
+
+# Deploy secrets (production)
+ssl/
+backups/
 
 # OS
 .DS_Store

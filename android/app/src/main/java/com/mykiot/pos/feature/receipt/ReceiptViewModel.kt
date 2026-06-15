@@ -52,9 +52,31 @@ class ReceiptViewModel @Inject constructor(
         viewModelScope.launch {
             when (val r = repository.byBarcode(code)) {
                 is ApiResult.Success -> addToBasket(r.data)
-                is ApiResult.Failure -> _state.update { it.copy(errorMessage = r.error.message) }
+                is ApiResult.Failure ->
+                    // 404 = chưa có SP với mã này → hỏi tạo SP mới; lỗi khác → báo lỗi
+                    if (r.error.httpStatus == 404) {
+                        _state.update { it.copy(unknownBarcode = code) }
+                    } else {
+                        _state.update { it.copy(errorMessage = r.error.message) }
+                    }
             }
         }
+    }
+
+    // ---- Luồng thêm NCC mới ----
+    fun requestAddSupplier() = _state.update { it.copy(showAddSupplier = true) }
+    fun dismissAddSupplier() = _state.update { it.copy(showAddSupplier = false) }
+    fun onSupplierCreated(s: SupplierLite) =
+        _state.update { it.copy(supplier = s, showAddSupplier = false) }
+
+    // ---- Luồng quét mã lạ → thêm SP mới ----
+    fun confirmAddUnknownProduct() =
+        _state.update { it.copy(addProductBarcode = it.unknownBarcode ?: "", unknownBarcode = null) }
+    fun dismissUnknownBarcode() = _state.update { it.copy(unknownBarcode = null) }
+    fun cancelAddProduct() = _state.update { it.copy(addProductBarcode = null) }
+    fun onProductCreated(dto: ProductBriefDto) {
+        _state.update { it.copy(addProductBarcode = null) }
+        addToBasket(dto)
     }
 
     fun addFromSearch(dto: ProductBriefDto) = addToBasket(dto)

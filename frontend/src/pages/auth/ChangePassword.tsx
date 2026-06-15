@@ -4,6 +4,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { changePassword } from '../../api/auth';
 import { toFriendlyMessage } from '../../utils/errors';
 import { viValidity } from '../../utils/validity';
+import PasswordInput from '../../components/PasswordInput';
 
 export default function ChangePassword() {
   const navigate = useNavigate();
@@ -53,24 +54,22 @@ export default function ChangePassword() {
       >
         <label className="block">
           <span className="text-sm text-slate-700">Mật khẩu hiện tại</span>
-          <input
-            type="password"
+          <PasswordInput
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             required
-            className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            wrapperClass="mt-1"
             {...viValidity({ valueMissing: 'Vui lòng nhập mật khẩu hiện tại' })}
           />
         </label>
         <label className="block">
           <span className="text-sm text-slate-700">Mật khẩu mới</span>
-          <input
-            type="password"
+          <PasswordInput
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             required
             minLength={6}
-            className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            wrapperClass="mt-1"
             {...viValidity({
               valueMissing: 'Vui lòng nhập mật khẩu mới',
               tooShort: 'Mật khẩu mới phải có ít nhất 6 ký tự',
@@ -79,13 +78,12 @@ export default function ChangePassword() {
         </label>
         <label className="block">
           <span className="text-sm text-slate-700">Xác nhận mật khẩu</span>
-          <input
-            type="password"
+          <PasswordInput
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
             minLength={6}
-            className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            wrapperClass="mt-1"
             {...viValidity({
               valueMissing: 'Vui lòng xác nhận mật khẩu',
               tooShort: 'Mật khẩu phải có ít nhất 6 ký tự',

@@ -14,4 +14,8 @@ data class ReceiptUiState(
     val loading: Boolean = false,
     val errorMessage: String? = null,
     val lastReceiptCode: String? = null,
+    // Luồng thêm mới:
+    val showAddSupplier: Boolean = false,        // mở màn thêm NCC
+    val unknownBarcode: String? = null,          // != null → hiện dialog confirm "thêm SP mới?"
+    val addProductBarcode: String? = null,       // != null → mở màn thêm SP (prefill barcode)
 )

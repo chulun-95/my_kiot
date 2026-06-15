@@ -14,6 +14,17 @@ data class SupplierDto(
 @Serializable
 data class SupplierListDto(val items: List<SupplierDto> = emptyList())
 
+/** Body tạo NCC mới (POST /suppliers). */
+@Serializable
+data class SupplierCreateDto(
+    val name: String,
+    val phone: String? = null,
+    val email: String? = null,
+    val address: String? = null,
+    @SerialName("tax_code") val taxCode: String? = null,
+    val note: String? = null,
+)
+
 @Serializable
 data class GoodsReceiptItemInputDto(
     @SerialName("product_id") val productId: Long,

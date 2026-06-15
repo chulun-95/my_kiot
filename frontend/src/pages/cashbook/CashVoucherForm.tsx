@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import * as cashApi from '../../api/cashbook';
 import type { CashDirection, CashMethod } from '../../api/cashbook';
 import { toFriendlyMessage } from '../../utils/errors';
-import { viValidity } from '../../utils/validity';
+import MoneyInput from '../../components/MoneyInput';
 
 const IN_CATEGORIES = [
   { value: 'OTHER_IN', label: 'Thu khác' },
@@ -20,7 +20,7 @@ export default function CashVoucherForm() {
   const [direction, setDirection] = useState<CashDirection>('IN');
   const [method, setMethod] = useState<CashMethod>('CASH');
   const [category, setCategory] = useState('OTHER_IN');
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState(0);
   const [partnerName, setPartnerName] = useState('');
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -36,8 +36,8 @@ export default function CashVoucherForm() {
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
-    const amt = Number(amount);
-    if (!Number.isFinite(amt) || amt <= 0) {
+    const amt = amount;
+    if (!amt || amt <= 0) {
       setError('Số tiền phải lớn hơn 0');
       return;
     }
@@ -92,11 +92,12 @@ export default function CashVoucherForm() {
 
         <label className="block">
           <span className="text-sm text-slate-700">Số tiền *</span>
-          <input type="number" min="1" step="1" required value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+          <MoneyInput
+            value={amount}
+            onChange={setAmount}
             aria-label="Số tiền"
-            className="mt-1 w-full px-3 py-2 border border-slate-300 rounded text-right"
-            {...viValidity({ valueMissing: 'Vui lòng nhập số tiền', rangeUnderflow: 'Số tiền phải lớn hơn 0' })} />
+            className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+          />
         </label>
 
         <label className="block">

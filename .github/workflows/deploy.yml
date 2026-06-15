@@ -1,0 +1,104 @@
+name: Deploy
+
+# Push lên master → build image trên GitHub, đẩy lên GHCR, VPS chỉ pull + restart.
+# VPS CX22 KHÔNG phải tự build (tiết kiệm RAM/CPU).
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:        # cho phép bấm deploy tay từ tab Actions
+
+env:
+  IMAGE_API: ghcr.io/${{ github.repository }}-api
+  IMAGE_NGINX: ghcr.io/${{ github.repository }}-nginx
+
+jobs:
+  # --- 1. Test lại trước khi deploy (gate) ---
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -r backend/requirements.txt
+      - run: pytest
+
+  # --- 2. Build + push image lên GHCR ---
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write          # đẩy image lên GHCR
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push API
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_API }}:latest
+            ${{ env.IMAGE_API }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & push Nginx (FE)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NGINX }}:latest
+            ${{ env.IMAGE_NGINX }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # --- 3. VPS pull + restart qua SSH ---
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read           # token forward sang VPS để docker login pull
+    steps:
+      # Copy compose file mới nhất lên VPS (~/pos/)
+      - uses: actions/checkout@v4
+      - name: Copy compose file → VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: docker-compose.deploy.yml
+          target: ~/pos/
+
+      - name: VPS pull + restart
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          envs: GH_TOKEN,GH_ACTOR,IMAGE_TAG
+          script: |
+            set -e
+            cd ~/pos
+            echo "$GH_TOKEN" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
+            export IMAGE_TAG="$IMAGE_TAG"
+            docker compose -f docker-compose.deploy.yml pull
+            docker compose -f docker-compose.deploy.yml up -d
+            docker image prune -f
+            docker logout ghcr.io
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_ACTOR: ${{ github.actor }}
+          IMAGE_TAG: ${{ github.sha }}

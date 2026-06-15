@@ -58,7 +58,8 @@ class ReceiptViewModelTest {
         vm.onBarcodeScanned("x")
 
         assertEquals(1, vm.state.value.basket.lines.size)
-        assertEquals(BigDecimal("8000"), vm.state.value.basket.lines.first().costPrice)
+        // so sánh theo giá trị (bỏ qua scale: "8000" vs "8000.0")
+        assertEquals(0, BigDecimal("8000").compareTo(vm.state.value.basket.lines.first().costPrice))
     }
 
     @Test fun `submit success clears basket and sets receipt code`() = runTest {

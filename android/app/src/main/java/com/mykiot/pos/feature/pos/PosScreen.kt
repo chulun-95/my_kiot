@@ -42,7 +42,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.mykiot.pos.core.hardware.scanner.HidScanField
 import com.mykiot.pos.core.hardware.scanner.MlKitScannerScreen
 import com.mykiot.pos.core.ui.AppHeader
 import com.mykiot.pos.core.ui.AppSearchField
@@ -107,9 +106,6 @@ fun PosScreen(
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp, vertical = 12.dp)) {
             AppHeader(title = "Bán hàng", onBack = onClose)
             Spacer(Modifier.height(8.dp))
-
-            // Ô hứng súng HID (ẩn)
-            HidScanField(enabled = !showScanner, onScanned = viewModel::onBarcodeScanned)
 
             AppSearchField(
                 value = state.query,

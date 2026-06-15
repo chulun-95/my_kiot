@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mykiot.pos.core.ui.AppHeader
+import com.mykiot.pos.core.ui.LoadingDialog
 import com.mykiot.pos.core.ui.SectionHeader
 import com.mykiot.pos.core.util.formatVnd
 import java.math.BigDecimal
@@ -51,12 +52,12 @@ fun CustomerDetailScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp),
         ) {
-            if (c == null) {
+            if (c == null && state.errorMessage != null) {
                 Text(
-                    state.errorMessage ?: "Đang tải...",
+                    state.errorMessage!!,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            } else {
+            } else if (c != null) {
                 InfoRow("SĐT", c.phone ?: "—")
                 c.email?.let { InfoRow("Email", it) }
                 c.address?.let { InfoRow("Địa chỉ", it) }
@@ -94,6 +95,8 @@ fun CustomerDetailScreen(
             }
         }
     }
+
+    LoadingDialog(visible = state.loading, message = "Đang tải...")
 }
 
 @Composable

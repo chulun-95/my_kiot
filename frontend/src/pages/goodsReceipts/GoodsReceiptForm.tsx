@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as goodsReceiptApi from '../../api/goodsReceipt';
 import {
@@ -27,6 +27,9 @@ export default function GoodsReceiptForm() {
   const navigate = useNavigate();
   const [suppliers, setSuppliers] = useState<SupplierResponse[]>([]);
   const [supplierId, setSupplierId] = useState<number | ''>('');
+  const [supplierQuery, setSupplierQuery] = useState('');
+  const [supplierOpen, setSupplierOpen] = useState(false);
+  const supplierRef = useRef<HTMLDivElement>(null);
   const [lines, setLines] = useState<LineItem[]>([]);
   const [paidAmount, setPaidAmount] = useState<number>(0);
   const [payFull, setPayFull] = useState(false);
@@ -45,6 +48,24 @@ export default function GoodsReceiptForm() {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (supplierRef.current && !supplierRef.current.contains(e.target as Node)) {
+        setSupplierOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filteredSuppliers = useMemo(() => {
+    const q = supplierQuery.trim().toLowerCase();
+    if (!q) return suppliers;
+    return suppliers.filter(
+      (s) => s.name.toLowerCase().includes(q) || (s.phone ?? '').includes(q),
+    );
+  }, [supplierQuery, suppliers]);
 
   const total = useMemo(
     () => lines.reduce((s, l) => s + l.quantity * l.cost_price, 0),
@@ -131,22 +152,57 @@ export default function GoodsReceiptForm() {
       <h1 className="text-2xl font-semibold">Nhập hàng mới</h1>
 
       <div className="bg-white border border-slate-200 rounded p-4 space-y-3">
-        <div>
+        <div ref={supplierRef} className="relative max-w-md">
           <label className="block text-sm text-slate-600 mb-1">Nhà cung cấp</label>
-          <select
-            value={supplierId}
-            onChange={(e) =>
-              setSupplierId(e.target.value === '' ? '' : Number(e.target.value))
-            }
-            className="px-3 py-2 border border-slate-300 rounded w-full max-w-md"
-          >
-            <option value="">-- Không chọn NCC --</option>
-            {suppliers.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+          <input
+            type="text"
+            value={supplierQuery}
+            placeholder={supplierId === '' ? 'Tìm theo tên, SĐT...' : ''}
+            onFocus={() => setSupplierOpen(true)}
+            onChange={(e) => {
+              setSupplierQuery(e.target.value);
+              setSupplierId('');
+              setSupplierOpen(true);
+            }}
+            className="px-3 py-2 border border-slate-300 rounded w-full"
+            aria-label="Tìm nhà cung cấp"
+          />
+          {supplierOpen && (
+            <div className="absolute z-10 mt-1 w-full bg-white border border-slate-200 rounded shadow-lg max-h-60 overflow-y-auto">
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setSupplierId('');
+                  setSupplierQuery('');
+                  setSupplierOpen(false);
+                }}
+                className="w-full px-3 py-2 text-left text-sm text-slate-500 hover:bg-slate-50"
+              >
+                — Không chọn NCC —
+              </button>
+              {filteredSuppliers.length === 0 ? (
+                <div className="px-3 py-2 text-sm text-slate-400">Không tìm thấy</div>
+              ) : (
+                filteredSuppliers.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setSupplierId(s.id);
+                      setSupplierQuery(s.name + (s.phone ? ` (${s.phone})` : ''));
+                      setSupplierOpen(false);
+                    }}
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
+                  >
+                    <span className="font-medium">{s.name}</span>
+                    {s.phone && <span className="ml-1 text-slate-500 text-xs">({s.phone})</span>}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
         </div>
 
         <div>

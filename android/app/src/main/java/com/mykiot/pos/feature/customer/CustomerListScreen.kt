@@ -34,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mykiot.pos.core.ui.AppHeader
 import com.mykiot.pos.core.ui.AppSearchField
+import com.mykiot.pos.core.ui.LoadingDialog
 import com.mykiot.pos.core.util.formatVnd
 import java.math.BigDecimal
 
@@ -118,4 +119,6 @@ fun CustomerListScreen(
             }
         }
     }
+
+    LoadingDialog(visible = state.loading && state.items.isEmpty(), message = "Đang tải khách hàng...")
 }

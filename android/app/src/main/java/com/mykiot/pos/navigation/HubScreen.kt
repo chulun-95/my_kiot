@@ -28,6 +28,8 @@ import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.PointOfSale
 import androidx.compose.material.icons.outlined.Sell
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -35,6 +37,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -94,6 +100,27 @@ fun HubScreen(
     onOpenPos: () -> Unit,
     onLogout: () -> Unit,
 ) {
+    var showLogoutConfirm by remember { mutableStateOf(false) }
+
+    if (showLogoutConfirm) {
+        AlertDialog(
+            onDismissRequest = { showLogoutConfirm = false },
+            title = { Text("Đăng xuất") },
+            text = { Text("Bạn có chắc chắn muốn đăng xuất không?") },
+            confirmButton = {
+                TextButton(
+                    onClick = { showLogoutConfirm = false; onLogout() },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) { Text("Đăng xuất") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutConfirm = false }) { Text("Hủy") }
+            },
+        )
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -101,7 +128,7 @@ fun HubScreen(
                 title = "my_kiot POS",
                 modifier = Modifier.padding(horizontal = 16.dp),
                 actions = {
-                    TextButton(onClick = onLogout) { Text("Đăng xuất") }
+                    TextButton(onClick = { showLogoutConfirm = true }) { Text("Đăng xuất") }
                 },
             )
         },

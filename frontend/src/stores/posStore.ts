@@ -205,8 +205,9 @@ export const usePosStore = create<PosState>((set, get) => ({
       if (payInFull) {
         const method = payments[0]?.method ?? 'CASH';
         const backendTotal = Number(draft.total);
-        finalPayments =
-          backendTotal > 0 ? [{ method, amount: backendTotal }] : [];
+        // Dùng backendTotal để chính xác; fallback về FE amount nếu backend trả 0 (edge case).
+        const fePaid = Number(payments[0]?.amount ?? 0);
+        finalPayments = [{ method, amount: backendTotal > 0 ? backendTotal : fePaid }];
       }
 
       const payload: InvoiceCompletePayload = {

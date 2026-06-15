@@ -8,6 +8,8 @@ interface Props {
   onPick: (product: ProductBrief) => void;
   autoFocus?: boolean;
   placeholder?: string;
+  /** Gọi khi người dùng bấm Enter trong ô trống (không có gợi ý) — dùng cho POS mở thanh toán. */
+  onEnterEmpty?: () => void;
 }
 
 const BARCODE_RE = /^\d{6,}$/;
@@ -16,6 +18,7 @@ export default function ProductPicker({
   onPick,
   autoFocus = false,
   placeholder = 'Quét mã vạch hoặc tìm sản phẩm...',
+  onEnterEmpty,
 }: Props) {
   const [value, setValue] = useState('');
   const [items, setItems] = useState<ProductBrief[]>([]);
@@ -63,6 +66,8 @@ export default function ProductPicker({
       e.preventDefault();
       const v = value.trim();
       if (BARCODE_RE.test(v)) {
+        // có barcode → lookup và dừng event không cho lên window handler
+        e.nativeEvent.stopPropagation();
         try {
           const p = await productApi.getProductByBarcode(v);
           pick(p);
@@ -71,7 +76,14 @@ export default function ProductPicker({
         }
         return;
       }
-      if (items[highlight]) pick(items[highlight]);
+      if (items[highlight]) {
+        // có gợi ý đang highlight → chọn sản phẩm, dừng event
+        e.nativeEvent.stopPropagation();
+        pick(items[highlight]);
+        return;
+      }
+      // ô trống và không có gợi ý → gọi callback (POS mở thanh toán)
+      onEnterEmpty?.();
       return;
     }
     if (e.key === 'ArrowDown') {

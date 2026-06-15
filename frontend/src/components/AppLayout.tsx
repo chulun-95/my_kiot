@@ -130,7 +130,7 @@ const icons = {
   ),
 } as const;
 
-const baseNav: Array<{ to: string; label: string; icon: ReactNode }> = [
+const cashierNav: Array<{ to: string; label: string; icon: ReactNode }> = [
   { to: '/dashboard', label: 'Tổng quan', icon: icons.dashboard },
   { to: '/pos', label: 'Bán hàng (POS)', icon: icons.pos },
   { to: '/products', label: 'Sản phẩm', icon: icons.product },
@@ -141,9 +141,6 @@ const baseNav: Array<{ to: string; label: string; icon: ReactNode }> = [
   { to: '/inventory', label: 'Tồn kho', icon: icons.inventory },
   { to: '/invoices', label: 'Hóa đơn', icon: icons.invoice },
   { to: '/returns', label: 'Trả hàng', icon: icons.invoice },
-  { to: '/reports/revenue', label: 'Doanh thu', icon: icons.revenue },
-  { to: '/reports/top-products', label: 'Top SP', icon: icons.topProducts },
-  { to: '/reports/stock-summary', label: 'Tồn kho TQ', icon: icons.stockSummary },
 ];
 
 export default function AppLayout() {
@@ -155,7 +152,10 @@ export default function AppLayout() {
   const navItems =
     user?.role === 'OWNER'
       ? [
-          ...baseNav,
+          ...cashierNav,
+          { to: '/reports/revenue', label: 'Doanh thu', icon: icons.revenue },
+          { to: '/reports/top-products', label: 'Top SP', icon: icons.topProducts },
+          { to: '/reports/stock-summary', label: 'Tồn kho TQ', icon: icons.stockSummary },
           { to: '/reports/products-sold', label: 'SP đã bán', icon: icons.topProducts },
           { to: '/reports/profit', label: 'Lợi nhuận', icon: icons.profit },
           { to: '/reports/debts', label: 'Công nợ', icon: icons.customer },
@@ -164,7 +164,7 @@ export default function AppLayout() {
           { to: '/inventory/adjustments', label: 'Điều chỉnh kho', icon: icons.adjustment },
           { to: '/staff', label: 'Nhân viên', icon: icons.staff },
         ]
-      : baseNav;
+      : cashierNav;
 
   const handleLogout = async () => {
     await doLogout();

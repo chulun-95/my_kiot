@@ -51,6 +51,7 @@ export default function MoneyInput({
   hideCurrency = false,
   disabled,
   onFocus,
+  onKeyDown: outerKeyDown,
   ...rest
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -89,7 +90,10 @@ export default function MoneyInput({
       return;
     }
 
-    if (PASSTHROUGH_KEYS.has(e.key)) return;
+    if (PASSTHROUGH_KEYS.has(e.key)) {
+      outerKeyDown?.(e);
+      return;
+    }
 
     e.preventDefault();
   }

@@ -91,6 +91,12 @@ export default function POSScreen() {
       F9: () => {
         if (!anyModalOpen && items.length > 0) setPaymentOpen(true);
       },
+      Enter: () => {
+        const tag = (document.activeElement?.tagName ?? '').toUpperCase();
+        if (!anyModalOpen && items.length > 0 && !['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) {
+          setPaymentOpen(true);
+        }
+      },
       Escape: () => {
         if (receiptOpen) setReceiptOpen(false);
         else if (paymentOpen) setPaymentOpen(false);
@@ -146,6 +152,9 @@ export default function POSScreen() {
               onPick={addByProduct}
               placeholder="Quét mã vạch hoặc tìm sản phẩm để thêm vào giỏ..."
               autoFocus
+              onEnterEmpty={() => {
+                if (!anyModalOpen && items.length > 0) setPaymentOpen(true);
+              }}
             />
           </div>
 

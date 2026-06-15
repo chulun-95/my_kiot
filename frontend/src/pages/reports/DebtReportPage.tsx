@@ -41,31 +41,39 @@ function DebtTable({
     <div className="space-y-2">
       <h2 className="text-lg font-semibold">{title}</h2>
       <div className="bg-white border border-slate-200 rounded overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm table-fixed">
+          <colgroup>
+            <col className="w-2/6" />
+            <col className="w-1/6" />
+            <col className="w-1/6" />
+            <col className="w-2/6" />
+          </colgroup>
           <thead className="bg-slate-50 text-slate-600"><tr>
             <th className="px-3 py-2 text-left">Đối tác</th>
             <th className="px-3 py-2 text-left">SĐT</th>
             <th className="px-3 py-2 text-right">Còn nợ</th>
-            <th className="px-3 py-2"></th>
+            <th className="px-3 py-2 text-right">{label}</th>
           </tr></thead>
           <tbody>
             {items.length === 0 ? (
               <tr><td colSpan={4} className="px-3 py-6"><EmptyState title="Không có công nợ" /></td></tr>
             ) : items.map((it) => (
               <tr key={it.partner_id} className="border-t border-slate-100">
-                <td className="px-3 py-2">{it.partner_name}</td>
-                <td className="px-3 py-2">{it.phone ?? ''}</td>
+                <td className="px-3 py-2 max-w-0 truncate" title={it.partner_name}>{it.partner_name}</td>
+                <td className="px-3 py-2 max-w-0 truncate" title={it.phone ?? ''}>{it.phone ?? ''}</td>
                 <td className="px-3 py-2 text-right font-medium">{formatVND(it.debt)}</td>
                 <td className="px-3 py-2 text-right">
                   {payingId === it.partner_id ? (
-                    <span className="inline-flex items-center gap-1">
-                      <span className="inline-block w-32">
+                    <span className="inline-flex items-center gap-1 w-full justify-end">
+                      <span className="inline-block w-64">
                         <MoneyInput value={amount} onChange={setAmount}
                           aria-label={`Số tiền ${label}`}
+                          autoFocus
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void submit(it); } }}
                           className="w-full px-2 py-1 border border-slate-300 rounded text-right" />
                       </span>
-                      <button onClick={() => submit(it)} className="px-2 py-1 rounded bg-slate-900 text-white text-xs">Lưu</button>
-                      <button onClick={() => { setPayingId(null); setErr(null); }} className="px-2 py-1 rounded border text-xs">Hủy</button>
+                      <button onClick={() => submit(it)} className="px-2 py-1 rounded bg-slate-900 text-white text-xs whitespace-nowrap">Lưu</button>
+                      <button onClick={() => { setPayingId(null); setErr(null); }} className="px-2 py-1 rounded border text-xs whitespace-nowrap">Hủy</button>
                     </span>
                   ) : (
                     <button onClick={() => { setPayingId(it.partner_id); setAmount(0); }}

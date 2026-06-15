@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
 type Handler = () => void;
-type ShortcutKey = 'F2' | 'F4' | 'F9' | 'Escape';
+type ShortcutKey = 'F2' | 'F4' | 'F9' | 'Escape' | 'Enter';
 type ShortcutMap = Partial<Record<ShortcutKey, Handler>>;
 
 interface KeyboardShortcutsOptions {

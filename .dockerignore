@@ -1,0 +1,25 @@
+# Giảm build context — không gửi rác lên Docker daemon
+.git
+.venv
+venv
+node_modules
+**/node_modules
+frontend/dist
+**/__pycache__
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# Dev/test artifacts
+*.db
+*.log
+.env
+.env.prod
+ssl
+docs
+android
+tests
+frontend/test-results
+frontend/playwright-report
+.playwright-mcp
