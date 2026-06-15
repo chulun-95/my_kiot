@@ -52,7 +52,7 @@ object NetworkModule {
     }
 
     @Provides @Singleton
-    fun tokenAuthenticator(tokenStore: TokenStore, provider: () -> RefreshCaller) =
+    fun tokenAuthenticator(tokenStore: TokenStore, provider: @JvmSuppressWildcards () -> RefreshCaller) =
         TokenAuthenticator(tokenStore, provider)
 
     @Provides @Singleton
@@ -99,4 +99,7 @@ object NetworkModule {
 
     @Provides @Singleton
     fun reportApi(retrofit: Retrofit): ReportApi = retrofit.create(ReportApi::class.java)
+
+    @Provides @Singleton
+    fun returnApi(retrofit: Retrofit): ReturnApi = retrofit.create(ReturnApi::class.java)
 }

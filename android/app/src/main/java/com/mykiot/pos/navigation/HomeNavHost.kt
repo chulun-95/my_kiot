@@ -30,6 +30,7 @@ import com.mykiot.pos.feature.customer.CustomerDetailScreen
 import com.mykiot.pos.feature.customer.CustomerListScreen
 import com.mykiot.pos.feature.inventory.InventoryScreen
 import com.mykiot.pos.feature.invoice.InvoiceListScreen
+import com.mykiot.pos.feature.invoice.ReturnFormScreen
 import com.mykiot.pos.feature.invoice.ReturnsScreen
 import com.mykiot.pos.feature.pos.PosScreen
 import com.mykiot.pos.feature.product.AddProductScreen
@@ -117,7 +118,20 @@ private fun HomeNavHost(onOpenPos: () -> Unit, onLogout: () -> Unit) {
             FeatureScaffold("Hóa đơn", onBack = { nav.popBackStack() }) { InvoiceListScreen() }
         }
         composable(Routes.RETURNS) {
-            FeatureScaffold("Trả hàng", onBack = { nav.popBackStack() }) { ReturnsScreen() }
+            FeatureScaffold("Trả hàng", onBack = { nav.popBackStack() }) {
+                ReturnsScreen(onOpenReturn = { nav.navigate(Routes.returnNew(it)) })
+            }
+        }
+        composable(
+            Routes.RETURN_NEW,
+            arguments = listOf(navArgument("invoiceId") { type = NavType.LongType }),
+        ) { backStackEntry ->
+            val invId = backStackEntry.arguments?.getLong("invoiceId") ?: 0L
+            ReturnFormScreen(
+                invoiceId = invId,
+                onBack = { nav.popBackStack() },
+                onDone = { nav.popBackStack() },
+            )
         }
         composable(Routes.CHANGE_PASSWORD) {
             ChangePasswordScreen(onBack = { nav.popBackStack() }, onDone = { nav.popBackStack() })

@@ -42,6 +42,7 @@ import com.mykiot.pos.core.util.formatVnd
 
 @Composable
 fun ReturnsScreen(
+    onOpenReturn: (Long) -> Unit,
     viewModel: ReturnsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -50,38 +51,6 @@ fun ReturnsScreen(
     LaunchedEffect(Unit) { viewModel.load() }
     LaunchedEffect(state.errorMessage) {
         state.errorMessage?.let { snackbar.showSnackbar(it); viewModel.clearError() }
-    }
-
-    state.cancelingId?.let { cancelId ->
-        var reason by remember { mutableStateOf("") }
-        AlertDialog(
-            onDismissRequest = viewModel::dismissCancel,
-            title = { Text("Xác nhận trả hàng?") },
-            text = {
-                Column {
-                    Text("Tồn kho sẽ được cộng lại. Không thể hoàn tác.")
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = reason,
-                        onValueChange = { reason = it },
-                        label = { Text("Lý do trả") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    enabled = reason.isNotBlank(),
-                    onClick = { viewModel.cancelInvoice(cancelId, reason) },
-                ) {
-                    Text("Xác nhận trả", fontWeight = FontWeight.SemiBold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = viewModel::dismissCancel) { Text("Hủy") }
-            },
-        )
     }
 
     Scaffold(
@@ -103,7 +72,7 @@ fun ReturnsScreen(
             }
             LazyColumn(Modifier.fillMaxSize()) {
                 items(state.items, key = { it.id }) { inv ->
-                    ReturnCard(invoice = inv, onReturn = { viewModel.requestCancel(inv.id) })
+                    ReturnCard(invoice = inv, onReturn = { onOpenReturn(inv.id) })
                 }
             }
         }

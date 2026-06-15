@@ -19,10 +19,11 @@ object Routes {
     const val INVOICE_HISTORY = "invoice_history"
     const val INVOICE_DETAIL = "invoice_detail/{id}"
     const val RETURNS = "returns"
-    const val RETURN_NEW = "return_new"
+    const val RETURN_NEW = "return_new/{invoiceId}"
     const val CHANGE_PASSWORD = "change_password"
 
     fun customerDetail(id: Long) = "customer_detail/$id"
     fun productDetail(id: Long) = "product_detail/$id"
     fun invoiceDetail(id: Long) = "invoice_detail/$id"
+    fun returnNew(invoiceId: Long) = "return_new/$invoiceId"
 }
