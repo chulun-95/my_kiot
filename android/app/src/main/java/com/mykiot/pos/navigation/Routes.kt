@@ -15,6 +15,7 @@ object Routes {
     const val CUSTOMER_ADD = "customer_add"
     const val PRODUCTS = "products"
     const val PRODUCT_DETAIL = "product_detail/{id}"
+    const val PRODUCT_ADD = "product_add"
     const val INVOICE_HISTORY = "invoice_history"
     const val INVOICE_DETAIL = "invoice_detail/{id}"
     const val RETURNS = "returns"

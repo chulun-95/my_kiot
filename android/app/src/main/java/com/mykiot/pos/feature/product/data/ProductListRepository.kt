@@ -13,4 +13,8 @@ open class ProductListRepository @Inject constructor(
     open suspend fun list(search: String?): ApiResult<List<ProductBriefDto>> =
         runCatching { productApi.list(search = search.takeIf { !it.isNullOrBlank() }).items }
             .fold({ ApiResult.Success(it) }, { ApiResult.Failure(errorMapper.map(it)) })
+
+    open suspend fun get(id: Long): ApiResult<ProductBriefDto> =
+        runCatching { productApi.get(id) }
+            .fold({ ApiResult.Success(it) }, { ApiResult.Failure(errorMapper.map(it)) })
 }

@@ -18,6 +18,7 @@ interface ProductApi {
         @Query("limit") limit: Int = 30,
     ): ProductListDto
 
+    @GET("products/{id}") suspend fun get(@Path("id") id: Long): ProductBriefDto
     @GET("products/search") suspend fun search(@Query("q") q: String): ProductSearchDto
     @GET("products/barcode/{code}") suspend fun byBarcode(@Path("code") code: String): ProductBriefDto
 

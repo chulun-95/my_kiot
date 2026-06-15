@@ -1,6 +1,7 @@
 package com.mykiot.pos.feature.product
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
@@ -44,6 +46,8 @@ import com.mykiot.pos.core.util.formatVnd
 @Composable
 fun ProductListScreen(
     onBack: () -> Unit,
+    onOpenDetail: (Long) -> Unit,
+    onAdd: () -> Unit,
     viewModel: ProductListViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -61,7 +65,7 @@ fun ProductListScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { /* Phase 2: navigate to AddProductScreen */ },
+                onClick = onAdd,
                 shape = RoundedCornerShape(18.dp),
                 containerColor = MaterialTheme.colorScheme.onSurface,
                 contentColor = MaterialTheme.colorScheme.surface,
@@ -92,7 +96,7 @@ fun ProductListScreen(
             }
             LazyColumn(Modifier.fillMaxSize()) {
                 items(state.items, key = { it.id }) { p ->
-                    ProductListCard(p)
+                    ProductListCard(p, onClick = { onOpenDetail(p.id) })
                 }
             }
         }
@@ -102,14 +106,15 @@ fun ProductListScreen(
 }
 
 @Composable
-private fun ProductListCard(product: ProductBriefDto) {
+private fun ProductListCard(product: ProductBriefDto, onClick: () -> Unit) {
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 10.dp),
+            .padding(bottom = 10.dp)
+            .clickable(onClick = onClick),
     ) {
         Row(
             Modifier
@@ -138,6 +143,11 @@ private fun ProductListCard(product: ProductBriefDto) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            Icon(
+                Icons.Outlined.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline,
+            )
         }
     }
 }

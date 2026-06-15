@@ -32,6 +32,8 @@ import com.mykiot.pos.feature.inventory.InventoryScreen
 import com.mykiot.pos.feature.invoice.InvoiceListScreen
 import com.mykiot.pos.feature.invoice.ReturnsScreen
 import com.mykiot.pos.feature.pos.PosScreen
+import com.mykiot.pos.feature.product.AddProductScreen
+import com.mykiot.pos.feature.product.ProductDetailScreen
 import com.mykiot.pos.feature.product.ProductListScreen
 import com.mykiot.pos.feature.receipt.ReceiptScreen
 import com.mykiot.pos.feature.report.ReportScreen
@@ -95,7 +97,21 @@ private fun HomeNavHost(onOpenPos: () -> Unit, onLogout: () -> Unit) {
         }
 
         composable(Routes.PRODUCTS) {
-            ProductListScreen(onBack = { nav.popBackStack() })
+            ProductListScreen(
+                onBack = { nav.popBackStack() },
+                onOpenDetail = { nav.navigate(Routes.productDetail(it)) },
+                onAdd = { nav.navigate(Routes.PRODUCT_ADD) },
+            )
+        }
+        composable(
+            Routes.PRODUCT_DETAIL,
+            arguments = listOf(navArgument("id") { type = NavType.LongType }),
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getLong("id") ?: 0L
+            ProductDetailScreen(productId = id, onBack = { nav.popBackStack() })
+        }
+        composable(Routes.PRODUCT_ADD) {
+            AddProductScreen(onCreated = { nav.popBackStack() }, onCancel = { nav.popBackStack() })
         }
         composable(Routes.INVOICE_HISTORY) {
             FeatureScaffold("Hóa đơn", onBack = { nav.popBackStack() }) { InvoiceListScreen() }
