@@ -51,10 +51,11 @@ describe('PaymentDialog', () => {
     const [payments, allowDebt, payInFull] = onComplete.mock.calls[0];
     expect(payInFull).toBe(true);
     expect(allowDebt).toBe(false);
-    // FE giữ method nhưng KHÔNG tự chế số tiền — store sẽ thay bằng backend total
+    // payInFull: FE gửi total làm placeholder an toàn (tránh backend allow_debt nhận 0),
+    // store sẽ override bằng backendTotal (authoritative). Cờ payInFull mới là tín hiệu chính.
     expect(payments).toHaveLength(1);
     expect(payments[0].method).toBe('CASH');
-    expect(payments[0].amount).toBe(0);
+    expect(payments[0].amount).toBe(50000);
   });
 
   it('shows change when cashier enters more than total', () => {
