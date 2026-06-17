@@ -8,5 +8,5 @@ import javax.inject.Inject
 class ReturnsViewModel @Inject constructor(
     repository: InvoiceListRepository,
 ) : InvoiceListViewModel(repository) {
-    override val loadStatus: String = "COMPLETED"
+    override val forcedStatus: String = "COMPLETED"
 }

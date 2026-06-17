@@ -3,11 +3,9 @@ package com.mykiot.pos.feature.inventory
 import com.mykiot.pos.core.network.dto.InventoryItemDto
 import com.mykiot.pos.core.network.dto.StockMovementDto
 
-data class InventoryUiState(
-    val items: List<InventoryItemDto> = emptyList(),
-    val query: String = "",
-    val loading: Boolean = false,
+/** Trạng thái dialog thẻ kho (kardex) của 1 sản phẩm. */
+data class MovementsState(
+    val item: InventoryItemDto? = null,
+    val items: List<StockMovementDto> = emptyList(),
     val errorMessage: String? = null,
-    val movementsFor: InventoryItemDto? = null,
-    val movements: List<StockMovementDto> = emptyList(),
 )

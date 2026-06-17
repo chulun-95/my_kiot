@@ -45,11 +45,20 @@ class AddCustomerViewModel @Inject constructor(
             _state.update { it.copy(errorMessage = "Vui lòng nhập tên khách hàng") }
             return
         }
+        val phone = s.phone.trim()
+        if (phone.isBlank()) {
+            _state.update { it.copy(errorMessage = "Vui lòng nhập số điện thoại") }
+            return
+        }
+        if (!Regex("^0[35789]\\d{8}$").matches(phone)) {
+            _state.update { it.copy(errorMessage = "Số điện thoại không hợp lệ (VD: 0901234567)") }
+            return
+        }
         _state.update { it.copy(saving = true, errorMessage = null) }
         viewModelScope.launch {
             val body = CustomerCreateDto(
                 name = s.name.trim(),
-                phone = s.phone.trim().ifBlank { null },
+                phone = s.phone.trim(),
                 email = s.email.trim().ifBlank { null },
                 address = s.address.trim().ifBlank { null },
                 note = s.note.trim().ifBlank { null },

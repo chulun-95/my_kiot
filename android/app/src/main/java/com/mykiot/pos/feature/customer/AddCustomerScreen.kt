@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -19,6 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -61,7 +64,7 @@ fun AddCustomerScreen(
             AppTextField(
                 state.phone,
                 viewModel::onPhone,
-                label = "Số điện thoại",
+                label = "Số điện thoại *",
                 keyboardType = KeyboardType.Phone,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -81,9 +84,14 @@ fun AddCustomerScreen(
             Button(
                 onClick = viewModel::submit,
                 enabled = !state.saving,
-                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.onSurface,
+                    contentColor = MaterialTheme.colorScheme.surface,
+                ),
+                modifier = Modifier.fillMaxWidth().height(52.dp),
             ) {
-                Text("Lưu khách hàng")
+                Text("Lưu khách hàng", fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(24.dp))
         }

@@ -64,6 +64,7 @@ fun MlKitScannerScreen(onScanned: (String) -> Unit, onClose: () -> Unit) {
                                     val raw = codes.firstOrNull()?.rawValue
                                     if (raw != null && !handled[0]) {
                                         handled[0] = true
+                                        com.mykiot.pos.core.hardware.Beeper.pip()  // quét thành công → "pip"
                                         onScanned(raw)
                                     }
                                 }

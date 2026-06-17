@@ -2,7 +2,6 @@ package com.mykiot.pos.feature.receipt
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,12 +9,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,8 +29,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.mykiot.pos.core.ui.QtyStepper
+import com.mykiot.pos.core.ui.applyMoneyEdit
+import com.mykiot.pos.core.ui.moneyDisplay
 import com.mykiot.pos.core.util.formatVnd
 import com.mykiot.pos.feature.receipt.basket.ReceiptLine
 import java.math.BigDecimal
@@ -44,10 +51,11 @@ fun ReceiptLineRow(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
     ) {
-        Column(Modifier.fillMaxWidth().padding(14.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(line.name, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        Column(Modifier.fillMaxWidth().padding(start = 14.dp, top = 8.dp, end = 6.dp, bottom = 14.dp)) {
+            // Tên + nút xoá ở góc trên bên phải
+            Row(verticalAlignment = Alignment.Top) {
+                Column(Modifier.weight(1f).padding(top = 6.dp)) {
+                    Text(line.name, fontWeight = FontWeight.SemiBold, maxLines = 2)
                     Spacer(Modifier.height(2.dp))
                     Text(
                         line.unitName,
@@ -55,10 +63,26 @@ fun ReceiptLineRow(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Spacer(Modifier.width(12.dp))
+                IconButton(onClick = onRemove) {
+                    Icon(
+                        Icons.Outlined.DeleteOutline,
+                        contentDescription = "Xoá sản phẩm",
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Số lượng",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                // Xoá hết → 0 (không tự đóng dòng). Dòng SL = 0 sẽ không tính vào phiếu nhập.
                 QtyStepper(
                     value = line.quantity,
-                    onChange = { q -> if (q.signum() <= 0) onRemove() else onQty(q) },
+                    onChange = onQty,
                     min = BigDecimal.ZERO,
                 )
             }
@@ -82,26 +106,34 @@ fun ReceiptLineRow(
     }
 }
 
+/** Ô giá nhập kiểu tiền: gõ tự ×100, hiển thị có dấu ngăn nghìn, không phần thập phân. */
 @Composable
 private fun CostField(value: BigDecimal, onChange: (BigDecimal) -> Unit) {
+    val current = value.toLong()
     Box(
         Modifier
-            .width(120.dp)
+            .width(140.dp)
             .height(44.dp)
             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
             .padding(horizontal = 12.dp),
-        contentAlignment = Alignment.CenterStart,
+        contentAlignment = Alignment.CenterEnd,
     ) {
+        if (current <= 0L) {
+            Text(
+                "0 đ",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.End,
+            )
+        }
         BasicTextField(
-            value = value.toPlainString(),
-            onValueChange = { v ->
-                val n = try { if (v.isBlank()) BigDecimal.ZERO else BigDecimal(v) } catch (_: Exception) { null }
-                if (n != null) onChange(n)
-            },
+            value = moneyDisplay(current),
+            onValueChange = { v -> onChange(BigDecimal(applyMoneyEdit(current, v))) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             textStyle = LocalTextStyle.current.copy(
                 fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.End,
                 color = MaterialTheme.colorScheme.onSurface,
             ),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),

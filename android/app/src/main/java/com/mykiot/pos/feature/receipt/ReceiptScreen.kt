@@ -214,7 +214,7 @@ fun ReceiptScreen(viewModel: ReceiptViewModel = hiltViewModel()) {
                     }
                     Spacer(Modifier.height(12.dp))
                     Button(
-                        enabled = !state.loading && !state.basket.isEmpty(),
+                        enabled = !state.loading && state.basket.hasItems(),
                         onClick = { viewModel.submit(BigDecimal.ZERO, "CASH") },
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(

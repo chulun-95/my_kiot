@@ -1,7 +1,5 @@
 package com.mykiot.pos.feature.invoice
 
-import com.mykiot.pos.core.network.dto.InvoiceBriefDto
-
 enum class InvoiceFilter { ALL, COMPLETED, CANCELLED }
 
 fun InvoiceFilter.label() = when (this) {
@@ -10,17 +8,9 @@ fun InvoiceFilter.label() = when (this) {
     InvoiceFilter.CANCELLED -> "Đã hủy"
 }
 
-data class InvoiceListUiState(
-    val loading: Boolean = false,
-    val items: List<InvoiceBriefDto> = emptyList(),
-    val filter: InvoiceFilter = InvoiceFilter.ALL,
-    val cancelingId: Long? = null,
-    val errorMessage: String? = null,
-) {
-    val displayedItems: List<InvoiceBriefDto>
-        get() = when (filter) {
-            InvoiceFilter.ALL -> items
-            InvoiceFilter.COMPLETED -> items.filter { it.status == "COMPLETED" }
-            InvoiceFilter.CANCELLED -> items.filter { it.status == "CANCELLED" }
-        }
+/** Map bộ lọc UI → tham số status gửi lên API (ALL = không lọc). */
+fun InvoiceFilter.toStatus(): String? = when (this) {
+    InvoiceFilter.ALL -> null
+    InvoiceFilter.COMPLETED -> "COMPLETED"
+    InvoiceFilter.CANCELLED -> "CANCELLED"
 }

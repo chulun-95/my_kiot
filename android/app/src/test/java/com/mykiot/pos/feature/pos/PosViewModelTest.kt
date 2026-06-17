@@ -32,7 +32,7 @@ class PosViewModelTest {
     @Before fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         // map DTO -> CartLine bằng logic thật (đơn vị cơ bản)
-        every { repo.toCartLine(any()) } answers {
+        every { repo.toCartLine(any<ProductBriefDto>()) } answers {
             val d = firstArg<ProductBriefDto>()
             CartLine(
                 productId = d.id, unitId = null, name = d.name, sku = d.sku,
@@ -89,7 +89,7 @@ class PosViewModelTest {
 
     @Test fun `checkout success sets invoice code and clears cart`() = runTest {
         coEvery { repo.byBarcode(any()) } returns ApiResult.Success(brief(1, 10000.0))
-        coEvery { repo.checkout(any(), any(), any(), any()) } returns
+        coEvery { repo.checkout(any(), any(), any(), any(), any()) } returns
             ApiResult.Success(completedInvoice("HD20260609-007"))
         val vm = PosViewModel(repo, printer)
         vm.onBarcodeScanned("x")
@@ -104,7 +104,7 @@ class PosViewModelTest {
 
     @Test fun `checkout failure keeps cart and shows error`() = runTest {
         coEvery { repo.byBarcode(any()) } returns ApiResult.Success(brief(1, 10000.0))
-        coEvery { repo.checkout(any(), any(), any(), any()) } returns
+        coEvery { repo.checkout(any(), any(), any(), any(), any()) } returns
             ApiResult.Failure(ApiError("INSUFFICIENT_STOCK", "SP1 chỉ còn 0", 400))
         val vm = PosViewModel(repo, printer)
         vm.onBarcodeScanned("x")

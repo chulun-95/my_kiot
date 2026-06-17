@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -39,6 +37,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mykiot.pos.core.network.dto.InvoiceBriefDto
 import com.mykiot.pos.core.ui.LoadingDialog
 import com.mykiot.pos.core.ui.MonoBadge
+import com.mykiot.pos.core.ui.paging.PagedLazyColumn
 import com.mykiot.pos.core.util.formatDateTime
 import com.mykiot.pos.core.util.formatVnd
 
@@ -46,7 +45,9 @@ import com.mykiot.pos.core.util.formatVnd
 fun InvoiceListScreen(
     viewModel: InvoiceListViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.paging.collectAsStateWithLifecycle()
+    val filter by viewModel.filter.collectAsStateWithLifecycle()
+    val cancelingId by viewModel.cancelingId.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) { viewModel.load() }
@@ -54,7 +55,7 @@ fun InvoiceListScreen(
         state.errorMessage?.let { snackbar.showSnackbar(it); viewModel.clearError() }
     }
 
-    state.cancelingId?.let { cancelId ->
+    cancelingId?.let { cancelId ->
         var reason by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = viewModel::dismissCancel,
@@ -99,29 +100,25 @@ fun InvoiceListScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 InvoiceFilter.entries.forEach { f ->
                     FilterChip(
-                        selected = state.filter == f,
+                        selected = filter == f,
                         onClick = { viewModel.setFilter(f) },
                         label = { Text(f.label()) },
                     )
                 }
             }
             Spacer(Modifier.height(8.dp))
-            if (state.displayedItems.isEmpty() && !state.loading) {
-                Text(
-                    "Chưa có hóa đơn",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 16.dp),
-                )
-            }
-            LazyColumn(Modifier.fillMaxSize()) {
-                items(state.displayedItems, key = { it.id }) { inv ->
-                    InvoiceCard(invoice = inv, onCancel = { viewModel.requestCancel(inv.id) })
-                }
+            PagedLazyColumn(
+                state = state,
+                onLoadMore = viewModel::loadMore,
+                key = { it.id },
+                emptyText = "Chưa có hóa đơn",
+            ) { inv ->
+                InvoiceCard(invoice = inv, onCancel = { viewModel.requestCancel(inv.id) })
             }
         }
     }
 
-    LoadingDialog(visible = state.loading && state.items.isEmpty(), message = "Đang tải hóa đơn...")
+    LoadingDialog(visible = state.refreshing && state.items.isEmpty(), message = "Đang tải hóa đơn...")
 }
 
 @Composable

@@ -13,7 +13,10 @@ data class CustomerDto(
 )
 
 @Serializable
-data class CustomerListDto(val items: List<CustomerDto> = emptyList())
+data class CustomerListDto(
+    val items: List<CustomerDto> = emptyList(),
+    val pagination: PaginationDto? = null,
+)
 
 /** Khớp CustomerResponse ở backend (GET /customers/{id}.customer, POST /customers). */
 @Serializable

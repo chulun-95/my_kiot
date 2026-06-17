@@ -11,8 +11,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -21,16 +25,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mykiot.pos.core.hardware.scanner.MlKitScannerScreen
 import com.mykiot.pos.core.network.dto.ProductBriefDto
 import com.mykiot.pos.core.ui.AppTextField
 import com.mykiot.pos.core.ui.LoadingDialog
+import com.mykiot.pos.core.ui.MoneyInput
 import com.mykiot.pos.feature.supplier.FormTopBar
 
 /**
@@ -46,6 +53,7 @@ fun AddProductScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    var showScanner by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { viewModel.prefillBarcode(initialBarcode) }
     LaunchedEffect(state.errorMessage) {
@@ -53,6 +61,14 @@ fun AddProductScreen(
     }
     LaunchedEffect(state.created) {
         state.created?.let(onCreated)
+    }
+
+    if (showScanner) {
+        MlKitScannerScreen(
+            onScanned = { code -> showScanner = false; viewModel.onBarcode(code) },
+            onClose = { showScanner = false },
+        )
+        return
     }
 
     Scaffold(
@@ -77,6 +93,11 @@ fun AddProductScreen(
                 onValueChange = viewModel::onBarcode,
                 label = "Mã vạch",
                 modifier = Modifier.fillMaxWidth(),
+                trailingIcon = {
+                    IconButton(onClick = { showScanner = true }) {
+                        Icon(Icons.Filled.QrCodeScanner, contentDescription = "Quét mã vạch")
+                    }
+                },
             )
             Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth()) {
@@ -96,19 +117,17 @@ fun AddProductScreen(
             }
             Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth()) {
-                AppTextField(
-                    value = state.costPrice,
-                    onValueChange = viewModel::onCost,
+                MoneyInput(
+                    value = state.costPrice.toLongOrNull() ?: 0L,
+                    onValueChange = { viewModel.onCost(it.toString()) },
                     label = "Giá nhập",
-                    keyboardType = KeyboardType.Number,
                     modifier = Modifier.weight(1f),
                 )
                 Spacer(Modifier.width(12.dp))
-                AppTextField(
-                    value = state.salePrice,
-                    onValueChange = viewModel::onSale,
+                MoneyInput(
+                    value = state.salePrice.toLongOrNull() ?: 0L,
+                    onValueChange = { viewModel.onSale(it.toString()) },
                     label = "Giá bán",
-                    keyboardType = KeyboardType.Number,
                     modifier = Modifier.weight(1f),
                 )
             }

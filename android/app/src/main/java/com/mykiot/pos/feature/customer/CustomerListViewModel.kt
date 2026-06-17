@@ -1,38 +1,32 @@
 package com.mykiot.pos.feature.customer
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.mykiot.pos.core.network.ApiResult
+import com.mykiot.pos.core.network.dto.CustomerDto
+import com.mykiot.pos.core.ui.paging.PageResult
+import com.mykiot.pos.core.ui.paging.PagingListViewModel
 import com.mykiot.pos.feature.customer.data.CustomerRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class CustomerListViewModel @Inject constructor(
     private val repository: CustomerRepository,
-) : ViewModel() {
-    private val _state = MutableStateFlow(CustomerListUiState())
-    val state: StateFlow<CustomerListUiState> = _state.asStateFlow()
+) : PagingListViewModel<CustomerDto>() {
 
-    fun load() {
-        _state.update { it.copy(loading = true, errorMessage = null) }
-        viewModelScope.launch {
-            when (val r = repository.list(_state.value.query.takeIf { it.isNotBlank() })) {
-                is ApiResult.Success -> _state.update { it.copy(loading = false, items = r.data) }
-                is ApiResult.Failure -> _state.update { it.copy(loading = false, errorMessage = r.error.message) }
-            }
-        }
-    }
+    private val _query = MutableStateFlow("")
+    val query: StateFlow<String> = _query.asStateFlow()
+
+    /** Giữ tên `load()` để màn hình gọi khi mở/quay lại (tải lại từ trang 1). */
+    fun load() = refresh()
+
+    override suspend fun fetch(page: Int): ApiResult<PageResult<CustomerDto>> =
+        repository.list(_query.value.takeIf { it.isNotBlank() }, page)
 
     fun onQueryChange(q: String) {
-        _state.update { it.copy(query = q) }
-        if (q.isBlank() || q.length >= 2) load()
+        _query.value = q
+        if (q.isBlank() || q.length >= 2) refresh()
     }
-
-    fun clearError() = _state.update { it.copy(errorMessage = null) }
 }

@@ -37,9 +37,10 @@ class AddCustomerViewModelTest {
         coEvery { repo.create(any()) } returns ApiResult.Success(CustomerResponseDto(id = 9, name = "Anh Năm"))
         val vm = AddCustomerViewModel(repo)
         vm.onName("Anh Năm")
+        vm.onPhone("0901234567")
         vm.submit()
         testScheduler.advanceUntilIdle()
         assertNotNull(vm.state.value.created)
-        coVerify { repo.create(CustomerCreateDto(name = "Anh Năm")) }
+        coVerify { repo.create(CustomerCreateDto(name = "Anh Năm", phone = "0901234567")) }
     }
 }

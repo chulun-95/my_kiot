@@ -3,6 +3,7 @@ package com.mykiot.pos.feature.invoice
 import com.mykiot.pos.core.network.ApiResult
 import com.mykiot.pos.core.network.dto.InvoiceBriefDto
 import com.mykiot.pos.core.network.dto.InvoiceDto
+import com.mykiot.pos.core.ui.paging.PageResult
 import com.mykiot.pos.feature.invoice.data.InvoiceListRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -32,6 +33,9 @@ class ReturnsViewModelTest {
         createdAt = "2026-06-13T10:00:00+07:00",
     )
 
+    private fun page(vararg items: InvoiceBriefDto) =
+        ApiResult.Success(PageResult(items.toList(), 1, 1))
+
     private fun cancelledDto(id: Long) = InvoiceDto(
         id = id, code = "HD-00$id", subtotal = "100000",
         discountAmount = "0", total = "100000", paidAmount = "100000",
@@ -40,28 +44,34 @@ class ReturnsViewModelTest {
     )
 
     @Test fun `load always passes COMPLETED status to repository`() = runTest {
-        coEvery { repo.list("COMPLETED") } returns ApiResult.Success(emptyList())
+        coEvery { repo.list("COMPLETED", any()) } returns page()
         val vm = ReturnsViewModel(repo)
         vm.load()
-        coVerify(exactly = 1) { repo.list("COMPLETED") }
+        coVerify(exactly = 1) { repo.list("COMPLETED", 1) }
     }
 
     @Test fun `load populates only COMPLETED invoices`() = runTest {
-        coEvery { repo.list("COMPLETED") } returns ApiResult.Success(
-            listOf(completedInvoice(1), completedInvoice(2)),
-        )
+        coEvery { repo.list("COMPLETED", any()) } returns page(completedInvoice(1), completedInvoice(2))
         val vm = ReturnsViewModel(repo)
         vm.load()
-        assertEquals(2, vm.state.value.items.size)
-        assertEquals("COMPLETED", vm.state.value.items.first().status)
+        assertEquals(2, vm.paging.value.items.size)
+        assertEquals("COMPLETED", vm.paging.value.items.first().status)
+    }
+
+    @Test fun `setFilter is ignored because status is forced`() = runTest {
+        coEvery { repo.list("COMPLETED", any()) } returns page(completedInvoice(1))
+        val vm = ReturnsViewModel(repo)
+        vm.load()
+        vm.setFilter(InvoiceFilter.CANCELLED)
+        coVerify(exactly = 0) { repo.list("CANCELLED", any()) }
     }
 
     @Test fun `cancelInvoice updates item status to CANCELLED`() = runTest {
-        coEvery { repo.list("COMPLETED") } returns ApiResult.Success(listOf(completedInvoice(1)))
+        coEvery { repo.list("COMPLETED", any()) } returns page(completedInvoice(1))
         coEvery { repo.cancel(1L, "Khách đổi ý") } returns ApiResult.Success(cancelledDto(1))
         val vm = ReturnsViewModel(repo)
         vm.load()
         vm.cancelInvoice(1L, "Khách đổi ý")
-        assertEquals("CANCELLED", vm.state.value.items.first().status)
+        assertEquals("CANCELLED", vm.paging.value.items.first().status)
     }
 }

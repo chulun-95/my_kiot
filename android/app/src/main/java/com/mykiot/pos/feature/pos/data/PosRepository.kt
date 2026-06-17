@@ -6,6 +6,7 @@ import com.mykiot.pos.core.network.ErrorMapper
 import com.mykiot.pos.core.network.ProductApi
 import com.mykiot.pos.core.network.SalesApi
 import com.mykiot.pos.core.network.dto.CustomerDto
+import com.mykiot.pos.core.network.dto.InvoiceBriefDto
 import com.mykiot.pos.core.network.dto.InvoiceCompleteDto
 import com.mykiot.pos.core.network.dto.InvoiceCreateDto
 import com.mykiot.pos.core.network.dto.InvoiceDto
@@ -37,30 +38,65 @@ open class PosRepository @Inject constructor(
         runCatching { customerApi.byPhone(phone) }
             .fold({ ApiResult.Success(it) }, { ApiResult.Failure(errorMapper.map(it)) })
 
-    /** Tạo hoá đơn DRAFT rồi complete trong 1 lần (POS bán nhanh). */
+    private fun buildCreateDto(cart: Cart, customerId: Long?) = InvoiceCreateDto(
+        customerId = customerId,
+        discountAmount = cart.invoiceDiscount.toPlainString(),
+        items = cart.lines.map {
+            InvoiceItemInputDto(
+                productId = it.productId,
+                unitId = it.unitId,
+                quantity = it.quantity.toPlainString(),
+                unitPrice = it.unitPrice.toPlainString(),
+                discountAmount = it.discount.toPlainString(),
+            )
+        },
+    )
+
+    /**
+     * Tạo hoá đơn DRAFT rồi complete trong 1 lần (POS bán nhanh).
+     * Nếu [draftId] != null (đơn đang được khôi phục từ giỏ chờ) → update đúng draft đó rồi complete,
+     * tránh tạo draft mồ côi.
+     */
     open suspend fun checkout(
         cart: Cart,
         customerId: Long?,
+        draftId: Long?,
         payments: List<PaymentInputDto>,
         allowDebt: Boolean,
     ): ApiResult<InvoiceDto> = runCatching {
-        val draft = salesApi.create(
-            InvoiceCreateDto(
-                customerId = customerId,
-                discountAmount = cart.invoiceDiscount.toPlainString(),
-                items = cart.lines.map {
-                    InvoiceItemInputDto(
-                        productId = it.productId,
-                        unitId = it.unitId,
-                        quantity = it.quantity.toPlainString(),
-                        unitPrice = it.unitPrice.toPlainString(),
-                        discountAmount = it.discount.toPlainString(),
-                    )
-                },
-            ),
-        )
+        val dto = buildCreateDto(cart, customerId)
+        val draft = if (draftId != null) salesApi.updateDraft(draftId, dto) else salesApi.create(dto)
         salesApi.complete(draft.id, InvoiceCompleteDto(payments = payments, allowDebt = allowDebt))
     }.fold({ ApiResult.Success(it) }, { ApiResult.Failure(errorMapper.map(it)) })
+
+    /** Treo đơn: lưu giỏ hiện tại thành hoá đơn DRAFT (tạo mới hoặc cập nhật đơn đang sửa). */
+    open suspend fun saveDraft(cart: Cart, customerId: Long?, draftId: Long?): ApiResult<InvoiceDto> =
+        runCatching {
+            val dto = buildCreateDto(cart, customerId)
+            if (draftId != null) salesApi.updateDraft(draftId, dto) else salesApi.create(dto)
+        }.fold({ ApiResult.Success(it) }, { ApiResult.Failure(errorMapper.map(it)) })
+
+    /** Danh sách hoá đơn đang treo (DRAFT). */
+    open suspend fun drafts(): ApiResult<List<InvoiceBriefDto>> =
+        runCatching { salesApi.drafts().items }
+            .fold({ ApiResult.Success(it) }, { ApiResult.Failure(errorMapper.map(it)) })
+
+    /** Lấy chi tiết 1 đơn treo để khôi phục vào giỏ. */
+    open suspend fun getInvoice(id: Long): ApiResult<InvoiceDto> =
+        runCatching { salesApi.get(id) }
+            .fold({ ApiResult.Success(it) }, { ApiResult.Failure(errorMapper.map(it)) })
+
+    /** Map dòng hoá đơn (từ draft) → dòng giỏ hàng. */
+    open fun toCartLine(item: com.mykiot.pos.core.network.dto.InvoiceItemDto): CartLine = CartLine(
+        productId = item.productId,
+        unitId = item.unitId,
+        name = item.productName,
+        sku = item.productSku,
+        unitName = item.unit ?: "",
+        unitPrice = BigDecimal(item.unitPrice),
+        quantity = BigDecimal(item.quantity),
+        discount = BigDecimal(item.discountAmount),
+    )
 
     open fun toCartLine(dto: ProductBriefDto): CartLine {
         val mu = dto.matchedUnit

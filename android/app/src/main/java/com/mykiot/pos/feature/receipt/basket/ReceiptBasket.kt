@@ -30,6 +30,12 @@ data class ReceiptBasket(
 
     fun isEmpty(): Boolean = lines.isEmpty()
 
+    /** Các dòng thực sự nhập (số lượng > 0) — bỏ qua dòng đã xoá hết số lượng. */
+    fun activeLines(): List<ReceiptLine> = lines.filter { it.quantity.signum() > 0 }
+
+    /** Có ít nhất 1 dòng số lượng > 0 để tạo phiếu nhập. */
+    fun hasItems(): Boolean = lines.any { it.quantity.signum() > 0 }
+
     private fun mutate(index: Int, f: (ReceiptLine) -> ReceiptLine): ReceiptBasket =
         copy(lines = lines.toMutableList().also { it[index] = f(it[index]) })
 }

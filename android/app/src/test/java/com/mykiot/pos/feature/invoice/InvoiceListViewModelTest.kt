@@ -4,6 +4,7 @@ import com.mykiot.pos.core.network.ApiError
 import com.mykiot.pos.core.network.ApiResult
 import com.mykiot.pos.core.network.dto.InvoiceBriefDto
 import com.mykiot.pos.core.network.dto.InvoiceDto
+import com.mykiot.pos.core.ui.paging.PageResult
 import com.mykiot.pos.feature.invoice.data.InvoiceListRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -35,6 +36,9 @@ class InvoiceListViewModelTest {
         createdAt = "2026-06-13T10:00:00+07:00",
     )
 
+    private fun page(vararg items: InvoiceBriefDto, page: Int = 1, totalPages: Int = 1) =
+        ApiResult.Success(PageResult(items.toList(), page, totalPages))
+
     private fun invoiceDto(id: Long) = InvoiceDto(
         id = id, code = "HD-00$id", subtotal = "100000",
         discountAmount = "0", total = "100000", paidAmount = "100000",
@@ -43,100 +47,85 @@ class InvoiceListViewModelTest {
     )
 
     @Test fun `load passes null status to repo`() = runTest {
-        coEvery { repo.list(null) } returns ApiResult.Success(emptyList())
+        coEvery { repo.list(null, any()) } returns page()
         val vm = InvoiceListViewModel(repo)
         vm.load()
-        coVerify { repo.list(null) }
+        coVerify { repo.list(null, 1) }
     }
 
     @Test fun `load populates items on success`() = runTest {
-        coEvery { repo.list(any()) } returns ApiResult.Success(listOf(brief(1), brief(2)))
+        coEvery { repo.list(any(), any()) } returns page(brief(1), brief(2))
         val vm = InvoiceListViewModel(repo)
         vm.load()
-        assertEquals(2, vm.state.value.items.size)
-        assertFalse(vm.state.value.loading)
+        assertEquals(2, vm.paging.value.items.size)
+        assertFalse(vm.paging.value.refreshing)
     }
 
     @Test fun `load sets errorMessage on failure`() = runTest {
-        coEvery { repo.list(any()) } returns ApiResult.Failure(ApiError("NET", "Lỗi mạng"))
+        coEvery { repo.list(any(), any()) } returns ApiResult.Failure(ApiError("NET", "Lỗi mạng"))
         val vm = InvoiceListViewModel(repo)
         vm.load()
-        assertEquals("Lỗi mạng", vm.state.value.errorMessage)
+        assertEquals("Lỗi mạng", vm.paging.value.errorMessage)
     }
 
-    @Test fun `setFilter ALL shows all items`() = runTest {
-        coEvery { repo.list(any()) } returns ApiResult.Success(
-            listOf(brief(1, "COMPLETED"), brief(2, "CANCELLED")),
-        )
-        val vm = InvoiceListViewModel(repo)
-        vm.load()
-        vm.setFilter(InvoiceFilter.ALL)
-        assertEquals(2, vm.state.value.displayedItems.size)
-    }
-
-    @Test fun `setFilter COMPLETED shows only completed`() = runTest {
-        coEvery { repo.list(any()) } returns ApiResult.Success(
-            listOf(brief(1, "COMPLETED"), brief(2, "CANCELLED")),
-        )
+    @Test fun `setFilter COMPLETED refetches with COMPLETED status`() = runTest {
+        coEvery { repo.list(any(), any()) } returns page(brief(1, "COMPLETED"))
         val vm = InvoiceListViewModel(repo)
         vm.load()
         vm.setFilter(InvoiceFilter.COMPLETED)
-        assertEquals(1, vm.state.value.displayedItems.size)
-        assertEquals("COMPLETED", vm.state.value.displayedItems.first().status)
+        assertEquals(InvoiceFilter.COMPLETED, vm.filter.value)
+        coVerify { repo.list("COMPLETED", 1) }
     }
 
-    @Test fun `setFilter CANCELLED shows only cancelled`() = runTest {
-        coEvery { repo.list(any()) } returns ApiResult.Success(
-            listOf(brief(1, "COMPLETED"), brief(2, "CANCELLED")),
-        )
+    @Test fun `setFilter CANCELLED refetches with CANCELLED status`() = runTest {
+        coEvery { repo.list(any(), any()) } returns page(brief(1, "CANCELLED"))
         val vm = InvoiceListViewModel(repo)
         vm.load()
         vm.setFilter(InvoiceFilter.CANCELLED)
-        assertEquals(1, vm.state.value.displayedItems.size)
-        assertEquals("CANCELLED", vm.state.value.displayedItems.first().status)
+        coVerify { repo.list("CANCELLED", 1) }
     }
 
     @Test fun `requestCancel sets cancelingId`() = runTest {
-        coEvery { repo.list(any()) } returns ApiResult.Success(emptyList())
+        coEvery { repo.list(any(), any()) } returns page()
         val vm = InvoiceListViewModel(repo)
         vm.load()
         vm.requestCancel(42L)
-        assertEquals(42L, vm.state.value.cancelingId)
+        assertEquals(42L, vm.cancelingId.value)
     }
 
     @Test fun `dismissCancel clears cancelingId`() = runTest {
-        coEvery { repo.list(any()) } returns ApiResult.Success(emptyList())
+        coEvery { repo.list(any(), any()) } returns page()
         val vm = InvoiceListViewModel(repo)
         vm.load()
         vm.requestCancel(42L)
         vm.dismissCancel()
-        assertNull(vm.state.value.cancelingId)
+        assertNull(vm.cancelingId.value)
     }
 
     @Test fun `cancelInvoice on success updates item status to CANCELLED`() = runTest {
-        coEvery { repo.list(any()) } returns ApiResult.Success(listOf(brief(1), brief(2)))
+        coEvery { repo.list(any(), any()) } returns page(brief(1), brief(2))
         coEvery { repo.cancel(1L, "Sai hàng") } returns ApiResult.Success(invoiceDto(1))
         val vm = InvoiceListViewModel(repo)
         vm.load()
         vm.cancelInvoice(1L, "Sai hàng")
-        assertEquals("CANCELLED", vm.state.value.items.first { it.id == 1L }.status)
-        assertNull(vm.state.value.cancelingId)
+        assertEquals("CANCELLED", vm.paging.value.items.first { it.id == 1L }.status)
+        assertNull(vm.cancelingId.value)
     }
 
     @Test fun `cancelInvoice on failure shows error`() = runTest {
-        coEvery { repo.list(any()) } returns ApiResult.Success(listOf(brief(1)))
+        coEvery { repo.list(any(), any()) } returns page(brief(1))
         coEvery { repo.cancel(1L, any()) } returns ApiResult.Failure(ApiError("FORBIDDEN", "Không có quyền"))
         val vm = InvoiceListViewModel(repo)
         vm.load()
         vm.cancelInvoice(1L, "test")
-        assertEquals("Không có quyền", vm.state.value.errorMessage)
+        assertEquals("Không có quyền", vm.paging.value.errorMessage)
     }
 
     @Test fun `clearError removes errorMessage`() = runTest {
-        coEvery { repo.list(any()) } returns ApiResult.Failure(ApiError("NET", "Lỗi"))
+        coEvery { repo.list(any(), any()) } returns ApiResult.Failure(ApiError("NET", "Lỗi"))
         val vm = InvoiceListViewModel(repo)
         vm.load()
         vm.clearError()
-        assertNull(vm.state.value.errorMessage)
+        assertNull(vm.paging.value.errorMessage)
     }
 }

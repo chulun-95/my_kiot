@@ -1,9 +1,10 @@
 package com.mykiot.pos.feature.inventory
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mykiot.pos.core.network.ApiResult
 import com.mykiot.pos.core.network.dto.InventoryItemDto
+import com.mykiot.pos.core.ui.paging.PageResult
+import com.mykiot.pos.core.ui.paging.PagingListViewModel
 import com.mykiot.pos.feature.inventory.data.InventoryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,37 +17,34 @@ import javax.inject.Inject
 @HiltViewModel
 class InventoryViewModel @Inject constructor(
     private val repository: InventoryRepository,
-) : ViewModel() {
+) : PagingListViewModel<InventoryItemDto>() {
 
-    private val _state = MutableStateFlow(InventoryUiState())
-    val state: StateFlow<InventoryUiState> = _state.asStateFlow()
+    private val _query = MutableStateFlow("")
+    val query: StateFlow<String> = _query.asStateFlow()
 
-    fun load() {
-        _state.update { it.copy(loading = true, errorMessage = null) }
-        viewModelScope.launch {
-            when (val r = repository.list(_state.value.query.takeIf { it.isNotBlank() })) {
-                is ApiResult.Success -> _state.update { it.copy(loading = false, items = r.data) }
-                is ApiResult.Failure -> _state.update { it.copy(loading = false, errorMessage = r.error.message) }
-            }
-        }
-    }
+    /** Thẻ kho (movements) của 1 SP — tách khỏi state phân trang. */
+    private val _movements = MutableStateFlow(MovementsState())
+    val movements: StateFlow<MovementsState> = _movements.asStateFlow()
+
+    fun load() = refresh()
+
+    override suspend fun fetch(page: Int): ApiResult<PageResult<InventoryItemDto>> =
+        repository.list(_query.value.takeIf { it.isNotBlank() }, page)
 
     fun onQueryChange(q: String) {
-        _state.update { it.copy(query = q) }
-        if (q.isBlank() || q.length >= 2) load()
+        _query.value = q
+        if (q.isBlank() || q.length >= 2) refresh()
     }
 
     fun openMovements(item: InventoryItemDto) {
-        _state.update { it.copy(movementsFor = item, movements = emptyList()) }
+        _movements.value = MovementsState(item = item)
         viewModelScope.launch {
             when (val r = repository.movements(item.productId)) {
-                is ApiResult.Success -> _state.update { it.copy(movements = r.data) }
-                is ApiResult.Failure -> _state.update { it.copy(errorMessage = r.error.message) }
+                is ApiResult.Success -> _movements.update { it.copy(items = r.data) }
+                is ApiResult.Failure -> _movements.update { it.copy(errorMessage = r.error.message) }
             }
         }
     }
 
-    fun closeMovements() = _state.update { it.copy(movementsFor = null, movements = emptyList()) }
-
-    fun clearError() = _state.update { it.copy(errorMessage = null) }
+    fun closeMovements() = _movements.update { MovementsState() }
 }

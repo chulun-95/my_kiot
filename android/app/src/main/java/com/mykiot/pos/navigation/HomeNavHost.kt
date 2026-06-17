@@ -18,6 +18,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -58,85 +61,99 @@ fun HomeRoot(onLogout: () -> Unit) {
 private fun HomeNavHost(onOpenPos: () -> Unit, onLogout: () -> Unit) {
     val nav = rememberNavController()
     NavHost(navController = nav, startDestination = Routes.HUB) {
-        composable(Routes.HUB) {
+        composable(Routes.HUB) { entry ->
             HubScreen(
-                onNavigate = { nav.navigate(it) },
+                onNavigate = { nav.navigateOnce(entry, it) },
                 onOpenPos = onOpenPos,
                 onLogout = onLogout,
             )
         }
-        composable(Routes.RECEIPT) {
-            FeatureScaffold("Nhập hàng", onBack = { nav.popBackStack() }) { ReceiptScreen() }
+        composable(Routes.RECEIPT) { entry ->
+            FeatureScaffold("Nhập hàng", onBack = { nav.popOnce(entry) }) { ReceiptScreen() }
         }
-        composable(Routes.INVENTORY) {
-            FeatureScaffold("Tồn kho", onBack = { nav.popBackStack() }) { InventoryScreen() }
+        composable(Routes.INVENTORY) { entry ->
+            FeatureScaffold("Tồn kho", onBack = { nav.popOnce(entry) }) { InventoryScreen() }
         }
-        composable(Routes.REPORT) {
-            FeatureScaffold("Báo cáo", onBack = { nav.popBackStack() }) { ReportScreen() }
+        composable(Routes.REPORT) { entry ->
+            FeatureScaffold("Báo cáo", onBack = { nav.popOnce(entry) }) { ReportScreen() }
         }
 
         // ----- Khách hàng (Phase 1) -----
-        composable(Routes.CUSTOMERS) {
+        composable(Routes.CUSTOMERS) { entry ->
             CustomerListScreen(
-                onBack = { nav.popBackStack() },
-                onOpenDetail = { nav.navigate(Routes.customerDetail(it)) },
-                onAdd = { nav.navigate(Routes.CUSTOMER_ADD) },
+                onBack = { nav.popOnce(entry) },
+                onOpenDetail = { nav.navigateOnce(entry, Routes.customerDetail(it)) },
+                onAdd = { nav.navigateOnce(entry, Routes.CUSTOMER_ADD) },
             )
         }
         composable(
             Routes.CUSTOMER_DETAIL,
             arguments = listOf(navArgument("id") { type = NavType.LongType }),
-        ) { backStackEntry ->
-            val id = backStackEntry.arguments?.getLong("id") ?: 0L
-            CustomerDetailScreen(customerId = id, onBack = { nav.popBackStack() })
+        ) { entry ->
+            val id = entry.arguments?.getLong("id") ?: 0L
+            CustomerDetailScreen(customerId = id, onBack = { nav.popOnce(entry) })
         }
-        composable(Routes.CUSTOMER_ADD) {
+        composable(Routes.CUSTOMER_ADD) { entry ->
             AddCustomerScreen(
-                onCreated = { nav.popBackStack() },
-                onCancel = { nav.popBackStack() },
+                onCreated = { nav.popOnce(entry) },
+                onCancel = { nav.popOnce(entry) },
             )
         }
 
-        composable(Routes.PRODUCTS) {
+        composable(Routes.PRODUCTS) { entry ->
             ProductListScreen(
-                onBack = { nav.popBackStack() },
-                onOpenDetail = { nav.navigate(Routes.productDetail(it)) },
-                onAdd = { nav.navigate(Routes.PRODUCT_ADD) },
+                onBack = { nav.popOnce(entry) },
+                onOpenDetail = { nav.navigateOnce(entry, Routes.productDetail(it)) },
+                onAdd = { nav.navigateOnce(entry, Routes.PRODUCT_ADD) },
             )
         }
         composable(
             Routes.PRODUCT_DETAIL,
             arguments = listOf(navArgument("id") { type = NavType.LongType }),
-        ) { backStackEntry ->
-            val id = backStackEntry.arguments?.getLong("id") ?: 0L
-            ProductDetailScreen(productId = id, onBack = { nav.popBackStack() })
+        ) { entry ->
+            val id = entry.arguments?.getLong("id") ?: 0L
+            ProductDetailScreen(productId = id, onBack = { nav.popOnce(entry) })
         }
-        composable(Routes.PRODUCT_ADD) {
-            AddProductScreen(onCreated = { nav.popBackStack() }, onCancel = { nav.popBackStack() })
+        composable(Routes.PRODUCT_ADD) { entry ->
+            AddProductScreen(onCreated = { nav.popOnce(entry) }, onCancel = { nav.popOnce(entry) })
         }
-        composable(Routes.INVOICE_HISTORY) {
-            FeatureScaffold("Hóa đơn", onBack = { nav.popBackStack() }) { InvoiceListScreen() }
+        composable(Routes.INVOICE_HISTORY) { entry ->
+            FeatureScaffold("Hóa đơn", onBack = { nav.popOnce(entry) }) { InvoiceListScreen() }
         }
-        composable(Routes.RETURNS) {
-            FeatureScaffold("Trả hàng", onBack = { nav.popBackStack() }) {
-                ReturnsScreen(onOpenReturn = { nav.navigate(Routes.returnNew(it)) })
+        composable(Routes.RETURNS) { entry ->
+            FeatureScaffold("Trả hàng", onBack = { nav.popOnce(entry) }) {
+                ReturnsScreen(onOpenReturn = { nav.navigateOnce(entry, Routes.returnNew(it)) })
             }
         }
         composable(
             Routes.RETURN_NEW,
             arguments = listOf(navArgument("invoiceId") { type = NavType.LongType }),
-        ) { backStackEntry ->
-            val invId = backStackEntry.arguments?.getLong("invoiceId") ?: 0L
+        ) { entry ->
+            val invId = entry.arguments?.getLong("invoiceId") ?: 0L
             ReturnFormScreen(
                 invoiceId = invId,
-                onBack = { nav.popBackStack() },
-                onDone = { nav.popBackStack() },
+                onBack = { nav.popOnce(entry) },
+                onDone = { nav.popOnce(entry) },
             )
         }
-        composable(Routes.CHANGE_PASSWORD) {
-            ChangePasswordScreen(onBack = { nav.popBackStack() }, onDone = { nav.popBackStack() })
+        composable(Routes.CHANGE_PASSWORD) { entry ->
+            ChangePasswordScreen(onBack = { nav.popOnce(entry) }, onDone = { nav.popOnce(entry) })
         }
     }
+}
+
+/**
+ * Chống double-tap/đụng back cứng làm pop quá HUB → màn trắng.
+ * Chỉ thực hiện điều hướng khi entry nguồn còn RESUMED (chưa bắt đầu transition trước đó).
+ */
+private fun NavBackStackEntry.isResumed() = lifecycle.currentState == Lifecycle.State.RESUMED
+
+private fun NavController.popOnce(from: NavBackStackEntry) {
+    if (from.isResumed()) popBackStack()
+}
+
+private fun NavController.navigateOnce(from: NavBackStackEntry, route: String) {
+    if (from.isResumed()) navigate(route)
 }
 
 /** Khung chuẩn cho một màn trong: header có nút back + back cứng của hệ thống. */

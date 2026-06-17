@@ -2,6 +2,7 @@ package com.mykiot.pos.feature.pos
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mykiot.pos.core.hardware.Beeper
 import com.mykiot.pos.core.hardware.printer.PrintResult
 import com.mykiot.pos.core.hardware.printer.ReceiptData
 import com.mykiot.pos.core.hardware.printer.ReceiptItemLine
@@ -10,6 +11,7 @@ import com.mykiot.pos.core.network.ApiResult
 import com.mykiot.pos.core.network.dto.PaymentInputDto
 import com.mykiot.pos.core.network.dto.ProductBriefDto
 import com.mykiot.pos.core.util.formatVnd
+import com.mykiot.pos.feature.pos.cart.Cart
 import com.mykiot.pos.feature.pos.data.CustomerLite
 import com.mykiot.pos.feature.pos.data.PosRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -49,7 +51,10 @@ class PosViewModel @Inject constructor(
         viewModelScope.launch {
             when (val r = repository.byBarcode(code)) {
                 is ApiResult.Success -> addToCart(r.data)
-                is ApiResult.Failure -> _state.update { it.copy(errorMessage = r.error.message) }
+                is ApiResult.Failure -> {
+                    Beeper.error()  // không tìm thấy SP → "tit tit"
+                    _state.update { it.copy(errorMessage = r.error.message) }
+                }
             }
         }
     }
@@ -83,6 +88,78 @@ class PosViewModel @Inject constructor(
     fun setCustomer(c: CustomerLite?) = _state.update { it.copy(customer = c) }
 
     fun clearError() = _state.update { it.copy(errorMessage = null) }
+
+    fun clearInfo() = _state.update { it.copy(infoMessage = null) }
+
+    // ----- Giỏ hàng chờ (hoá đơn treo) -----
+
+    /** Treo đơn hiện tại để rảnh giỏ bán cho khách khác. */
+    fun holdOrder() {
+        val s = _state.value
+        if (s.cart.isEmpty()) {
+            _state.update { it.copy(errorMessage = "Giỏ hàng trống") }
+            return
+        }
+        _state.update { it.copy(loading = true, errorMessage = null) }
+        viewModelScope.launch {
+            when (val r = repository.saveDraft(s.cart, s.customer?.id, s.heldDraftId)) {
+                is ApiResult.Success -> {
+                    _state.update {
+                        it.copy(
+                            loading = false,
+                            cart = it.cart.clear(),
+                            customer = null,
+                            heldDraftId = null,
+                            infoMessage = "Đã treo đơn ${r.data.code}",
+                        )
+                    }
+                    loadDrafts()
+                }
+                is ApiResult.Failure ->
+                    _state.update { it.copy(loading = false, errorMessage = r.error.message) }
+            }
+        }
+    }
+
+    fun loadDrafts() {
+        viewModelScope.launch {
+            when (val r = repository.drafts()) {
+                is ApiResult.Success -> _state.update { it.copy(drafts = r.data) }
+                is ApiResult.Failure -> _state.update { it.copy(errorMessage = r.error.message) }
+            }
+        }
+    }
+
+    fun openDrafts() {
+        _state.update { it.copy(showDrafts = true) }
+        loadDrafts()
+    }
+
+    fun closeDrafts() = _state.update { it.copy(showDrafts = false) }
+
+    /** Khôi phục 1 đơn treo vào giỏ để tiếp tục bán/thanh toán. */
+    fun restoreDraft(id: Long) {
+        _state.update { it.copy(loading = true, showDrafts = false, errorMessage = null) }
+        viewModelScope.launch {
+            when (val r = repository.getInvoice(id)) {
+                is ApiResult.Success -> {
+                    val inv = r.data
+                    val lines = inv.items.map { repository.toCartLine(it) }
+                    val customer = inv.customerId?.let { CustomerLite(it, inv.customerName ?: "", null) }
+                    _state.update {
+                        it.copy(
+                            loading = false,
+                            cart = Cart(lines = lines, invoiceDiscount = inv.discountAmount.toBigDecimalOrZero()),
+                            customer = customer,
+                            heldDraftId = inv.id,
+                        )
+                    }
+                }
+                is ApiResult.Failure ->
+                    _state.update { it.copy(loading = false, errorMessage = r.error.message) }
+            }
+        }
+    }
 
     fun consumeInvoiceCode() = _state.update { it.copy(lastInvoiceCode = null, lastInvoice = null) }
 
@@ -127,19 +204,25 @@ class PosViewModel @Inject constructor(
         }
         _state.update { it.copy(loading = true, errorMessage = null) }
         viewModelScope.launch {
-            when (val r = repository.checkout(s.cart, s.customer?.id, payments, allowDebt)) {
+            when (val r = repository.checkout(s.cart, s.customer?.id, s.heldDraftId, payments, allowDebt)) {
                 is ApiResult.Success -> _state.update {
                     it.copy(
                         loading = false,
                         cart = it.cart.clear(),
                         customer = null,
+                        heldDraftId = null,
                         lastInvoiceCode = r.data.code,
                         lastInvoice = r.data,
                     )
                 }
-                is ApiResult.Failure ->
+                is ApiResult.Failure -> {
+                    if (r.error.code == "INSUFFICIENT_STOCK") Beeper.error()  // hết hàng → "tit tit"
                     _state.update { it.copy(loading = false, errorMessage = r.error.message) }
+                }
             }
         }
     }
 }
+
+private fun String.toBigDecimalOrZero(): BigDecimal =
+    try { BigDecimal(this) } catch (_: Exception) { BigDecimal.ZERO }

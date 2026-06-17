@@ -10,11 +10,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -23,30 +25,45 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mykiot.pos.core.hardware.scanner.MlKitScannerScreen
 import com.mykiot.pos.core.ui.AppSearchField
 import com.mykiot.pos.core.ui.LoadingDialog
 import com.mykiot.pos.core.ui.MonoBadge
+import com.mykiot.pos.core.ui.paging.PagedLazyColumn
 import java.math.BigDecimal
 
 @Composable
 fun InventoryScreen(viewModel: InventoryViewModel = hiltViewModel()) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.paging.collectAsStateWithLifecycle()
+    val query by viewModel.query.collectAsStateWithLifecycle()
+    val movements by viewModel.movements.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    var showScanner by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { viewModel.load() }
     LaunchedEffect(state.errorMessage) {
         state.errorMessage?.let { snackbar.showSnackbar(it); viewModel.clearError() }
     }
 
-    state.movementsFor?.let { item ->
-        MovementsDialog(item = item, movements = state.movements, onDismiss = viewModel::closeMovements)
+    if (showScanner) {
+        MlKitScannerScreen(
+            onScanned = { code -> showScanner = false; viewModel.onQueryChange(code) },
+            onClose = { showScanner = false },
+        )
+        return
+    }
+
+    movements.item?.let { item ->
+        MovementsDialog(item = item, movements = movements.items, onDismiss = viewModel::closeMovements)
     }
 
     Scaffold(
@@ -55,15 +72,24 @@ fun InventoryScreen(viewModel: InventoryViewModel = hiltViewModel()) {
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp, vertical = 4.dp)) {
             AppSearchField(
-                value = state.query,
+                value = query,
                 onValueChange = viewModel::onQueryChange,
-                placeholder = "Lọc theo tên / SKU",
+                placeholder = "Lọc theo tên / SKU / mã vạch",
                 modifier = Modifier.fillMaxWidth(),
+                trailing = {
+                    IconButton(onClick = { showScanner = true }) {
+                        Icon(Icons.Filled.QrCodeScanner, contentDescription = "Quét mã vạch")
+                    }
+                },
             )
             Spacer(Modifier.height(12.dp))
 
-            LazyColumn(Modifier.fillMaxSize()) {
-                items(state.items) { it ->
+            PagedLazyColumn(
+                state = state,
+                onLoadMore = viewModel::loadMore,
+                key = { it.productId },
+                emptyText = "Chưa có sản phẩm trong kho",
+            ) { it ->
                     val qty = it.quantity.toBigDecimalOrZero()
                     val out = qty.signum() <= 0
                     val low = !out && qty <= BigDecimal(it.minStock)
@@ -103,11 +129,10 @@ fun InventoryScreen(viewModel: InventoryViewModel = hiltViewModel()) {
                         }
                     }
                 }
-            }
         }
     }
 
-    LoadingDialog(visible = state.loading && state.items.isEmpty(), message = "Đang tải tồn kho...")
+    LoadingDialog(visible = state.refreshing && state.items.isEmpty(), message = "Đang tải tồn kho...")
 }
 
 private fun String.toBigDecimalOrZero(): BigDecimal =

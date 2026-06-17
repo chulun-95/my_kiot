@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mykiot.pos.core.network.ApiResult
 import com.mykiot.pos.core.network.dto.ProductBriefDto
+import com.mykiot.pos.feature.receipt.data.ReceiptDraftCache
 import com.mykiot.pos.feature.receipt.data.ReceiptRepository
 import com.mykiot.pos.feature.receipt.data.SupplierLite
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,10 +19,24 @@ import javax.inject.Inject
 @HiltViewModel
 class ReceiptViewModel @Inject constructor(
     private val repository: ReceiptRepository,
+    private val draftCache: ReceiptDraftCache,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ReceiptUiState())
     val state: StateFlow<ReceiptUiState> = _state.asStateFlow()
+
+    init {
+        // Khôi phục phiếu nhập đang dở (nếu lần trước thoát mà chưa hoàn tất).
+        draftCache.load()?.let { snap ->
+            _state.update { it.copy(basket = snap.basket, supplier = snap.supplier) }
+        }
+    }
+
+    /** Lưu giỏ hiện tại xuống cache (gọi sau mỗi thay đổi giỏ/NCC). */
+    private fun persist() {
+        val s = _state.value
+        draftCache.save(s.basket, s.supplier)
+    }
 
     fun loadSuppliers() {
         viewModelScope.launch {
@@ -32,7 +47,10 @@ class ReceiptViewModel @Inject constructor(
         }
     }
 
-    fun setSupplier(s: SupplierLite?) = _state.update { it.copy(supplier = s) }
+    fun setSupplier(s: SupplierLite?) {
+        _state.update { it.copy(supplier = s) }
+        persist()
+    }
 
     fun onQueryChange(q: String) {
         _state.update { it.copy(query = q) }
@@ -66,8 +84,10 @@ class ReceiptViewModel @Inject constructor(
     // ---- Luồng thêm NCC mới ----
     fun requestAddSupplier() = _state.update { it.copy(showAddSupplier = true) }
     fun dismissAddSupplier() = _state.update { it.copy(showAddSupplier = false) }
-    fun onSupplierCreated(s: SupplierLite) =
+    fun onSupplierCreated(s: SupplierLite) {
         _state.update { it.copy(supplier = s, showAddSupplier = false) }
+        persist()
+    }
 
     // ---- Luồng quét mã lạ → thêm SP mới ----
     fun confirmAddUnknownProduct() =
@@ -89,16 +109,23 @@ class ReceiptViewModel @Inject constructor(
                 errorMessage = null, query = "", searchResults = emptyList(),
             )
         }
+        persist()
     }
 
-    fun setQuantity(index: Int, qty: BigDecimal) =
+    fun setQuantity(index: Int, qty: BigDecimal) {
         _state.update { it.copy(basket = it.basket.setQuantity(index, qty)) }
+        persist()
+    }
 
-    fun setCost(index: Int, cost: BigDecimal) =
+    fun setCost(index: Int, cost: BigDecimal) {
         _state.update { it.copy(basket = it.basket.setCost(index, cost)) }
+        persist()
+    }
 
-    fun removeLine(index: Int) =
+    fun removeLine(index: Int) {
         _state.update { it.copy(basket = it.basket.removeLine(index)) }
+        persist()  // giỏ rỗng → cache tự xoá (xem ReceiptDraftCache.save)
+    }
 
     fun clearError() = _state.update { it.copy(errorMessage = null) }
 
@@ -106,18 +133,21 @@ class ReceiptViewModel @Inject constructor(
 
     fun submit(paidAmount: BigDecimal, paymentMethod: String) {
         val s = _state.value
-        if (s.basket.isEmpty()) {
-            _state.update { it.copy(errorMessage = "Phiếu nhập trống") }
+        if (!s.basket.hasItems()) {
+            _state.update { it.copy(errorMessage = "Chưa có sản phẩm nào có số lượng để nhập") }
             return
         }
         _state.update { it.copy(loading = true, errorMessage = null) }
         viewModelScope.launch {
             when (val r = repository.submit(s.basket, s.supplier?.id, paidAmount, paymentMethod)) {
-                is ApiResult.Success -> _state.update {
-                    it.copy(
-                        loading = false, basket = it.basket.clear(),
-                        supplier = null, lastReceiptCode = r.data.code,
-                    )
+                is ApiResult.Success -> {
+                    draftCache.clear()  // hoàn tất → xoá cache phiếu nhập dở
+                    _state.update {
+                        it.copy(
+                            loading = false, basket = it.basket.clear(),
+                            supplier = null, lastReceiptCode = r.data.code,
+                        )
+                    }
                 }
                 is ApiResult.Failure ->
                     _state.update { it.copy(loading = false, errorMessage = r.error.message) }

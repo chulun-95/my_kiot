@@ -47,7 +47,7 @@ open class ReceiptRepository @Inject constructor(
                 supplierId = supplierId,
                 paidAmount = paidAmount.toPlainString(),
                 paymentMethod = paymentMethod,
-                items = basket.lines.map {
+                items = basket.activeLines().map {
                     GoodsReceiptItemInputDto(
                         productId = it.productId,
                         unitId = it.unitId,

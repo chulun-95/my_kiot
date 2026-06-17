@@ -11,16 +11,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -29,18 +29,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mykiot.pos.core.hardware.scanner.MlKitScannerScreen
 import com.mykiot.pos.core.network.dto.ProductBriefDto
 import com.mykiot.pos.core.ui.AppHeader
 import com.mykiot.pos.core.ui.AppSearchField
 import com.mykiot.pos.core.ui.LoadingDialog
 import com.mykiot.pos.core.ui.MonoBadge
+import com.mykiot.pos.core.ui.paging.PagedLazyColumn
 import com.mykiot.pos.core.util.formatVnd
 
 @Composable
@@ -50,11 +54,21 @@ fun ProductListScreen(
     onAdd: () -> Unit,
     viewModel: ProductListViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.paging.collectAsStateWithLifecycle()
+    val query by viewModel.query.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    var showScanner by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.errorMessage) {
         state.errorMessage?.let { snackbar.showSnackbar(it); viewModel.clearError() }
+    }
+
+    if (showScanner) {
+        MlKitScannerScreen(
+            onScanned = { code -> showScanner = false; viewModel.onQueryChange(code) },
+            onClose = { showScanner = false },
+        )
+        return
     }
 
     Scaffold(
@@ -81,28 +95,29 @@ fun ProductListScreen(
                 .padding(horizontal = 16.dp),
         ) {
             AppSearchField(
-                value = state.query,
+                value = query,
                 onValueChange = viewModel::onQueryChange,
-                placeholder = "Tìm theo tên / SKU",
+                placeholder = "Tìm theo tên / SKU / mã vạch",
                 modifier = Modifier.fillMaxWidth(),
+                trailing = {
+                    IconButton(onClick = { showScanner = true }) {
+                        Icon(Icons.Filled.QrCodeScanner, contentDescription = "Quét mã vạch")
+                    }
+                },
             )
             Spacer(Modifier.height(12.dp))
-            if (state.items.isEmpty() && !state.loading) {
-                Text(
-                    "Chưa có sản phẩm",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 16.dp),
-                )
-            }
-            LazyColumn(Modifier.fillMaxSize()) {
-                items(state.items, key = { it.id }) { p ->
-                    ProductListCard(p, onClick = { onOpenDetail(p.id) })
-                }
+            PagedLazyColumn(
+                state = state,
+                onLoadMore = viewModel::loadMore,
+                key = { it.id },
+                emptyText = "Chưa có sản phẩm",
+            ) { p ->
+                ProductListCard(p, onClick = { onOpenDetail(p.id) })
             }
         }
     }
 
-    LoadingDialog(visible = state.loading && state.items.isEmpty(), message = "Đang tải sản phẩm...")
+    LoadingDialog(visible = state.refreshing && state.items.isEmpty(), message = "Đang tải sản phẩm...")
 }
 
 @Composable

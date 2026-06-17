@@ -5,6 +5,7 @@ import com.mykiot.pos.core.network.ApiResult
 import com.mykiot.pos.core.network.dto.GoodsReceiptDto
 import com.mykiot.pos.core.network.dto.ProductBriefDto
 import com.mykiot.pos.feature.receipt.basket.ReceiptLine
+import com.mykiot.pos.feature.receipt.data.ReceiptDraftCache
 import com.mykiot.pos.feature.receipt.data.ReceiptRepository
 import io.mockk.coEvery
 import io.mockk.every
@@ -26,9 +27,11 @@ import java.math.BigDecimal
 class ReceiptViewModelTest {
 
     private val repo: ReceiptRepository = mockk(relaxed = true)
+    private val draftCache: ReceiptDraftCache = mockk(relaxed = true)
 
     @Before fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
+        every { draftCache.load() } returns null
         every { repo.toReceiptLine(any()) } answers {
             val d = firstArg<ProductBriefDto>()
             ReceiptLine(
@@ -53,7 +56,7 @@ class ReceiptViewModelTest {
 
     @Test fun `scan adds product to basket`() = runTest {
         coEvery { repo.byBarcode(any()) } returns ApiResult.Success(brief(1))
-        val vm = ReceiptViewModel(repo)
+        val vm = ReceiptViewModel(repo, draftCache)
 
         vm.onBarcodeScanned("x")
 
@@ -65,7 +68,7 @@ class ReceiptViewModelTest {
     @Test fun `submit success clears basket and sets receipt code`() = runTest {
         coEvery { repo.byBarcode(any()) } returns ApiResult.Success(brief(1))
         coEvery { repo.submit(any(), any(), any(), any()) } returns ApiResult.Success(receipt("NK20260609-003"))
-        val vm = ReceiptViewModel(repo)
+        val vm = ReceiptViewModel(repo, draftCache)
         vm.onBarcodeScanned("x")
 
         vm.submit(BigDecimal.ZERO, "CASH")
@@ -79,7 +82,7 @@ class ReceiptViewModelTest {
         coEvery { repo.byBarcode(any()) } returns ApiResult.Success(brief(1))
         coEvery { repo.submit(any(), any(), any(), any()) } returns
             ApiResult.Failure(ApiError("VALIDATION", "Giá vốn không hợp lệ", 400))
-        val vm = ReceiptViewModel(repo)
+        val vm = ReceiptViewModel(repo, draftCache)
         vm.onBarcodeScanned("x")
 
         vm.submit(BigDecimal.ZERO, "CASH")
@@ -90,10 +93,10 @@ class ReceiptViewModelTest {
     }
 
     @Test fun `submit on empty basket shows vietnamese error`() = runTest {
-        val vm = ReceiptViewModel(repo)
+        val vm = ReceiptViewModel(repo, draftCache)
 
         vm.submit(BigDecimal.ZERO, "CASH")
 
-        assertEquals("Phiếu nhập trống", vm.state.value.errorMessage)
+        assertEquals("Chưa có sản phẩm nào có số lượng để nhập", vm.state.value.errorMessage)
     }
 }

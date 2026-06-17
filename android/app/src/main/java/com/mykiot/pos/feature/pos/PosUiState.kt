@@ -1,5 +1,6 @@
 package com.mykiot.pos.feature.pos
 
+import com.mykiot.pos.core.network.dto.InvoiceBriefDto
 import com.mykiot.pos.core.network.dto.InvoiceDto
 import com.mykiot.pos.core.network.dto.ProductBriefDto
 import com.mykiot.pos.feature.pos.cart.Cart
@@ -12,6 +13,11 @@ data class PosUiState(
     val customer: CustomerLite? = null,
     val loading: Boolean = false,
     val errorMessage: String? = null,
+    val infoMessage: String? = null,       // thông báo ngắn (vd: "Đã treo đơn")
     val lastInvoiceCode: String? = null,   // set sau khi checkout thành công → trigger in
     val lastInvoice: InvoiceDto? = null,   // chi tiết hoá đơn để render bill
+    // ----- Giỏ hàng chờ (hoá đơn treo) -----
+    val heldDraftId: Long? = null,         // != null = giỏ hiện tại đang sửa từ 1 đơn treo
+    val drafts: List<InvoiceBriefDto> = emptyList(),
+    val showDrafts: Boolean = false,
 )
