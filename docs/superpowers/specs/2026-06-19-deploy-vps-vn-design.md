@@ -210,6 +210,10 @@ Không có chi phí ẩn. Trả trước theo chu kỳ (không tính theo giờ)
 1. `frontend/nginx.conf` — đổi `server_name` `app.tencuahang.vn` → `pos.timxe-namdinh.com`; thêm `location = /health { proxy_pass http://api:8000/health; }`.
 2. `docker-compose.deploy.yml` — `--workers 4` → `--workers 1`; thêm `mem_limit` cho `api` & `db`;
    thêm Postgres tuning (`command: -c shared_buffers=128MB -c ...`).
-3. Thêm `scripts/backup.sh` và `scripts/mem_watch.sh` (hoặc đặt trực tiếp trên VPS — quyết định lúc viết plan).
+3. Thêm vào repo: `scripts/backup.sh`, `scripts/mem_watch.sh` (logic), và `scripts/setup-vps.sh` (wiring chạy 1 lần).
+   - `deploy.yml` mở rộng để **scp thêm thư mục `scripts/`** mỗi lần deploy → nội dung script tự cập nhật trên VPS.
+   - **Wiring là one-time**, không tự động được: chạy `bash scripts/setup-vps.sh` lúc bootstrap để tạo swap 2GB,
+     `chmod +x`, ghi crontab (backup 2h sáng, mem_watch 5 phút/lần), và nhắc cấu hình rclone (R2 + Google Drive)
+     + secrets Telegram (`TG_TOKEN`, `TG_CHAT`). Crontab/secrets không đổi nên chỉ cần 1 lần.
 4. `.env.prod` trên server — không commit; theo `.env.prod.example`.
 5. GitHub secrets: `SSH_HOST`, `SSH_USER`, `SSH_KEY`.
