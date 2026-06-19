@@ -18,7 +18,7 @@ else
 fi
 
 # 2. chmod scripts
-chmod +x "$POS_DIR/scripts/backup.sh" "$POS_DIR/scripts/mem_watch.sh"
+chmod +x "$POS_DIR/scripts/backup.sh" "$POS_DIR/scripts/mem_watch.sh" "$POS_DIR/scripts/setup-vps.sh"
 
 # 3. File secrets Telegram (mẫu — điền tay sau)
 SECRETS=/home/deploy/.deploy_secrets

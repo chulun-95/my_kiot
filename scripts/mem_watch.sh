@@ -17,6 +17,6 @@ echo "$c" > "$STATE"
 if [ "$c" -ge 6 ]; then
   curl -s "https://api.telegram.org/bot${TG_TOKEN:-}/sendMessage" \
     -d chat_id="${TG_CHAT:-}" \
-    -d text="⚠️ POS VPS: RAM > 70% suốt 30 phút (hiện ${USED}%). Cân nhắc resize lên 2GB lúc vắng khách." >/dev/null || true
+    -d text="⚠️ POS VPS: RAM > 70% suốt 30 phút (hiện ${USED}%). Cân nhắc resize lên 2GB lúc vắng khách." || true
   echo 0 > "$STATE"
 fi

@@ -11,8 +11,11 @@ BACKUP_DIR=/home/deploy/backups
 mkdir -p "$BACKUP_DIR"
 FILE="$BACKUP_DIR/pos_$STAMP.sql.gz"
 
+TMP="$FILE.tmp"
 docker compose -f docker-compose.deploy.yml exec -T db \
-  pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" | gzip > "$FILE"
+  pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" > "$TMP"
+gzip -f "$TMP"          # → $TMP.gz
+mv "$TMP.gz" "$FILE"
 
 rclone copy "$FILE" r2:pos-backups/        # off-site 1: Cloudflare R2 (free 10GB)
 rclone copy "$FILE" gdrive:pos-backups/    # off-site 2: Google Drive
