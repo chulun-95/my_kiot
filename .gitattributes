@@ -1,0 +1,2 @@
+# Shell scripts deploy lên Linux VPS — BẮT BUỘC line ending LF (CRLF làm bash lỗi \r)
+*.sh text eol=lf
