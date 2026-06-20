@@ -24,6 +24,7 @@
     <string name="core_hub_products">Sản phẩm</string>
     <string name="core_hub_customers">Khách hàng</string>
     <string name="core_hub_suppliers">Nhà cung cấp</string>
+    <string name="core_hub_categories">Nhóm hàng</string>
     <string name="core_hub_invoices">Hóa đơn</string>
     <string name="core_hub_report">Tổng quan</string>
     <string name="core_hub_change_password">Đổi mật khẩu</string>

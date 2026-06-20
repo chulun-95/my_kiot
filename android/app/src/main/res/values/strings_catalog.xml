@@ -41,6 +41,15 @@
     <string name="cat_product_err_name_required">Vui lòng nhập tên sản phẩm</string>
     <string name="cat_product_err_price_invalid">Giá nhập / giá bán không hợp lệ</string>
 
+    <!-- Nhóm hàng (category) -->
+    <string name="cat_category_title">Nhóm hàng</string>
+    <string name="cat_category_empty">Chưa có nhóm hàng</string>
+    <string name="cat_category_add_root">Thêm nhóm</string>
+    <string name="cat_category_add_child">Thêm nhóm con</string>
+    <string name="cat_category_edit">Sửa nhóm</string>
+    <string name="cat_category_name_label">Tên nhóm</string>
+    <string name="cat_category_delete_confirm">Xóa nhóm này?</string>
+
     <!--Khách hàng (customer) -->
     <string name="cat_customer_title">Khách hàng</string>
     <string name="cat_customer_add">Thêm khách hàng</string>
