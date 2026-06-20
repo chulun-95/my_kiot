@@ -9,6 +9,9 @@
     <string name="inv_badge_out">Hết</string>
     <string name="inv_badge_low">Sắp hết</string>
     <string name="inv_loading">Đang tải tồn kho...</string>
+    <string name="inventory_tab_all">Tất cả</string>
+    <string name="inventory_tab_low">Sắp hết</string>
+    <string name="inventory_low_empty">Không có hàng sắp hết</string>
 
     <!-- MovementsDialog -->
     <string name="inv_kardex_title">Thẻ kho — %1$s</string>
