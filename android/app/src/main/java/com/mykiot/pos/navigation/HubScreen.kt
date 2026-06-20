@@ -94,7 +94,7 @@ private val hubGroups = listOf(
     HubGroup(
         R.string.core_hub_group_report,
         listOf(
-            HubItem(R.string.core_hub_report, Routes.REPORT, Icons.Outlined.Assessment),
+            HubItem(R.string.core_hub_report, Routes.REPORT, Icons.Outlined.Assessment, ownerOnly = true),
         ),
     ),
     HubGroup(
