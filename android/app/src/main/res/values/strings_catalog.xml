@@ -79,6 +79,7 @@
     <string name="cat_supplier_debt_label">Công nợ</string>
     <string name="cat_supplier_add_action">Thêm nhà cung cấp</string>
     <string name="cat_supplier_add">Thêm nhà cung cấp</string>
+    <string name="cat_supplier_edit">Sửa nhà cung cấp</string>
     <string name="cat_supplier_field_name">Tên nhà cung cấp *</string>
     <string name="cat_supplier_field_phone">Số điện thoại</string>
     <string name="cat_supplier_field_address">Địa chỉ</string>

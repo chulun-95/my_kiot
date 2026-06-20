@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mykiot.pos.R
 import com.mykiot.pos.core.i18n.ResProvider
+import com.mykiot.pos.core.network.ApiError
 import com.mykiot.pos.core.network.ApiResult
 import com.mykiot.pos.core.network.dto.SupplierCreateDto
 import com.mykiot.pos.core.network.dto.SupplierDto
@@ -21,8 +22,10 @@ data class AddSupplierUiState(
     val phone: String = "",
     val address: String = "",
     val loading: Boolean = false,
-    val errorMessage: String? = null,
+    val error: ApiError? = null,
     val created: SupplierDto? = null,
+    val saved: Boolean = false,
+    val editingId: Long? = null,
 )
 
 @HiltViewModel
@@ -43,27 +46,53 @@ class AddSupplierViewModel @Inject constructor(
         if (name.isNotBlank()) _state.update { it.copy(name = name) }
     }
 
+    fun startEdit(id: Long) {
+        if (_state.value.editingId == id) return
+        _state.update { it.copy(editingId = id, loading = true) }
+        viewModelScope.launch {
+            when (val r = repository.getById(id)) {
+                is ApiResult.Success -> _state.update {
+                    it.copy(
+                        loading = false,
+                        name = r.data.name,
+                        phone = r.data.phone ?: "",
+                        address = r.data.address ?: "",
+                    )
+                }
+                is ApiResult.Failure -> _state.update { it.copy(loading = false, error = r.error) }
+            }
+        }
+    }
+
     fun onName(v: String) = _state.update { it.copy(name = v) }
     fun onPhone(v: String) = _state.update { it.copy(phone = v) }
     fun onAddress(v: String) = _state.update { it.copy(address = v) }
-    fun clearError() = _state.update { it.copy(errorMessage = null) }
+    fun clearError() = _state.update { it.copy(error = null) }
 
     fun submit() {
         val s = _state.value
         if (s.name.isBlank()) {
-            _state.update { it.copy(errorMessage = res.get(R.string.cat_supplier_err_name_required)) }
+            _state.update {
+                it.copy(error = ApiError("VALIDATION", res.get(R.string.cat_supplier_err_name_required)))
+            }
             return
         }
-        _state.update { it.copy(loading = true, errorMessage = null) }
+        _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             val dto = SupplierCreateDto(
                 name = s.name.trim(),
                 phone = s.phone.trim().ifBlank { null },
                 address = s.address.trim().ifBlank { null },
             )
-            when (val r = repository.create(dto)) {
-                is ApiResult.Success -> _state.update { it.copy(loading = false, created = r.data) }
-                is ApiResult.Failure -> _state.update { it.copy(loading = false, errorMessage = r.error.message) }
+            val editId = s.editingId
+            val result = if (editId != null) repository.update(editId, dto) else repository.create(dto)
+            when (result) {
+                is ApiResult.Success -> {
+                    // `created` only set on create path so receipt-picker auto-select still works
+                    val createdDto = if (editId == null) (result.data as? SupplierDto) else null
+                    _state.update { it.copy(loading = false, saved = true, created = createdDto) }
+                }
+                is ApiResult.Failure -> _state.update { it.copy(loading = false, error = result.error) }
             }
         }
     }
