@@ -40,6 +40,27 @@ class EncryptedTokenStore @Inject constructor(
         prefs.edit().putString(KEY_ACCESS, accessToken).putString(KEY_REFRESH, refreshToken).apply()
     }
 
+    override fun saveUser(user: CurrentUser) {
+        prefs.edit()
+            .putLong(KEY_USER_ID, user.id)
+            .putString(KEY_USER_NAME, user.fullName)
+            .putString(KEY_USER_ROLE, user.role)
+            .putLong(KEY_TENANT_ID, user.tenantId)
+            .putString(KEY_TENANT_NAME, user.tenantName)
+            .apply()
+    }
+
+    override fun getUser(): CurrentUser? {
+        val role = prefs.getString(KEY_USER_ROLE, null) ?: return null
+        return CurrentUser(
+            id = prefs.getLong(KEY_USER_ID, 0L),
+            fullName = prefs.getString(KEY_USER_NAME, "") ?: "",
+            role = role,
+            tenantId = prefs.getLong(KEY_TENANT_ID, 0L),
+            tenantName = prefs.getString(KEY_TENANT_NAME, "") ?: "",
+        )
+    }
+
     override fun clear() {
         prefs.edit().clear().apply()
     }
@@ -50,5 +71,10 @@ class EncryptedTokenStore @Inject constructor(
         const val PREFS_NAME = "mykiot_secure_prefs"
         const val KEY_ACCESS = "access_token"
         const val KEY_REFRESH = "refresh_token"
+        const val KEY_USER_ID = "user_id"
+        const val KEY_USER_NAME = "user_name"
+        const val KEY_USER_ROLE = "user_role"
+        const val KEY_TENANT_ID = "tenant_id"
+        const val KEY_TENANT_NAME = "tenant_name"
     }
 }

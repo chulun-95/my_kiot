@@ -27,4 +27,20 @@ class FakeTokenStoreTest {
         assertNull(store.getRefreshToken())
         assertFalse(store.hasSession())
     }
+
+    @Test
+    fun `saveUser then getUser returns same user`() {
+        val store = FakeTokenStore()
+        val user = CurrentUser(id = 7, fullName = "Chị Tư", role = "OWNER", tenantId = 3, tenantName = "Tạp hóa Tư")
+        store.saveUser(user)
+        assertEquals(user, store.getUser())
+    }
+
+    @Test
+    fun `clear removes saved user`() {
+        val store = FakeTokenStore()
+        store.saveUser(CurrentUser(1, "A", "CASHIER", 1, "Shop"))
+        store.clear()
+        assertNull(store.getUser())
+    }
 }
