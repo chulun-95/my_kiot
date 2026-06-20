@@ -138,3 +138,22 @@ data class StockMovementDto(
 
 @Serializable
 data class StockMovementsDto(val items: List<StockMovementDto> = emptyList())
+
+@Serializable
+data class GoodsReceiptBriefDto(
+    val id: Long,
+    val code: String,
+    @SerialName("supplier_id") val supplierId: Long? = null,
+    @SerialName("supplier_name") val supplierName: String? = null,
+    val total: String,
+    @SerialName("paid_amount") val paidAmount: String,
+    val status: String,
+    @SerialName("completed_at") val completedAt: String? = null,
+    @SerialName("created_at") val createdAt: String,
+)
+
+@Serializable
+data class GoodsReceiptListDto(
+    val items: List<GoodsReceiptBriefDto> = emptyList(),
+    val pagination: PaginationDto? = null,
+)

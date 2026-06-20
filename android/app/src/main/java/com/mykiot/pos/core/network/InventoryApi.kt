@@ -2,6 +2,7 @@ package com.mykiot.pos.core.network
 
 import com.mykiot.pos.core.network.dto.GoodsReceiptCreateDto
 import com.mykiot.pos.core.network.dto.GoodsReceiptDto
+import com.mykiot.pos.core.network.dto.GoodsReceiptListDto
 import com.mykiot.pos.core.network.dto.InventoryListDto
 import com.mykiot.pos.core.network.dto.LowStockDto
 import com.mykiot.pos.core.network.dto.StockMovementsDto
@@ -21,6 +22,12 @@ interface InventoryApi {
 
     @POST("goods-receipts/{id}/complete")
     suspend fun completeReceipt(@Path("id") id: Long): GoodsReceiptDto
+
+    @GET("goods-receipts")
+    suspend fun listReceipts(
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 20,
+    ): GoodsReceiptListDto
 
     // ---- inventory (Phase 4) ----
     @GET("inventory")

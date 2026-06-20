@@ -5,11 +5,13 @@ import com.mykiot.pos.core.network.ErrorMapper
 import com.mykiot.pos.core.network.InventoryApi
 import com.mykiot.pos.core.network.ProductApi
 import com.mykiot.pos.core.network.SupplierApi
+import com.mykiot.pos.core.network.dto.GoodsReceiptBriefDto
 import com.mykiot.pos.core.network.dto.GoodsReceiptCreateDto
 import com.mykiot.pos.core.network.dto.GoodsReceiptDto
 import com.mykiot.pos.core.network.dto.GoodsReceiptItemInputDto
 import com.mykiot.pos.core.network.dto.ProductBriefDto
 import com.mykiot.pos.core.network.dto.SupplierDto
+import com.mykiot.pos.core.ui.paging.PageResult
 import com.mykiot.pos.feature.receipt.basket.ReceiptBasket
 import com.mykiot.pos.feature.receipt.basket.ReceiptLine
 import java.math.BigDecimal
@@ -70,6 +72,13 @@ open class ReceiptRepository @Inject constructor(
     open suspend fun complete(id: Long): ApiResult<GoodsReceiptDto> =
         runCatching { inventoryApi.completeReceipt(id) }
             .fold({ ApiResult.Success(it) }, { ApiResult.Failure(errorMapper.map(it)) })
+
+    /** Danh sách phiếu nhập (phân trang). */
+    open suspend fun listReceipts(page: Int = 1): ApiResult<PageResult<GoodsReceiptBriefDto>> =
+        runCatching {
+            val r = inventoryApi.listReceipts(page = page)
+            PageResult.from(r.items, r.pagination)
+        }.fold({ ApiResult.Success(it) }, { ApiResult.Failure(errorMapper.map(it)) })
 
     /** Khi quét/chọn SP để nhập: giá vốn mặc định = costPrice hiện tại (nếu được xem), nếu null → 0. */
     open fun toReceiptLine(dto: ProductBriefDto): ReceiptLine = ReceiptLine(
