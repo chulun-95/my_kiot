@@ -1,0 +1,91 @@
+<resources>
+    <!-- ===== Catalog: Sản phẩm / Khách hàng / Nhà cung cấp ===== -->
+
+    <!--Sản phẩm (product) -->
+    <string name="cat_product_title">Sản phẩm</string>
+    <string name="cat_product_add">Thêm sản phẩm</string>
+    <string name="cat_product_search_placeholder">Tìm theo tên / SKU / mã vạch</string>
+    <string name="cat_product_scan_barcode">Quét mã vạch</string>
+    <string name="cat_product_empty">Chưa có sản phẩm</string>
+    <string name="cat_product_loading">Đang tải sản phẩm...</string>
+    <string name="cat_product_status_inactive_short">Ngừng</string>
+
+    <!-- Chi tiết sản phẩm -->
+    <string name="cat_product_loading_short">Đang tải...</string>
+    <string name="cat_product_label_sku">Mã SKU</string>
+    <string name="cat_product_label_barcode">Mã vạch</string>
+    <string name="cat_product_label_unit">Đơn vị</string>
+    <string name="cat_product_label_sale_price">Giá bán</string>
+    <string name="cat_product_label_cost_price">Giá vốn</string>
+    <string name="cat_product_label_status">Trạng thái</string>
+    <string name="cat_product_status_active">Đang bán</string>
+    <string name="cat_product_status_inactive">Ngừng bán</string>
+    <string name="cat_product_label_allow_negative">Cho phép âm kho</string>
+    <string name="cat_product_yes">Có</string>
+    <string name="cat_product_no">Không</string>
+    <string name="cat_product_units_section">Đơn vị quy đổi</string>
+    <string name="cat_product_unit_conversion">× %1$s</string>
+    <string name="cat_product_list_subtitle">%1$s • %2$s • %3$s</string>
+
+    <!-- Thêm sản phẩm -->
+    <string name="cat_product_field_name">Tên sản phẩm *</string>
+    <string name="cat_product_field_barcode">Mã vạch</string>
+    <string name="cat_product_field_sku">SKU (tự sinh nếu trống)</string>
+    <string name="cat_product_field_unit">Đơn vị</string>
+    <string name="cat_product_field_cost">Giá nhập</string>
+    <string name="cat_product_field_sale">Giá bán</string>
+    <string name="cat_product_save">Lưu sản phẩm</string>
+    <string name="cat_product_saving">Đang lưu...</string>
+
+    <!-- ViewModel (AddProductViewModel) -->
+    <string name="cat_product_err_name_required">Vui lòng nhập tên sản phẩm</string>
+    <string name="cat_product_err_price_invalid">Giá nhập / giá bán không hợp lệ</string>
+
+    <!--Khách hàng (customer) -->
+    <string name="cat_customer_title">Khách hàng</string>
+    <string name="cat_customer_add">Thêm khách hàng</string>
+    <string name="cat_customer_search_placeholder">Tìm theo tên / SĐT</string>
+    <string name="cat_customer_empty">Chưa có khách hàng</string>
+    <string name="cat_customer_loading">Đang tải khách hàng...</string>
+
+    <!-- Chi tiết khách hàng -->
+    <string name="cat_customer_loading_short">Đang tải...</string>
+    <string name="cat_customer_label_phone">SĐT</string>
+    <string name="cat_customer_label_email">Email</string>
+    <string name="cat_customer_label_address">Địa chỉ</string>
+    <string name="cat_customer_label_note">Ghi chú</string>
+    <string name="cat_customer_spending_summary">Tổng chi tiêu: %1$s · %2$d đơn</string>
+    <string name="cat_customer_orders_section">Lịch sử mua</string>
+    <string name="cat_customer_orders_empty">Chưa có đơn hàng</string>
+    <string name="cat_customer_list_subtitle">%1$s · %2$s</string>
+
+    <!-- Thêm khách hàng -->
+    <string name="cat_customer_field_name">Tên khách hàng *</string>
+    <string name="cat_customer_field_phone">Số điện thoại *</string>
+    <string name="cat_customer_field_email">Email</string>
+    <string name="cat_customer_field_address">Địa chỉ</string>
+    <string name="cat_customer_field_note">Ghi chú</string>
+    <string name="cat_customer_save">Lưu khách hàng</string>
+
+    <!-- ViewModel (AddCustomerViewModel) -->
+    <string name="cat_customer_err_name_required">Vui lòng nhập tên khách hàng</string>
+    <string name="cat_customer_err_phone_required">Vui lòng nhập số điện thoại</string>
+    <string name="cat_customer_err_phone_invalid">Số điện thoại không hợp lệ (VD: 0901234567)</string>
+
+    <!--Nhà cung cấp (supplier) -->
+    <string name="cat_supplier_list_title">Nhà cung cấp</string>
+    <string name="cat_supplier_search_hint">Tìm theo tên / SĐT</string>
+    <string name="cat_supplier_empty">Chưa có nhà cung cấp</string>
+    <string name="cat_supplier_debt_label">Công nợ</string>
+    <string name="cat_supplier_add_action">Thêm nhà cung cấp</string>
+    <string name="cat_supplier_add">Thêm nhà cung cấp</string>
+    <string name="cat_supplier_field_name">Tên nhà cung cấp *</string>
+    <string name="cat_supplier_field_phone">Số điện thoại</string>
+    <string name="cat_supplier_field_address">Địa chỉ</string>
+    <string name="cat_supplier_save">Lưu nhà cung cấp</string>
+    <string name="cat_supplier_saving">Đang lưu...</string>
+    <string name="cat_supplier_back">Quay lại</string>
+
+    <!-- ViewModel (AddSupplierViewModel) -->
+    <string name="cat_supplier_err_name_required">Vui lòng nhập tên nhà cung cấp</string>
+</resources>
