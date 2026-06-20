@@ -10,6 +10,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
+import com.mykiot.pos.core.auth.SessionManager
 import com.mykiot.pos.core.auth.TokenStore
 import com.mykiot.pos.core.ui.theme.MyKiotTheme
 import com.mykiot.pos.navigation.AppNav
@@ -20,10 +21,12 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
 
     @Inject lateinit var tokenStore: TokenStore
+    @Inject lateinit var sessionManager: SessionManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val loggedIn = tokenStore.hasSession()
+        if (loggedIn) sessionManager.restore()
         setContent {
             MyKiotTheme {
                 val focusManager = LocalFocusManager.current

@@ -24,6 +24,7 @@ class AuthRepository @Inject constructor(
     private val api: AuthApi,
     private val tokenStore: TokenStore,
     private val errorMapper: ErrorMapper,
+    private val sessionManager: SessionManager,
 ) {
     fun hasSession(): Boolean = tokenStore.hasSession()
 
@@ -40,17 +41,16 @@ class AuthRepository @Inject constructor(
                 dto.user != null && dto.tenant != null
             ) {
                 tokenStore.save(dto.accessToken, dto.refreshToken)
-                ApiResult.Success(
-                    LoginOutcome.LoggedIn(
-                        CurrentUser(
-                            id = dto.user.id,
-                            fullName = dto.user.fullName,
-                            role = dto.user.role,
-                            tenantId = dto.tenant.id,
-                            tenantName = dto.tenant.name,
-                        ),
-                    ),
+                val currentUser = CurrentUser(
+                    id = dto.user.id,
+                    fullName = dto.user.fullName,
+                    role = dto.user.role,
+                    tenantId = dto.tenant.id,
+                    tenantName = dto.tenant.name,
                 )
+                tokenStore.saveUser(currentUser)
+                sessionManager.set(currentUser)
+                ApiResult.Success(LoginOutcome.LoggedIn(currentUser))
             } else {
                 ApiResult.Failure(ApiError("UNKNOWN", "Có lỗi xảy ra, vui lòng thử lại"))
             }
@@ -64,6 +64,7 @@ class AuthRepository @Inject constructor(
             runCatching { api.logout(LogoutRequest(refresh)) }
         }
         tokenStore.clear()
+        sessionManager.clear()
     }
 
     /** Đổi mật khẩu: backend thu hồi token cũ + cấp cặp mới → lưu lại để khỏi bị đăng xuất. */
