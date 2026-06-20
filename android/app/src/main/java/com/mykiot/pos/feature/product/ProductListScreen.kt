@@ -23,11 +23,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,12 +55,7 @@ fun ProductListScreen(
 ) {
     val state by viewModel.paging.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
-    val snackbar = remember { SnackbarHostState() }
     var showScanner by remember { mutableStateOf(false) }
-
-    LaunchedEffect(state.errorMessage) {
-        state.errorMessage?.let { snackbar.showSnackbar(it); viewModel.clearError() }
-    }
 
     if (showScanner) {
         MlKitScannerScreen(
@@ -74,7 +66,6 @@ fun ProductListScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbar) },
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             AppHeader(title = stringResource(R.string.cat_product_title), onBack = onBack, modifier = Modifier.padding(horizontal = 16.dp))
@@ -120,6 +111,7 @@ fun ProductListScreen(
     }
 
     LoadingDialog(visible = state.refreshing && state.items.isEmpty(), message = stringResource(R.string.cat_product_loading))
+    state.error?.let { com.mykiot.pos.core.ui.ErrorDialog(it) { viewModel.clearError() } }
 }
 
 @Composable

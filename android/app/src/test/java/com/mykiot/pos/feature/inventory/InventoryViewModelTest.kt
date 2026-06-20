@@ -49,7 +49,7 @@ class InventoryViewModelTest {
 
         vm.load()
 
-        assertEquals("Lỗi máy chủ", vm.paging.value.errorMessage)
+        assertEquals("Lỗi máy chủ", vm.paging.value.error?.message)
     }
 
     @Test fun `openMovements loads kardex`() = runTest {

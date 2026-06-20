@@ -2,6 +2,7 @@ package com.mykiot.pos.core.ui.paging
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mykiot.pos.core.network.ApiError
 import com.mykiot.pos.core.network.ApiResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +28,7 @@ abstract class PagingListViewModel<T> : ViewModel() {
 
     /** Tải lại từ đầu (trang 1), giữ nguyên danh sách cũ cho tới khi có dữ liệu mới. */
     fun refresh() {
-        _paging.update { it.copy(refreshing = true, errorMessage = null) }
+        _paging.update { it.copy(refreshing = true, error = null) }
         viewModelScope.launch {
             when (val r = fetch(1)) {
                 is ApiResult.Success -> _paging.update {
@@ -39,7 +40,7 @@ abstract class PagingListViewModel<T> : ViewModel() {
                     )
                 }
                 is ApiResult.Failure -> _paging.update {
-                    it.copy(refreshing = false, errorMessage = r.error.message)
+                    it.copy(refreshing = false, error = r.error)
                 }
             }
         }
@@ -49,7 +50,7 @@ abstract class PagingListViewModel<T> : ViewModel() {
     fun loadMore() {
         val s = _paging.value
         if (!s.canLoadMore) return
-        _paging.update { it.copy(loadingMore = true, errorMessage = null) }
+        _paging.update { it.copy(loadingMore = true, error = null) }
         viewModelScope.launch {
             when (val r = fetch(s.page + 1)) {
                 is ApiResult.Success -> _paging.update {
@@ -61,7 +62,7 @@ abstract class PagingListViewModel<T> : ViewModel() {
                     )
                 }
                 is ApiResult.Failure -> _paging.update {
-                    it.copy(loadingMore = false, errorMessage = r.error.message)
+                    it.copy(loadingMore = false, error = r.error)
                 }
             }
         }
@@ -72,7 +73,7 @@ abstract class PagingListViewModel<T> : ViewModel() {
         _paging.update { it.copy(items = transform(it.items)) }
 
     /** Đặt thông báo lỗi (vd: thao tác phụ thất bại) mà không tải lại danh sách. */
-    protected fun setError(message: String?) = _paging.update { it.copy(errorMessage = message) }
+    protected fun setError(error: ApiError?) = _paging.update { it.copy(error = error) }
 
-    fun clearError() = _paging.update { it.copy(errorMessage = null) }
+    fun clearError() = _paging.update { it.copy(error = null) }
 }

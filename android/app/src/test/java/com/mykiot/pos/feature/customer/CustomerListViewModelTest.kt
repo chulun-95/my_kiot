@@ -41,6 +41,6 @@ class CustomerListViewModelTest {
         val vm = CustomerListViewModel(repo)
         vm.load()
         testScheduler.advanceUntilIdle()
-        assertEquals("Lỗi tải", vm.paging.value.errorMessage)
+        assertEquals("Lỗi tải", vm.paging.value.error?.message)
     }
 }

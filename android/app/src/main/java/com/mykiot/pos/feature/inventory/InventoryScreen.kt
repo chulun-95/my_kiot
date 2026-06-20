@@ -53,8 +53,8 @@ fun InventoryScreen(viewModel: InventoryViewModel = hiltViewModel()) {
     var showScanner by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { viewModel.load() }
-    LaunchedEffect(state.errorMessage) {
-        state.errorMessage?.let { snackbar.showSnackbar(it); viewModel.clearError() }
+    LaunchedEffect(state.error) {
+        state.error?.let { snackbar.showSnackbar(it.message); viewModel.clearError() }
     }
 
     if (showScanner) {

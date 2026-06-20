@@ -18,8 +18,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -50,12 +48,8 @@ fun InvoiceListScreen(
     val state by viewModel.paging.collectAsStateWithLifecycle()
     val filter by viewModel.filter.collectAsStateWithLifecycle()
     val cancelingId by viewModel.cancelingId.collectAsStateWithLifecycle()
-    val snackbar = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) { viewModel.load() }
-    LaunchedEffect(state.errorMessage) {
-        state.errorMessage?.let { snackbar.showSnackbar(it); viewModel.clearError() }
-    }
 
     cancelingId?.let { cancelId ->
         var reason by remember { mutableStateOf("") }
@@ -90,7 +84,6 @@ fun InvoiceListScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbar) },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         Column(
@@ -121,6 +114,7 @@ fun InvoiceListScreen(
     }
 
     LoadingDialog(visible = state.refreshing && state.items.isEmpty(), message = stringResource(R.string.misc_invoice_loading))
+    state.error?.let { com.mykiot.pos.core.ui.ErrorDialog(it) { viewModel.clearError() } }
 }
 
 @Composable

@@ -1,5 +1,7 @@
 package com.mykiot.pos.core.ui.paging
 
+import com.mykiot.pos.core.network.ApiError
+
 /**
  * Trạng thái chung cho mọi danh sách có phân trang + load more.
  *
@@ -13,7 +15,7 @@ data class PagingState<T>(
     val totalPages: Int = 1,
     val refreshing: Boolean = false,
     val loadingMore: Boolean = false,
-    val errorMessage: String? = null,
+    val error: ApiError? = null,
 ) {
     /** Còn trang để tải thêm và không đang tải dở. */
     val canLoadMore: Boolean

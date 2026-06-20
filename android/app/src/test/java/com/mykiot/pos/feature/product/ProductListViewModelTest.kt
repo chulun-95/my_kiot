@@ -48,7 +48,7 @@ class ProductListViewModelTest {
     @Test fun `load sets errorMessage on failure`() = runTest {
         coEvery { repo.list(null, any()) } returns ApiResult.Failure(ApiError("NET", "Lỗi mạng"))
         val vm = ProductListViewModel(repo)
-        assertEquals("Lỗi mạng", vm.paging.value.errorMessage)
+        assertEquals("Lỗi mạng", vm.paging.value.error?.message)
         assertFalse(vm.paging.value.refreshing)
     }
 
@@ -87,6 +87,6 @@ class ProductListViewModelTest {
         coEvery { repo.list(null, any()) } returns ApiResult.Failure(ApiError("NET", "Lỗi"))
         val vm = ProductListViewModel(repo)
         vm.clearError()
-        assertNull(vm.paging.value.errorMessage)
+        assertNull(vm.paging.value.error)
     }
 }

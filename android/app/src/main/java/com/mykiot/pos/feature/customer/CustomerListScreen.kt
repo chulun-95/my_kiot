@@ -119,4 +119,5 @@ fun CustomerListScreen(
     }
 
     LoadingDialog(visible = state.refreshing && state.items.isEmpty(), message = stringResource(R.string.cat_customer_loading))
+    state.error?.let { com.mykiot.pos.core.ui.ErrorDialog(it) { viewModel.clearError() } }
 }

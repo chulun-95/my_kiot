@@ -48,7 +48,7 @@ open class InvoiceListViewModel @Inject constructor(
             when (val r = repository.cancel(id, reason)) {
                 is ApiResult.Success ->
                     updateItems { items -> items.map { if (it.id == id) it.copy(status = "CANCELLED") else it } }
-                is ApiResult.Failure -> setError(r.error.message)
+                is ApiResult.Failure -> setError(r.error)
             }
         }
     }

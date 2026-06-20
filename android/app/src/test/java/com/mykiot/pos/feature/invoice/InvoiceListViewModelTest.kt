@@ -65,7 +65,7 @@ class InvoiceListViewModelTest {
         coEvery { repo.list(any(), any()) } returns ApiResult.Failure(ApiError("NET", "Lỗi mạng"))
         val vm = InvoiceListViewModel(repo)
         vm.load()
-        assertEquals("Lỗi mạng", vm.paging.value.errorMessage)
+        assertEquals("Lỗi mạng", vm.paging.value.error?.message)
     }
 
     @Test fun `setFilter COMPLETED refetches with COMPLETED status`() = runTest {
@@ -118,7 +118,7 @@ class InvoiceListViewModelTest {
         val vm = InvoiceListViewModel(repo)
         vm.load()
         vm.cancelInvoice(1L, "test")
-        assertEquals("Không có quyền", vm.paging.value.errorMessage)
+        assertEquals("Không có quyền", vm.paging.value.error?.message)
     }
 
     @Test fun `clearError removes errorMessage`() = runTest {
@@ -126,6 +126,6 @@ class InvoiceListViewModelTest {
         val vm = InvoiceListViewModel(repo)
         vm.load()
         vm.clearError()
-        assertNull(vm.paging.value.errorMessage)
+        assertNull(vm.paging.value.error)
     }
 }
