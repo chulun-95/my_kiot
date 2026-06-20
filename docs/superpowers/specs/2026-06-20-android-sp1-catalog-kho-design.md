@@ -73,11 +73,23 @@ Quy ước toàn app: **lỗi hiển thị bằng dialog, không toast/snackbar.
 
 ### 4. Chính sách token khi đổi role (ghi nhận — implement ở SP-4)
 
-Khi OWNER đổi role / khóa nhân viên (màn Quản lý NV — SP-4) → backend revoke toàn bộ refresh
-token của user đó (`revoked_at`, cả `family_id`). App: lần refresh kế tiếp (≤60 phút, khi access
-token hết hạn) thất bại → `TokenAuthenticator` đẩy về Login → đăng nhập lại lấy role mới. Không
-rủi ro leo thang quyền vì backend luôn enforce `require_role` từng request. SP-1 chỉ cần xử lý
-đúng luồng "bị buộc logout" (đã có ở Foundation §1).
+Bối cảnh: `get_current_user` đã load `User` từ DB mỗi request và đọc `user.role` từ bản ghi
+sống → **backend authorization vốn đã tức thì** (đổi role có hiệu lực ngay request kế tiếp,
+không có cửa sổ leo quyền). Role "cũ" chỉ tồn tại ở UI gating phía app (SessionManager).
+
+Để **buộc đăng xuất tức thì** khi đổi role (revoke chính access token, không chờ ≤60 phút):
+
+- Thêm cột **`users.token_version` SMALLINT NOT NULL DEFAULT 0** (migration).
+- Login: nhét `token_version` vào claim access token. `get_current_user`: so claim với
+  `user.token_version` (object đã load sẵn → **không tốn thêm query**); lệch → 401.
+- Khi OWNER đổi role: `token_version += 1` **và** revoke toàn bộ refresh token của user đó
+  (`revoked_at`, cả `family_id`). ⇒ access token cũ vô hiệu ngay → `TokenAuthenticator` đẩy về
+  Login → đăng nhập lại lấy role mới.
+- Khóa NV (`is_active=False`) vốn đã force-logout tức thì (next request → 401 `INVALID_USER`);
+  `token_version` bù cho trường hợp chỉ đổi role mà không khóa.
+
+SP-1 chỉ cần xử lý đúng luồng "bị buộc logout" phía app (đã có ở Foundation §1). Phần backend
+(`token_version` + bump khi đổi role) implement ở SP-4 nơi có hành động đổi role.
 
 ---
 
