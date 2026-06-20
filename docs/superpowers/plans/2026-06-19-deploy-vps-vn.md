@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Đưa Backend (FastAPI) + Web (React) lên 1 VPS Việt Nam 1GB sau Cloudflare, truy cập qua `https://pos.timxe-namdinh.com`, always-on, chi phí ~70–90k/tháng.
+**Goal:** Đưa Backend (FastAPI) + Web (React) lên 1 VPS Việt Nam 1GB sau Cloudflare, truy cập qua `https://my-kiot.timxe-namdinh.com`, always-on, chi phí ~70–90k/tháng.
 
 **Architecture:** Nginx trên VPS serve React build ở `/` và reverse-proxy `/api` → uvicorn (same-origin → cookie `HttpOnly; SameSite=Strict` chạy chuẩn, không CORS). Postgres chạy nội bộ trong cùng Docker Compose, không expose. Cloudflare lo SSL/CDN/DDoS. CI/CD có sẵn (`deploy.yml`) build image lên GHCR rồi SSH vào VPS pull. Backup + monitoring chạy bằng cron trên host.
 
@@ -12,7 +12,7 @@
 
 - Spec nguồn: `docs/superpowers/specs/2026-06-19-deploy-vps-vn-design.md`.
 - VPS: **1GB RAM / ~1 vCPU**, Ubuntu 24.04, đặt tại Việt Nam. Right-size: uvicorn **1 worker**, swap **2GB**, Postgres `shared_buffers=128MB`, `effective_cache_size=512MB`, `work_mem=8MB`, `max_connections=30`; `mem_limit` api ~**512m**, db ~**384m**.
-- Domain: subdomain **`pos.timxe-namdinh.com`** (zone `timxe-namdinh.com` đã ở Cloudflare — KHÔNG đụng bản ghi khác).
+- Domain: subdomain **`my-kiot.timxe-namdinh.com`** (zone `timxe-namdinh.com` đã ở Cloudflare — KHÔNG đụng bản ghi khác).
 - Same-origin: FE giữ `baseURL='/api/v1'`, KHÔNG đặt `VITE_API_BASE_URL`.
 - Kiến trúc image: **x86/amd64** (VPS VN là x86) — KHÔNG build arm64.
 - Secrets (`.env.prod`, `ssl/`, token rclone/Telegram) chỉ nằm trên server, đã có trong `.gitignore` (`.env.prod`, `ssl/`, `backups/`). KHÔNG commit.
@@ -30,7 +30,7 @@
 - Modify: `frontend/nginx.conf`
 
 **Interfaces:**
-- Produces: route `https://pos.timxe-namdinh.com/health` → uvicorn `/health`; `server_name` đúng subdomain. Task 9 (deploy) và Task 10 (nghiệm thu) dựa vào đây để health check từ ngoài.
+- Produces: route `https://my-kiot.timxe-namdinh.com/health` → uvicorn `/health`; `server_name` đúng subdomain. Task 9 (deploy) và Task 10 (nghiệm thu) dựa vào đây để health check từ ngoài.
 
 - [ ] **Step 1: Đổi `server_name` ở cả 2 block (443 và 80)**
 
@@ -40,7 +40,7 @@ server_name app.tencuahang.vn;
 ```
 thành:
 ```
-server_name pos.timxe-namdinh.com;
+server_name my-kiot.timxe-namdinh.com;
 ```
 
 - [ ] **Step 2: Thêm location `/health` proxy về API (đặt ngay trên block `location /api/`)**
@@ -65,7 +65,7 @@ Expected: `syntax is ok` + `test is successful` (cảnh báo về upstream `api`
 
 ```bash
 git add frontend/nginx.conf
-git commit -m "deploy(nginx): server_name pos.timxe-namdinh.com + health proxy"
+git commit -m "deploy(nginx): server_name my-kiot.timxe-namdinh.com + health proxy"
 ```
 
 ---
@@ -367,14 +367,14 @@ CORS_ORIGINS=https://app.tencuahang.vn
 ```
 thành:
 ```
-CORS_ORIGINS=https://pos.timxe-namdinh.com
+CORS_ORIGINS=https://my-kiot.timxe-namdinh.com
 ```
 
 - [ ] **Step 2: Commit**
 
 ```bash
 git add .env.prod.example
-git commit -m "deploy(env): mẫu CORS_ORIGINS = https://pos.timxe-namdinh.com"
+git commit -m "deploy(env): mẫu CORS_ORIGINS = https://my-kiot.timxe-namdinh.com"
 ```
 
 ---
@@ -436,11 +436,11 @@ Verify (đăng nhập lại bằng `deploy`): `docker compose version` in ra ver
 
 **Interfaces:**
 - Consumes: IP VPS (Task 8).
-- Produces: bản ghi `A pos → IP` (proxied); `~/pos/ssl/origin.pem` + `origin.key` trên VPS. Task 12 nghiệm thu HTTPS.
+- Produces: bản ghi `A my-kiot → IP` (proxied); `~/pos/ssl/origin.pem` + `origin.key` trên VPS. Task 12 nghiệm thu HTTPS.
 
 - [ ] **Step 1: Thêm DNS record**
 
-Cloudflare → zone `timxe-namdinh.com` → DNS → Add record: `A` | name `pos` | IPv4 `<IP VPS>` | Proxy **ON** (cam). KHÔNG sửa bản ghi gốc.
+Cloudflare → zone `timxe-namdinh.com` → DNS → Add record: `A` | name `my-kiot` | IPv4 `<IP VPS>` | Proxy **ON** (cam). KHÔNG sửa bản ghi gốc.
 
 - [ ] **Step 2: SSL/TLS = Full (strict)**
 
@@ -478,7 +478,7 @@ cd ~ && git clone <repo-url> pos-src 2>/dev/null || true
 cp ~/pos-src/.env.prod.example ~/pos/.env.prod   # hoặc tự tạo theo mẫu
 nano ~/pos/.env.prod
 ```
-Điền: `POSTGRES_PASSWORD` (random `openssl rand -hex 32`), `DATABASE_URL` host=`db` dùng password đó, `JWT_SECRET_KEY` (`openssl rand -hex 32`), `COOKIE_SECURE=true`, `CORS_ORIGINS=https://pos.timxe-namdinh.com`.
+Điền: `POSTGRES_PASSWORD` (random `openssl rand -hex 32`), `DATABASE_URL` host=`db` dùng password đó, `JWT_SECRET_KEY` (`openssl rand -hex 32`), `COOKIE_SECURE=true`, `CORS_ORIGINS=https://my-kiot.timxe-namdinh.com`.
 Verify: `grep -E 'COOKIE_SECURE|CORS_ORIGINS' ~/pos/.env.prod` đúng giá trị.
 
 - [ ] **Step 2: Copy scripts vào ~/pos (lần đầu, trước khi CI scp) + chạy setup-vps.sh**
@@ -547,11 +547,11 @@ Expected: `db`, `api`, `nginx` đều `Up` (db `healthy`). `docker compose logs 
 
 - [ ] **Step 1: HTTPS + UI + site gốc**
 
-Mở `https://pos.timxe-namdinh.com` → hiện UI, ổ khóa SSL hợp lệ (Full strict). Mở `https://timxe-namdinh.com` → site gốc **vẫn chạy bình thường**.
+Mở `https://my-kiot.timxe-namdinh.com` → hiện UI, ổ khóa SSL hợp lệ (Full strict). Mở `https://timxe-namdinh.com` → site gốc **vẫn chạy bình thường**.
 
 - [ ] **Step 2: Health check qua domain**
 
-Run: `curl -s https://pos.timxe-namdinh.com/health`
+Run: `curl -s https://my-kiot.timxe-namdinh.com/health`
 Expected: `{"status":"ok","env":"production"}`
 
 - [ ] **Step 3: Cookie + refresh token**
@@ -564,7 +564,7 @@ Tạo 2 tenant test → tenant A không thấy data tenant B. Trên VPS: `docker
 
 - [ ] **Step 5: Android dùng chung API**
 
-App Android trỏ `https://pos.timxe-namdinh.com/api` → đăng nhập + bán hàng chạy.
+App Android trỏ `https://my-kiot.timxe-namdinh.com/api` → đăng nhập + bán hàng chạy.
 
 - [ ] **Step 6: Backup thật + restore thử**
 

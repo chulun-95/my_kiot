@@ -28,7 +28,7 @@ Các quyết định đã chốt qua brainstorming:
 | Khu vực | Việt Nam | Khách 5 cửa hàng ở VN, bấm POS mượt nhất |
 | Web hosting | Nginx trên cùng VPS serve React build | **Same-origin** → cookie `HttpOnly; SameSite=Strict` chạy chuẩn, không cần CORS |
 | CDN/SSL/DDoS | Cloudflare (free) | Domain `timxe-namdinh.com` **đã ở Cloudflare** |
-| Domain | Subdomain `pos.timxe-namdinh.com` | Tái dùng domain có sẵn; không đụng site gốc |
+| Domain | Subdomain `my-kiot.timxe-namdinh.com` | Tái dùng domain có sẵn; không đụng site gốc |
 | Backup | Local 14 ngày + đẩy **song song R2 + Google Drive** | 2 bản off-site ở 2 nhà khác nhau cho an toàn |
 | Scale | Giám sát tự động → **cảnh báo** → người tự bấm resize lên 2GB | VPS prepaid không auto-scale; resize cần reboot nên phải chủ động chọn giờ |
 | Kiến trúc CPU | x86 (amd64) | VPS VN là x86 → **giữ nguyên** image hiện có, không cần build arm64 |
@@ -43,7 +43,7 @@ Các quyết định đã chốt qua brainstorming:
 
 ```
 Internet ──HTTPS──▶ Cloudflare (free: SSL, CDN, DDoS)
-                    (timxe-namdinh.com đã ở Cloudflare; thêm bản ghi A: pos → IP VPS)
+                    (timxe-namdinh.com đã ở Cloudflare; thêm bản ghi A: my-kiot → IP VPS)
                         │  Origin Certificate (SSL/TLS = Full strict)
                         ▼
               VPS Việt Nam — 1GB RAM / ~1 vCPU / 40–50GB SSD, Ubuntu 24.04
@@ -56,10 +56,10 @@ Internet ──HTTPS──▶ Cloudflare (free: SSL, CDN, DDoS)
               └──────────────────────────────────────┘
               + swap 2GB (chống OOM)
               + cron: backup đêm, cleanup token, monitoring RAM
-              (Android app dùng chung: https://pos.timxe-namdinh.com/api)
+              (Android app dùng chung: https://my-kiot.timxe-namdinh.com/api)
 ```
 
-Nguyên tắc xuyên suốt giữ nguyên từ plan gốc: **FE + BE cùng 1 origin** (`https://pos.timxe-namdinh.com`).
+Nguyên tắc xuyên suốt giữ nguyên từ plan gốc: **FE + BE cùng 1 origin** (`https://my-kiot.timxe-namdinh.com`).
 Nginx serve React ở `/`, reverse proxy `/api` → uvicorn. FE giữ `baseURL = '/api/v1'` (mặc định
 trong `client.ts`) → **không cần** `VITE_API_BASE_URL`.
 
@@ -88,12 +88,12 @@ Plan gốc thiết kế cho VPS 4GB (CX22) với 4 worker. Trên 1GB phải hạ
 ## 3. Tên miền & Cloudflare (đơn giản vì domain đã ở Cloudflare)
 
 1. Cloudflare Dashboard → zone `timxe-namdinh.com` → DNS → thêm bản ghi:
-   `A` | name `pos` | IPv4 = `<IP public VPS>` | Proxy **ON** (đám mây cam).
+   `A` | name `my-kiot` | IPv4 = `<IP public VPS>` | Proxy **ON** (đám mây cam).
    → **Không** ảnh hưởng site gốc `timxe-namdinh.com` / các bản ghi khác.
 2. SSL/TLS → mode = **Full (strict)**.
 3. SSL/TLS → Origin Server → **Create Certificate** (15 năm) → lưu thành `origin.pem` + `origin.key`
    → đặt vào `~/pos/ssl/` trên VPS (nginx đọc theo `frontend/nginx.conf`).
-4. `frontend/nginx.conf`: đổi `server_name` thành `pos.timxe-namdinh.com` (hiện đang placeholder
+4. `frontend/nginx.conf`: đổi `server_name` thành `my-kiot.timxe-namdinh.com` (hiện đang placeholder
    `app.tencuahang.vn`).
 
 ## 4. Triển khai
@@ -112,7 +112,7 @@ Plan gốc thiết kế cho VPS 4GB (CX22) với 4 worker. Trên 1GB phải hạ
    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
    ```
 5. `mkdir -p ~/pos/ssl` → đặt `.env.prod` (từ `.env.prod.example`, điền secret thật, `COOKIE_SECURE=true`,
-   `CORS_ORIGINS=https://pos.timxe-namdinh.com`, password DB + `JWT_SECRET_KEY` random `openssl rand -hex 32`)
+   `CORS_ORIGINS=https://my-kiot.timxe-namdinh.com`, password DB + `JWT_SECRET_KEY` random `openssl rand -hex 32`)
    + `ssl/origin.pem`, `ssl/origin.key`.
 
 ### 4.2 Mỗi lần — CI/CD tự động (đã có sẵn)
@@ -168,13 +168,13 @@ fi
 
 ## 5. Nghiệm thu (Definition of Done)
 
-- [ ] `https://pos.timxe-namdinh.com` mở được, hiện UI; SSL Full strict (ổ khóa hợp lệ).
+- [ ] `https://my-kiot.timxe-namdinh.com` mở được, hiện UI; SSL Full strict (ổ khóa hợp lệ).
 - [ ] Site gốc `timxe-namdinh.com` **vẫn chạy bình thường** (không bị ảnh hưởng).
 - [ ] Login → set cookie `Secure; HttpOnly; SameSite=Strict`; refresh token chạy (mở lại tab vẫn đăng nhập).
-- [ ] Health trả `{"status":"ok","env":"production"}` — qua `https://pos.timxe-namdinh.com/health` (sau khi thêm location nginx ở mục 4.4) hoặc nội bộ `docker compose exec -T api curl -fs localhost:8000/health`.
+- [ ] Health trả `{"status":"ok","env":"production"}` — qua `https://my-kiot.timxe-namdinh.com/health` (sau khi thêm location nginx ở mục 4.4) hoặc nội bộ `docker compose exec -T api curl -fs localhost:8000/health`.
 - [ ] `ufw status`: chỉ 80/443/SSH; `docker ps`: KHÔNG bind 5432/8000 ra host.
 - [ ] Tạo 2 tenant test → tenant A không thấy data tenant B.
-- [ ] App Android trỏ `https://pos.timxe-namdinh.com/api` → đăng nhập + bán hàng chạy.
+- [ ] App Android trỏ `https://my-kiot.timxe-namdinh.com/api` → đăng nhập + bán hàng chạy.
 - [ ] Chạy `backup.sh` thủ công 1 lần → có file trên **cả R2 và Google Drive**; thử **restore vào DB tạm** để chắc backup dùng được.
 - [ ] `mem_watch.sh` chạy thử (giả lập RAM cao) → nhận được tin Telegram.
 - [ ] `free -h` cho thấy swap 2GB đã bật.
@@ -214,7 +214,7 @@ Không có chi phí ẩn. Trả trước theo chu kỳ (không tính theo giờ)
 
 ## 9. Phụ thuộc / phần phải chỉnh trong repo
 
-1. `frontend/nginx.conf` — đổi `server_name` `app.tencuahang.vn` → `pos.timxe-namdinh.com`; thêm `location = /health { proxy_pass http://api:8000/health; }`.
+1. `frontend/nginx.conf` — đổi `server_name` `app.tencuahang.vn` → `my-kiot.timxe-namdinh.com`; thêm `location = /health { proxy_pass http://api:8000/health; }`.
 2. `docker-compose.deploy.yml` — `--workers 4` → `--workers 1`; thêm `mem_limit` cho `api` & `db`;
    thêm Postgres tuning (`command: -c shared_buffers=128MB -c ...`).
 3. Thêm vào repo: `scripts/backup.sh`, `scripts/mem_watch.sh` (logic), và `scripts/setup-vps.sh` (wiring chạy 1 lần).
