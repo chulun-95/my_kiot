@@ -21,11 +21,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mykiot.pos.R
 import com.mykiot.pos.core.ui.AppHeader
 import com.mykiot.pos.core.ui.AppTextField
 import com.mykiot.pos.core.ui.LoadingDialog
@@ -48,7 +50,7 @@ fun AddCustomerScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            AppHeader(title = "Thêm khách hàng", onBack = onCancel, modifier = Modifier.padding(horizontal = 16.dp))
+            AppHeader(title = stringResource(R.string.cat_customer_add), onBack = onCancel, modifier = Modifier.padding(horizontal = 16.dp))
         },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
@@ -59,12 +61,12 @@ fun AddCustomerScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp),
         ) {
-            AppTextField(state.name, viewModel::onName, label = "Tên khách hàng *", modifier = Modifier.fillMaxWidth())
+            AppTextField(state.name, viewModel::onName, label = stringResource(R.string.cat_customer_field_name), modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(10.dp))
             AppTextField(
                 state.phone,
                 viewModel::onPhone,
-                label = "Số điện thoại *",
+                label = stringResource(R.string.cat_customer_field_phone),
                 keyboardType = KeyboardType.Phone,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -72,14 +74,14 @@ fun AddCustomerScreen(
             AppTextField(
                 state.email,
                 viewModel::onEmail,
-                label = "Email",
+                label = stringResource(R.string.cat_customer_field_email),
                 keyboardType = KeyboardType.Email,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(10.dp))
-            AppTextField(state.address, viewModel::onAddress, label = "Địa chỉ", modifier = Modifier.fillMaxWidth())
+            AppTextField(state.address, viewModel::onAddress, label = stringResource(R.string.cat_customer_field_address), modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(10.dp))
-            AppTextField(state.note, viewModel::onNote, label = "Ghi chú", modifier = Modifier.fillMaxWidth())
+            AppTextField(state.note, viewModel::onNote, label = stringResource(R.string.cat_customer_field_note), modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(20.dp))
             Button(
                 onClick = viewModel::submit,
@@ -91,7 +93,7 @@ fun AddCustomerScreen(
                 ),
                 modifier = Modifier.fillMaxWidth().height(52.dp),
             ) {
-                Text("Lưu khách hàng", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.cat_customer_save), fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(24.dp))
         }

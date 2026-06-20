@@ -2,6 +2,9 @@ package com.mykiot.pos.feature.receipt
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mykiot.pos.R
+import com.mykiot.pos.core.hardware.Beeper
+import com.mykiot.pos.core.i18n.ResProvider
 import com.mykiot.pos.core.network.ApiResult
 import com.mykiot.pos.core.network.dto.ProductBriefDto
 import com.mykiot.pos.feature.receipt.data.ReceiptDraftCache
@@ -20,6 +23,7 @@ import javax.inject.Inject
 class ReceiptViewModel @Inject constructor(
     private val repository: ReceiptRepository,
     private val draftCache: ReceiptDraftCache,
+    private val res: ResProvider,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ReceiptUiState())
@@ -69,14 +73,19 @@ class ReceiptViewModel @Inject constructor(
     fun onBarcodeScanned(code: String) {
         viewModelScope.launch {
             when (val r = repository.byBarcode(code)) {
-                is ApiResult.Success -> addToBasket(r.data)
-                is ApiResult.Failure ->
+                is ApiResult.Success -> {
+                    Beeper.pip()  // quét + thêm thành công → "pip"
+                    addToBasket(r.data)
+                }
+                is ApiResult.Failure -> {
+                    Beeper.error()  // không tìm thấy / lỗi → "tit tit"
                     // 404 = chưa có SP với mã này → hỏi tạo SP mới; lỗi khác → báo lỗi
                     if (r.error.httpStatus == 404) {
                         _state.update { it.copy(unknownBarcode = code) }
                     } else {
                         _state.update { it.copy(errorMessage = r.error.message) }
                     }
+                }
             }
         }
     }
@@ -131,21 +140,38 @@ class ReceiptViewModel @Inject constructor(
 
     fun consumeReceiptCode() = _state.update { it.copy(lastReceiptCode = null) }
 
-    fun submit(paidAmount: BigDecimal, paymentMethod: String) {
+    fun consumeDraftId() = _state.update { it.copy(lastDraftId = null) }
+
+    // ----- Thanh toán -----
+    fun setPayFull(v: Boolean) = _state.update { it.copy(payFull = v) }
+    fun setPaidAmount(v: Long) = _state.update { it.copy(paidAmount = v.coerceAtLeast(0)) }
+    fun setPaymentMethod(m: String) = _state.update { it.copy(paymentMethod = m) }
+    fun setNote(n: String) = _state.update { it.copy(note = n) }
+
+    /** Tiền trả thực tế = tổng nếu "trả đủ", ngược lại = số đã nhập. */
+    private fun effectivePaid(s: ReceiptUiState): BigDecimal =
+        if (s.payFull) s.basket.total() else BigDecimal(s.paidAmount)
+
+    /** Lưu phiếu nhập DRAFT rồi điều hướng sang màn chi tiết để hoàn tất. */
+    fun saveDraft() {
         val s = _state.value
         if (!s.basket.hasItems()) {
-            _state.update { it.copy(errorMessage = "Chưa có sản phẩm nào có số lượng để nhập") }
+            _state.update { it.copy(errorMessage = res.get(R.string.receipt_error_no_items)) }
             return
         }
         _state.update { it.copy(loading = true, errorMessage = null) }
         viewModelScope.launch {
-            when (val r = repository.submit(s.basket, s.supplier?.id, paidAmount, paymentMethod)) {
+            val r = repository.createDraft(
+                s.basket, s.supplier?.id, effectivePaid(s), s.paymentMethod, s.note,
+            )
+            when (r) {
                 is ApiResult.Success -> {
-                    draftCache.clear()  // hoàn tất → xoá cache phiếu nhập dở
+                    draftCache.clear()  // đã lưu lên server → xoá cache phiếu nhập dở
                     _state.update {
                         it.copy(
-                            loading = false, basket = it.basket.clear(),
-                            supplier = null, lastReceiptCode = r.data.code,
+                            loading = false, basket = it.basket.clear(), supplier = null,
+                            payFull = true, paidAmount = 0, paymentMethod = "CASH", note = "",
+                            lastDraftId = r.data.id,
                         )
                     }
                 }

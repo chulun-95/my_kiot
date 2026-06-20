@@ -45,7 +45,8 @@ fun QtyStepper(
     ) {
         StepButton("−") { onChange((value - step).max(min)) }
         BasicTextField(
-            value = value.toPlainString(),
+            // Bỏ số 0 thừa để không hiện "1.0"/"1.000" (vẫn cho nhập số lẻ khi bán cân).
+            value = value.stripTrailingZeros().toPlainString(),
             onValueChange = { v ->
                 val q = try { if (v.isBlank()) BigDecimal.ZERO else BigDecimal(v) } catch (_: Exception) { null }
                 if (q != null) onChange(q)

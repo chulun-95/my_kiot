@@ -2,10 +2,12 @@ package com.mykiot.pos.feature.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mykiot.pos.R
 import com.mykiot.pos.core.auth.AuthRepository
 import com.mykiot.pos.core.auth.CurrentUser
 import com.mykiot.pos.core.auth.LoginOutcome
 import com.mykiot.pos.core.auth.TenantChoice
+import com.mykiot.pos.core.i18n.ResProvider
 import com.mykiot.pos.core.network.ApiResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +29,7 @@ data class LoginUiState(
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    private val res: ResProvider,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LoginUiState())
@@ -44,7 +47,7 @@ class LoginViewModel @Inject constructor(
     private fun doLogin(tenantId: Long?) {
         val s = _state.value
         if (s.phone.isBlank() || s.password.isBlank()) {
-            _state.update { it.copy(errorMessage = "Vui lòng nhập số điện thoại và mật khẩu") }
+            _state.update { it.copy(errorMessage = res.get(R.string.misc_login_blank_fields)) }
             return
         }
         _state.update { it.copy(loading = true, errorMessage = null, tenantChoices = emptyList()) }

@@ -18,10 +18,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mykiot.pos.R
 import com.mykiot.pos.core.ui.AppHeader
 import com.mykiot.pos.core.ui.LoadingDialog
 import com.mykiot.pos.core.ui.SectionHeader
@@ -43,7 +45,7 @@ fun CustomerDetailScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            AppHeader(title = c?.name ?: "Khách hàng", onBack = onBack, modifier = Modifier.padding(horizontal = 16.dp))
+            AppHeader(title = c?.name ?: stringResource(R.string.cat_customer_title), onBack = onBack, modifier = Modifier.padding(horizontal = 16.dp))
         },
     ) { padding ->
         Column(
@@ -58,21 +60,21 @@ fun CustomerDetailScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else if (c != null) {
-                InfoRow("SĐT", c.phone ?: "—")
-                c.email?.let { InfoRow("Email", it) }
-                c.address?.let { InfoRow("Địa chỉ", it) }
-                c.note?.let { InfoRow("Ghi chú", it) }
+                InfoRow(stringResource(R.string.cat_customer_label_phone), c.phone ?: "—")
+                c.email?.let { InfoRow(stringResource(R.string.cat_customer_label_email), it) }
+                c.address?.let { InfoRow(stringResource(R.string.cat_customer_label_address), it) }
+                c.note?.let { InfoRow(stringResource(R.string.cat_customer_label_note), it) }
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Tổng chi tiêu: ${formatVnd(BigDecimal.valueOf(c.totalSpent))} · ${c.totalOrders} đơn",
+                    stringResource(R.string.cat_customer_spending_summary, formatVnd(BigDecimal.valueOf(c.totalSpent)), c.totalOrders),
                     fontWeight = FontWeight.SemiBold,
                 )
                 Spacer(Modifier.height(16.dp))
-                SectionHeader("Lịch sử mua")
+                SectionHeader(stringResource(R.string.cat_customer_orders_section))
                 Spacer(Modifier.height(8.dp))
                 if (detail.recentOrders.isEmpty()) {
                     Text(
-                        "Chưa có đơn hàng",
+                        stringResource(R.string.cat_customer_orders_empty),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.labelMedium,
                     )
@@ -96,7 +98,7 @@ fun CustomerDetailScreen(
         }
     }
 
-    LoadingDialog(visible = state.loading, message = "Đang tải...")
+    LoadingDialog(visible = state.loading, message = stringResource(R.string.cat_customer_loading_short))
 }
 
 @Composable

@@ -5,6 +5,7 @@ import com.mykiot.pos.core.network.CustomerApi
 import com.mykiot.pos.core.network.ErrorMapper
 import com.mykiot.pos.core.network.ProductApi
 import com.mykiot.pos.core.network.SalesApi
+import com.mykiot.pos.core.network.dto.CustomerCreateDto
 import com.mykiot.pos.core.network.dto.CustomerDto
 import com.mykiot.pos.core.network.dto.InvoiceBriefDto
 import com.mykiot.pos.core.network.dto.InvoiceCompleteDto
@@ -37,6 +38,18 @@ open class PosRepository @Inject constructor(
     open suspend fun findCustomerByPhone(phone: String): ApiResult<CustomerDto> =
         runCatching { customerApi.byPhone(phone) }
             .fold({ ApiResult.Success(it) }, { ApiResult.Failure(errorMapper.map(it)) })
+
+    /** Tìm khách theo tên/SĐT cho ô chọn KH ở POS. */
+    open suspend fun searchCustomers(q: String): ApiResult<List<CustomerLite>> =
+        runCatching { customerApi.list(search = q, limit = 20).items.map { CustomerLite(it.id, it.name, it.phone) } }
+            .fold({ ApiResult.Success(it) }, { ApiResult.Failure(errorMapper.map(it)) })
+
+    /** Thêm nhanh 1 KH (tên + SĐT) ngay trong dialog chọn khách. */
+    open suspend fun createCustomer(name: String, phone: String?): ApiResult<CustomerLite> =
+        runCatching {
+            val c = customerApi.create(CustomerCreateDto(name = name, phone = phone?.ifBlank { null }))
+            CustomerLite(c.id, c.name, c.phone)
+        }.fold({ ApiResult.Success(it) }, { ApiResult.Failure(errorMapper.map(it)) })
 
     private fun buildCreateDto(cart: Cart, customerId: Long?) = InvoiceCreateDto(
         customerId = customerId,

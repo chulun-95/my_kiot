@@ -15,10 +15,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.mykiot.pos.R
 
 /**
  * Dialog loading đơn sắc, gọn ngang — card trắng bo góc + viền slate mảnh + bóng nhẹ,
@@ -28,7 +30,7 @@ import androidx.compose.ui.window.DialogProperties
 @Composable
 fun LoadingDialog(
     visible: Boolean,
-    message: String = "Đang xử lý...",
+    message: String = stringResource(R.string.core_loading_default),
 ) {
     if (!visible) return
 

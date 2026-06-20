@@ -19,12 +19,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mykiot.pos.R
 import com.mykiot.pos.core.ui.AppHeader
 import com.mykiot.pos.core.ui.AppTextField
 import com.mykiot.pos.core.ui.LoadingDialog
@@ -46,7 +48,7 @@ fun ChangePasswordScreen(
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        topBar = { AppHeader(title = "Đổi mật khẩu", onBack = onBack, modifier = Modifier.padding(horizontal = 16.dp)) },
+        topBar = { AppHeader(title = stringResource(R.string.misc_change_password_title), onBack = onBack, modifier = Modifier.padding(horizontal = 16.dp)) },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         Column(
@@ -55,7 +57,7 @@ fun ChangePasswordScreen(
             AppTextField(
                 value = state.current,
                 onValueChange = viewModel::onCurrent,
-                label = "Mật khẩu hiện tại",
+                label = stringResource(R.string.misc_change_password_current_label),
                 keyboardType = KeyboardType.Password,
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
@@ -64,17 +66,17 @@ fun ChangePasswordScreen(
             AppTextField(
                 value = state.newPass,
                 onValueChange = viewModel::onNew,
-                label = "Mật khẩu mới",
+                label = stringResource(R.string.misc_change_password_new_label),
                 keyboardType = KeyboardType.Password,
                 visualTransformation = PasswordVisualTransformation(),
-                supporting = "Tối thiểu 6 ký tự",
+                supporting = stringResource(R.string.misc_change_password_new_supporting),
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(Spacing.md))
             AppTextField(
                 value = state.confirm,
                 onValueChange = viewModel::onConfirm,
-                label = "Xác nhận mật khẩu mới",
+                label = stringResource(R.string.misc_change_password_confirm_label),
                 keyboardType = KeyboardType.Password,
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
@@ -89,9 +91,9 @@ fun ChangePasswordScreen(
                     contentColor = MaterialTheme.colorScheme.surface,
                 ),
                 modifier = Modifier.fillMaxWidth().height(56.dp),
-            ) { Text("Đổi mật khẩu", fontWeight = FontWeight.SemiBold) }
+            ) { Text(stringResource(R.string.misc_change_password_submit), fontWeight = FontWeight.SemiBold) }
         }
     }
 
-    LoadingDialog(visible = state.saving, message = "Đang đổi mật khẩu...")
+    LoadingDialog(visible = state.saving, message = stringResource(R.string.misc_change_password_saving))
 }

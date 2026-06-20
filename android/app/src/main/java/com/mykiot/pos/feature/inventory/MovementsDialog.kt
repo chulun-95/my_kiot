@@ -10,16 +10,21 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.mykiot.pos.R
 import com.mykiot.pos.core.network.dto.InventoryItemDto
 import com.mykiot.pos.core.network.dto.StockMovementDto
+import com.mykiot.pos.core.util.formatDateTime
+import com.mykiot.pos.core.util.formatQty
 
+@Composable
 private fun typeLabel(type: String): String = when (type) {
-    "SALE" -> "Bán"
-    "RECEIPT" -> "Nhập"
-    "CANCEL_SALE" -> "Hủy bán"
-    "CANCEL_RECEIPT" -> "Hủy nhập"
-    "ADJUSTMENT" -> "Điều chỉnh"
+    "SALE" -> stringResource(R.string.inv_type_sale)
+    "RECEIPT" -> stringResource(R.string.inv_type_receipt)
+    "CANCEL_SALE" -> stringResource(R.string.inv_type_cancel_sale)
+    "CANCEL_RECEIPT" -> stringResource(R.string.inv_type_cancel_receipt)
+    "ADJUSTMENT" -> stringResource(R.string.inv_type_adjustment)
     else -> type
 }
 
@@ -31,21 +36,21 @@ fun MovementsDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Thẻ kho — ${item.productName}") },
+        title = { Text(stringResource(R.string.inv_kardex_title, item.productName)) },
         text = {
             if (movements.isEmpty()) {
-                Text("Chưa có giao dịch.")
+                Text(stringResource(R.string.inv_no_movements))
             } else {
                 LazyColumn(Modifier.fillMaxWidth()) {
                     itemsIndexed(movements) { _, m ->
                         Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                            Text("${typeLabel(m.type)}: ${m.quantity} (còn ${m.balanceAfter})")
-                            Text(m.createdAt)
+                            Text(stringResource(R.string.inv_movement_row, typeLabel(m.type), formatQty(m.quantity), formatQty(m.balanceAfter)))
+                            Text(formatDateTime(m.createdAt))
                         }
                     }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Đóng") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_close)) } },
     )
 }

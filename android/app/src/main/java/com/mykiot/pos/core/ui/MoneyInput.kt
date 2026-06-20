@@ -6,9 +6,15 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalTextStyle
@@ -33,9 +39,21 @@ fun MoneyInput(
     enabled: Boolean = true,
 ) {
     val display = if (value <= 0L) "" else groupThousands(value)
+    // Giữ TextFieldValue nội bộ + LUÔN ghim con trỏ về cuối (TextRange(len, len)).
+    // Đây là chốt sửa lỗi "16 → 1000": khi con trỏ ở cuối, chữ số gõ vào luôn là ký tự cuối
+    // nên applyMoneyEdit lấy đúng chữ số vừa nhập.
+    var tfv by remember { mutableStateOf(TextFieldValue(display, TextRange(display.length))) }
+    if (tfv.text != display) {
+        tfv = TextFieldValue(display, TextRange(display.length))
+    }
     OutlinedTextField(
-        value = display,
-        onValueChange = { newText -> onValueChange(applyMoneyEdit(value, newText)) },
+        value = tfv,
+        onValueChange = { newTfv ->
+            val newVal = applyMoneyEdit(value, newTfv.text)
+            val newDisplay = if (newVal <= 0L) "" else groupThousands(newVal)
+            tfv = TextFieldValue(newDisplay, TextRange(newDisplay.length))
+            if (newVal != value) onValueChange(newVal)
+        },
         label = { Text(label) },
         enabled = enabled,
         singleLine = true,

@@ -34,10 +34,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mykiot.pos.R
 import com.mykiot.pos.core.hardware.scanner.MlKitScannerScreen
 import com.mykiot.pos.core.network.dto.ProductBriefDto
 import com.mykiot.pos.core.ui.AppHeader
@@ -75,7 +77,7 @@ fun ProductListScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            AppHeader(title = "Sản phẩm", onBack = onBack, modifier = Modifier.padding(horizontal = 16.dp))
+            AppHeader(title = stringResource(R.string.cat_product_title), onBack = onBack, modifier = Modifier.padding(horizontal = 16.dp))
         },
         floatingActionButton = {
             FloatingActionButton(
@@ -84,7 +86,7 @@ fun ProductListScreen(
                 containerColor = MaterialTheme.colorScheme.onSurface,
                 contentColor = MaterialTheme.colorScheme.surface,
             ) {
-                Icon(Icons.Filled.Add, contentDescription = "Thêm sản phẩm")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.cat_product_add))
             }
         },
     ) { padding ->
@@ -97,11 +99,11 @@ fun ProductListScreen(
             AppSearchField(
                 value = query,
                 onValueChange = viewModel::onQueryChange,
-                placeholder = "Tìm theo tên / SKU / mã vạch",
+                placeholder = stringResource(R.string.cat_product_search_placeholder),
                 modifier = Modifier.fillMaxWidth(),
                 trailing = {
                     IconButton(onClick = { showScanner = true }) {
-                        Icon(Icons.Filled.QrCodeScanner, contentDescription = "Quét mã vạch")
+                        Icon(Icons.Filled.QrCodeScanner, contentDescription = stringResource(R.string.cat_product_scan_barcode))
                     }
                 },
             )
@@ -110,14 +112,14 @@ fun ProductListScreen(
                 state = state,
                 onLoadMore = viewModel::loadMore,
                 key = { it.id },
-                emptyText = "Chưa có sản phẩm",
+                emptyText = stringResource(R.string.cat_product_empty),
             ) { p ->
                 ProductListCard(p, onClick = { onOpenDetail(p.id) })
             }
         }
     }
 
-    LoadingDialog(visible = state.refreshing && state.items.isEmpty(), message = "Đang tải sản phẩm...")
+    LoadingDialog(visible = state.refreshing && state.items.isEmpty(), message = stringResource(R.string.cat_product_loading))
 }
 
 @Composable
@@ -148,12 +150,12 @@ private fun ProductListCard(product: ProductBriefDto, onClick: () -> Unit) {
                     )
                     if (product.status == "INACTIVE") {
                         Spacer(Modifier.width(6.dp))
-                        MonoBadge("Ngừng", filled = false)
+                        MonoBadge(stringResource(R.string.cat_product_status_inactive_short), filled = false)
                     }
                 }
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    "${product.sku} • ${product.unit} • ${formatVnd(product.salePrice.toLong())}",
+                    stringResource(R.string.cat_product_list_subtitle, product.sku, product.unit, formatVnd(product.salePrice.toLong())),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

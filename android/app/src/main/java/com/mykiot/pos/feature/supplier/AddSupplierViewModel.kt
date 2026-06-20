@@ -2,6 +2,8 @@ package com.mykiot.pos.feature.supplier
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mykiot.pos.R
+import com.mykiot.pos.core.i18n.ResProvider
 import com.mykiot.pos.core.network.ApiResult
 import com.mykiot.pos.core.network.dto.SupplierCreateDto
 import com.mykiot.pos.core.network.dto.SupplierDto
@@ -26,6 +28,7 @@ data class AddSupplierUiState(
 @HiltViewModel
 class AddSupplierViewModel @Inject constructor(
     private val repository: SupplierRepository,
+    private val res: ResProvider,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AddSupplierUiState())
@@ -48,7 +51,7 @@ class AddSupplierViewModel @Inject constructor(
     fun submit() {
         val s = _state.value
         if (s.name.isBlank()) {
-            _state.update { it.copy(errorMessage = "Vui lòng nhập tên nhà cung cấp") }
+            _state.update { it.copy(errorMessage = res.get(R.string.cat_supplier_err_name_required)) }
             return
         }
         _state.update { it.copy(loading = true, errorMessage = null) }

@@ -22,7 +22,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.mykiot.pos.R
 import com.mykiot.pos.core.network.dto.SupplierDto
 import com.mykiot.pos.feature.receipt.data.SupplierLite
 
@@ -44,14 +46,14 @@ fun SupplierPickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Chọn nhà cung cấp") },
+        title = { Text(stringResource(R.string.receipt_pick_supplier)) },
         text = {
             LazyColumn(Modifier.fillMaxWidth()) {
                 item {
                     OutlinedTextField(
                         value = query,
                         onValueChange = { query = it },
-                        placeholder = { Text("Tìm theo tên, SĐT...") },
+                        placeholder = { Text(stringResource(R.string.receipt_supplier_search_placeholder)) },
                         leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                         singleLine = true,
                         modifier = Modifier
@@ -71,7 +73,7 @@ fun SupplierPickerDialog(
                         ) {
                             Icon(Icons.Filled.Add, contentDescription = null)
                             Text(
-                                "  Thêm nhà cung cấp mới",
+                                "  " + stringResource(R.string.receipt_add_supplier),
                             )
                         }
                     }
@@ -79,7 +81,7 @@ fun SupplierPickerDialog(
                 item {
                     TextButton(onClick = { onPick(null) }, modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            "— Không chọn NCC —",
+                            stringResource(R.string.receipt_no_supplier),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -94,6 +96,6 @@ fun SupplierPickerDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Đóng") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_close)) } },
     )
 }

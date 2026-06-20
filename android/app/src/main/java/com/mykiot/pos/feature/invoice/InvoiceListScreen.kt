@@ -30,10 +30,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mykiot.pos.R
 import com.mykiot.pos.core.network.dto.InvoiceBriefDto
 import com.mykiot.pos.core.ui.LoadingDialog
 import com.mykiot.pos.core.ui.MonoBadge
@@ -59,15 +61,15 @@ fun InvoiceListScreen(
         var reason by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = viewModel::dismissCancel,
-            title = { Text("Hủy hóa đơn?") },
+            title = { Text(stringResource(R.string.misc_invoice_cancel_title)) },
             text = {
                 Column {
-                    Text("Hủy sẽ hoàn lại tồn kho. Không thể hoàn tác.")
+                    Text(stringResource(R.string.misc_invoice_cancel_warning))
                     Spacer(Modifier.height(12.dp))
                     OutlinedTextField(
                         value = reason,
                         onValueChange = { reason = it },
-                        label = { Text("Lý do hủy") },
+                        label = { Text(stringResource(R.string.misc_invoice_cancel_reason_label)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -78,11 +80,11 @@ fun InvoiceListScreen(
                     enabled = reason.isNotBlank(),
                     onClick = { viewModel.cancelInvoice(cancelId, reason) },
                 ) {
-                    Text("Xác nhận", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.common_confirm), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = viewModel::dismissCancel) { Text("Đóng") }
+                TextButton(onClick = viewModel::dismissCancel) { Text(stringResource(R.string.common_close)) }
             },
         )
     }
@@ -102,7 +104,7 @@ fun InvoiceListScreen(
                     FilterChip(
                         selected = filter == f,
                         onClick = { viewModel.setFilter(f) },
-                        label = { Text(f.label()) },
+                        label = { Text(stringResource(f.labelRes())) },
                     )
                 }
             }
@@ -111,14 +113,14 @@ fun InvoiceListScreen(
                 state = state,
                 onLoadMore = viewModel::loadMore,
                 key = { it.id },
-                emptyText = "Chưa có hóa đơn",
+                emptyText = stringResource(R.string.misc_invoice_empty),
             ) { inv ->
                 InvoiceCard(invoice = inv, onCancel = { viewModel.requestCancel(inv.id) })
             }
         }
     }
 
-    LoadingDialog(visible = state.refreshing && state.items.isEmpty(), message = "Đang tải hóa đơn...")
+    LoadingDialog(visible = state.refreshing && state.items.isEmpty(), message = stringResource(R.string.misc_invoice_loading))
 }
 
 @Composable
@@ -144,14 +146,15 @@ private fun InvoiceCard(invoice: InvoiceBriefDto, onCancel: () -> Unit) {
             ) {
                 Text(invoice.code, fontWeight = FontWeight.SemiBold)
                 MonoBadge(
-                    text = if (invoice.status == "COMPLETED") "Đã bán" else "Đã hủy",
+                    text = if (invoice.status == "COMPLETED") stringResource(R.string.misc_invoice_status_sold)
+                    else stringResource(R.string.misc_invoice_status_cancelled),
                     filled = invoice.status == "COMPLETED",
                 )
             }
             Spacer(Modifier.height(4.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(
-                    invoice.customerName ?: "Khách lẻ",
+                    invoice.customerName ?: stringResource(R.string.common_guest_customer),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -170,7 +173,7 @@ private fun InvoiceCard(invoice: InvoiceBriefDto, onCancel: () -> Unit) {
                 Text(formatVnd(invoice.total), fontWeight = FontWeight.SemiBold)
                 if (invoice.status == "COMPLETED") {
                     TextButton(onClick = onCancel) {
-                        Text("Hủy", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.misc_invoice_cancel_action), color = MaterialTheme.colorScheme.error)
                     }
                 }
             }

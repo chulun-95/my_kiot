@@ -1,3 +1,21 @@
 <resources>
     <string name="app_name">My Kiot POS</string>
+
+    <!-- ===== Chung (dùng nhiều module). Module-specific strings nằm ở strings_<module>.xml ===== -->
+    <string name="common_save">Lưu</string>
+    <string name="common_cancel">Huỷ</string>
+    <string name="common_delete">Xoá</string>
+    <string name="common_close">Đóng</string>
+    <string name="common_back">Quay lại</string>
+    <string name="common_confirm">Xác nhận</string>
+    <string name="common_add">Thêm</string>
+    <string name="common_edit">Sửa</string>
+    <string name="common_done">Hoàn tất</string>
+    <string name="common_processing">Đang xử lý…</string>
+    <string name="common_loading">Đang tải…</string>
+    <string name="common_retry">Thử lại</string>
+    <string name="common_search">Tìm kiếm</string>
+    <string name="common_guest_customer">Khách lẻ</string>
+    <string name="common_logout">Đăng xuất</string>
+    <string name="common_optional">(tuỳ chọn)</string>
 </resources>

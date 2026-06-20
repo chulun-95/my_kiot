@@ -1,6 +1,8 @@
 package com.mykiot.pos.feature.pos
 
+import com.mykiot.pos.R
 import com.mykiot.pos.core.hardware.printer.ReceiptPrinter
+import com.mykiot.pos.core.i18n.FakeResProvider
 import com.mykiot.pos.core.network.ApiError
 import com.mykiot.pos.core.network.ApiResult
 import com.mykiot.pos.core.network.dto.InvoiceDto
@@ -28,6 +30,7 @@ class PosViewModelTest {
 
     private val repo: PosRepository = mockk(relaxed = true)
     private val printer: ReceiptPrinter = mockk(relaxed = true)
+    private val res = FakeResProvider()
 
     @Before fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -57,7 +60,7 @@ class PosViewModelTest {
 
     @Test fun `scanned barcode adds product to cart`() = runTest {
         coEvery { repo.byBarcode(any()) } returns ApiResult.Success(brief(1, 10000.0))
-        val vm = PosViewModel(repo, printer)
+        val vm = PosViewModel(repo, printer, res)
 
         vm.onBarcodeScanned("8938505970")
 
@@ -68,7 +71,7 @@ class PosViewModelTest {
 
     @Test fun `scanning same barcode twice increments quantity`() = runTest {
         coEvery { repo.byBarcode(any()) } returns ApiResult.Success(brief(1, 10000.0))
-        val vm = PosViewModel(repo, printer)
+        val vm = PosViewModel(repo, printer, res)
 
         vm.onBarcodeScanned("x"); vm.onBarcodeScanned("x")
 
@@ -79,7 +82,7 @@ class PosViewModelTest {
     @Test fun `unknown barcode surfaces vietnamese error, cart unchanged`() = runTest {
         coEvery { repo.byBarcode(any()) } returns
             ApiResult.Failure(ApiError("NOT_FOUND", "Không tìm thấy sản phẩm", 404))
-        val vm = PosViewModel(repo, printer)
+        val vm = PosViewModel(repo, printer, res)
 
         vm.onBarcodeScanned("nope")
 
@@ -91,7 +94,7 @@ class PosViewModelTest {
         coEvery { repo.byBarcode(any()) } returns ApiResult.Success(brief(1, 10000.0))
         coEvery { repo.checkout(any(), any(), any(), any(), any()) } returns
             ApiResult.Success(completedInvoice("HD20260609-007"))
-        val vm = PosViewModel(repo, printer)
+        val vm = PosViewModel(repo, printer, res)
         vm.onBarcodeScanned("x")
 
         vm.checkout(emptyList(), allowDebt = false)
@@ -106,7 +109,7 @@ class PosViewModelTest {
         coEvery { repo.byBarcode(any()) } returns ApiResult.Success(brief(1, 10000.0))
         coEvery { repo.checkout(any(), any(), any(), any(), any()) } returns
             ApiResult.Failure(ApiError("INSUFFICIENT_STOCK", "SP1 chỉ còn 0", 400))
-        val vm = PosViewModel(repo, printer)
+        val vm = PosViewModel(repo, printer, res)
         vm.onBarcodeScanned("x")
 
         vm.checkout(emptyList(), allowDebt = false)
@@ -117,10 +120,10 @@ class PosViewModelTest {
     }
 
     @Test fun `checkout on empty cart shows vietnamese error and does not call repo`() = runTest {
-        val vm = PosViewModel(repo, printer)
+        val vm = PosViewModel(repo, printer, res)
 
         vm.checkout(emptyList(), allowDebt = false)
 
-        assertEquals("Giỏ hàng trống", vm.state.value.errorMessage)
+        assertEquals(res.get(R.string.pos_cart_empty), vm.state.value.errorMessage)
     }
 }

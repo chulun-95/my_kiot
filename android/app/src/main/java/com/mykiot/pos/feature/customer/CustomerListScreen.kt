@@ -26,10 +26,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mykiot.pos.R
 import com.mykiot.pos.core.ui.AppHeader
 import com.mykiot.pos.core.ui.AppSearchField
 import com.mykiot.pos.core.ui.LoadingDialog
@@ -51,7 +53,7 @@ fun CustomerListScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            AppHeader(title = "Khách hàng", onBack = onBack, modifier = Modifier.padding(horizontal = 16.dp))
+            AppHeader(title = stringResource(R.string.cat_customer_title), onBack = onBack, modifier = Modifier.padding(horizontal = 16.dp))
         },
         floatingActionButton = {
             FloatingActionButton(
@@ -60,7 +62,7 @@ fun CustomerListScreen(
                 containerColor = MaterialTheme.colorScheme.onSurface,
                 contentColor = MaterialTheme.colorScheme.surface,
             ) {
-                Icon(Icons.Filled.Add, contentDescription = "Thêm khách hàng")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.cat_customer_add))
             }
         },
     ) { padding ->
@@ -73,7 +75,7 @@ fun CustomerListScreen(
             AppSearchField(
                 value = query,
                 onValueChange = viewModel::onQueryChange,
-                placeholder = "Tìm theo tên / SĐT",
+                placeholder = stringResource(R.string.cat_customer_search_placeholder),
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(12.dp))
@@ -81,7 +83,7 @@ fun CustomerListScreen(
                 state = state,
                 onLoadMore = viewModel::loadMore,
                 key = { it.id },
-                emptyText = "Chưa có khách hàng",
+                emptyText = stringResource(R.string.cat_customer_empty),
             ) { c ->
                     Card(
                         shape = RoundedCornerShape(16.dp),
@@ -100,7 +102,7 @@ fun CustomerListScreen(
                                 Text(c.name, fontWeight = FontWeight.SemiBold, maxLines = 1)
                                 Spacer(Modifier.height(2.dp))
                                 Text(
-                                    "${c.phone ?: "—"} · ${formatVnd(BigDecimal.valueOf(c.totalSpent))}",
+                                    stringResource(R.string.cat_customer_list_subtitle, c.phone ?: "—", formatVnd(BigDecimal.valueOf(c.totalSpent))),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -116,5 +118,5 @@ fun CustomerListScreen(
         }
     }
 
-    LoadingDialog(visible = state.refreshing && state.items.isEmpty(), message = "Đang tải khách hàng...")
+    LoadingDialog(visible = state.refreshing && state.items.isEmpty(), message = stringResource(R.string.cat_customer_loading))
 }

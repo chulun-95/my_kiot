@@ -29,10 +29,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mykiot.pos.R
 import com.mykiot.pos.core.network.dto.InvoiceBriefDto
 import com.mykiot.pos.core.ui.LoadingDialog
 import com.mykiot.pos.core.ui.paging.PagedLazyColumn
@@ -66,14 +68,14 @@ fun ReturnsScreen(
                 state = state,
                 onLoadMore = viewModel::loadMore,
                 key = { it.id },
-                emptyText = "Chưa có hóa đơn nào có thể trả",
+                emptyText = stringResource(R.string.misc_returns_empty),
             ) { inv ->
                 ReturnCard(invoice = inv, onReturn = { onOpenReturn(inv.id) })
             }
         }
     }
 
-    LoadingDialog(visible = state.refreshing && state.items.isEmpty(), message = "Đang tải hóa đơn...")
+    LoadingDialog(visible = state.refreshing && state.items.isEmpty(), message = stringResource(R.string.misc_returns_loading))
 }
 
 @Composable
@@ -112,14 +114,14 @@ private fun ReturnCard(invoice: InvoiceBriefDto, onReturn: () -> Unit) {
             ) {
                 Column {
                     Text(
-                        invoice.customerName ?: "Khách lẻ",
+                        invoice.customerName ?: stringResource(R.string.common_guest_customer),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(formatVnd(invoice.total), fontWeight = FontWeight.SemiBold)
                 }
                 TextButton(onClick = onReturn) {
-                    Text("Trả hàng", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.misc_returns_action), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                 }
             }
         }

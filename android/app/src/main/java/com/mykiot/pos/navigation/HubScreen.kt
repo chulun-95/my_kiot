@@ -44,52 +44,55 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.annotation.StringRes
+import com.mykiot.pos.R
 import com.mykiot.pos.core.ui.AppHeader
 import com.mykiot.pos.core.ui.SectionHeader
 
 private data class HubItem(
-    val label: String,
+    @StringRes val label: Int,
     val route: String,
     val icon: ImageVector,
     val ownerOnly: Boolean = false,   // hướng B dùng để ẩn với CASHIER
 )
 
-private data class HubGroup(val title: String, val items: List<HubItem>)
+private data class HubGroup(@StringRes val title: Int, val items: List<HubItem>)
 
 private val hubGroups = listOf(
     HubGroup(
-        "Kho",
+        R.string.core_hub_group_inventory,
         listOf(
-            HubItem("Nhập hàng", Routes.RECEIPT, Icons.AutoMirrored.Outlined.ReceiptLong),
-            HubItem("Tồn kho", Routes.INVENTORY, Icons.Outlined.Inventory2),
-            HubItem("Trả hàng", Routes.RETURNS, Icons.AutoMirrored.Outlined.AssignmentReturn),
+            HubItem(R.string.core_hub_receipt, Routes.RECEIPT, Icons.AutoMirrored.Outlined.ReceiptLong),
+            HubItem(R.string.core_hub_inventory, Routes.INVENTORY, Icons.Outlined.Inventory2),
+            HubItem(R.string.core_hub_returns, Routes.RETURNS, Icons.AutoMirrored.Outlined.AssignmentReturn),
         ),
     ),
     HubGroup(
-        "Danh mục",
+        R.string.core_hub_group_catalog,
         listOf(
-            HubItem("Sản phẩm", Routes.PRODUCTS, Icons.Outlined.Sell),
-            HubItem("Khách hàng", Routes.CUSTOMERS, Icons.Outlined.Group),
+            HubItem(R.string.core_hub_products, Routes.PRODUCTS, Icons.Outlined.Sell),
+            HubItem(R.string.core_hub_customers, Routes.CUSTOMERS, Icons.Outlined.Group),
         ),
     ),
     HubGroup(
-        "Bán hàng",
+        R.string.core_hub_group_sales,
         listOf(
-            HubItem("Hóa đơn", Routes.INVOICE_HISTORY, Icons.Outlined.Description),
+            HubItem(R.string.core_hub_invoices, Routes.INVOICE_HISTORY, Icons.Outlined.Description),
         ),
     ),
     HubGroup(
-        "Báo cáo",
+        R.string.core_hub_group_report,
         listOf(
-            HubItem("Tổng quan", Routes.REPORT, Icons.Outlined.Assessment),
+            HubItem(R.string.core_hub_report, Routes.REPORT, Icons.Outlined.Assessment),
         ),
     ),
     HubGroup(
-        "Hệ thống",
+        R.string.core_hub_group_system,
         listOf(
-            HubItem("Đổi mật khẩu", Routes.CHANGE_PASSWORD, Icons.Outlined.Lock),
+            HubItem(R.string.core_hub_change_password, Routes.CHANGE_PASSWORD, Icons.Outlined.Lock),
         ),
     ),
 )
@@ -105,18 +108,18 @@ fun HubScreen(
     if (showLogoutConfirm) {
         AlertDialog(
             onDismissRequest = { showLogoutConfirm = false },
-            title = { Text("Đăng xuất") },
-            text = { Text("Bạn có chắc chắn muốn đăng xuất không?") },
+            title = { Text(stringResource(R.string.common_logout)) },
+            text = { Text(stringResource(R.string.core_logout_confirm_message)) },
             confirmButton = {
                 TextButton(
                     onClick = { showLogoutConfirm = false; onLogout() },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error,
                     ),
-                ) { Text("Đăng xuất") }
+                ) { Text(stringResource(R.string.common_logout)) }
             },
             dismissButton = {
-                TextButton(onClick = { showLogoutConfirm = false }) { Text("Hủy") }
+                TextButton(onClick = { showLogoutConfirm = false }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -125,10 +128,10 @@ fun HubScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             AppHeader(
-                title = "my_kiot POS",
+                title = stringResource(R.string.core_hub_title),
                 modifier = Modifier.padding(horizontal = 16.dp),
                 actions = {
-                    TextButton(onClick = { showLogoutConfirm = true }) { Text("Đăng xuất") }
+                    TextButton(onClick = { showLogoutConfirm = true }) { Text(stringResource(R.string.common_logout)) }
                 },
             )
         },
@@ -143,7 +146,7 @@ fun HubScreen(
             PosButton(onClick = onOpenPos)
             Spacer(Modifier.height(20.dp))
             hubGroups.forEachIndexed { index, group ->
-                SectionHeader(group.title)
+                SectionHeader(stringResource(group.title))
                 Spacer(Modifier.height(10.dp))
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
@@ -186,9 +189,9 @@ private fun PosButton(onClick: () -> Unit) {
             Icon(Icons.Outlined.PointOfSale, contentDescription = null)
             Spacer(Modifier.width(14.dp))
             Column {
-                Text("BÁN HÀNG", style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.core_pos_button_title), style = MaterialTheme.typography.titleLarge)
                 Text(
-                    "Mở màn POS để bán hàng",
+                    stringResource(R.string.core_pos_button_subtitle),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
                 )
@@ -232,7 +235,7 @@ private fun HubCard(item: HubItem, onClick: () -> Unit) {
                 )
             }
             Text(
-                item.label,
+                stringResource(item.label),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )

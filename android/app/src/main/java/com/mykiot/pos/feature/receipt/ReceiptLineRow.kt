@@ -24,13 +24,22 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.mykiot.pos.R
+import com.mykiot.pos.core.ui.ConfirmDialog
 import com.mykiot.pos.core.ui.QtyStepper
 import com.mykiot.pos.core.ui.applyMoneyEdit
 import com.mykiot.pos.core.ui.moneyDisplay
@@ -45,6 +54,15 @@ fun ReceiptLineRow(
     onCost: (BigDecimal) -> Unit,
     onRemove: () -> Unit,
 ) {
+    var showRemoveConfirm by remember { mutableStateOf(false) }
+    if (showRemoveConfirm) {
+        ConfirmDialog(
+            title = stringResource(R.string.receipt_remove_product),
+            message = stringResource(R.string.receipt_remove_confirm, line.name),
+            onConfirm = onRemove,
+            onDismiss = { showRemoveConfirm = false },
+        )
+    }
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -63,10 +81,10 @@ fun ReceiptLineRow(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                IconButton(onClick = onRemove) {
+                IconButton(onClick = { showRemoveConfirm = true }) {
                     Icon(
                         Icons.Outlined.DeleteOutline,
-                        contentDescription = "Xoá sản phẩm",
+                        contentDescription = stringResource(R.string.receipt_remove_product),
                         tint = MaterialTheme.colorScheme.error,
                     )
                 }
@@ -74,7 +92,7 @@ fun ReceiptLineRow(
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Số lượng",
+                    stringResource(R.string.receipt_quantity),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
@@ -89,7 +107,7 @@ fun ReceiptLineRow(
             Spacer(Modifier.height(10.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Giá nhập",
+                    stringResource(R.string.receipt_cost_price),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
@@ -98,7 +116,7 @@ fun ReceiptLineRow(
             }
             Spacer(Modifier.height(8.dp))
             Text(
-                "Thành tiền: ${formatVnd(line.lineTotal())}",
+                stringResource(R.string.receipt_line_total, formatVnd(line.lineTotal())),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -110,6 +128,12 @@ fun ReceiptLineRow(
 @Composable
 private fun CostField(value: BigDecimal, onChange: (BigDecimal) -> Unit) {
     val current = value.toLong()
+    val display = moneyDisplay(current)
+    // Ghim con trỏ về cuối — cùng cách sửa với MoneyInput (lỗi "16 → 1000").
+    var tfv by remember { mutableStateOf(TextFieldValue(display, TextRange(display.length))) }
+    if (tfv.text != display) {
+        tfv = TextFieldValue(display, TextRange(display.length))
+    }
     Box(
         Modifier
             .width(140.dp)
@@ -120,15 +144,20 @@ private fun CostField(value: BigDecimal, onChange: (BigDecimal) -> Unit) {
     ) {
         if (current <= 0L) {
             Text(
-                "0 đ",
+                stringResource(R.string.receipt_zero_money),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.End,
             )
         }
         BasicTextField(
-            value = moneyDisplay(current),
-            onValueChange = { v -> onChange(BigDecimal(applyMoneyEdit(current, v))) },
+            value = tfv,
+            onValueChange = { newTfv ->
+                val newVal = applyMoneyEdit(current, newTfv.text)
+                val newDisplay = moneyDisplay(newVal)
+                tfv = TextFieldValue(newDisplay, TextRange(newDisplay.length))
+                if (newVal != current) onChange(BigDecimal(newVal))
+            },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             textStyle = LocalTextStyle.current.copy(

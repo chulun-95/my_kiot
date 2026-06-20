@@ -2,7 +2,9 @@ package com.mykiot.pos.feature.pos
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mykiot.pos.R
 import com.mykiot.pos.core.hardware.Beeper
+import com.mykiot.pos.core.i18n.ResProvider
 import com.mykiot.pos.core.hardware.printer.PrintResult
 import com.mykiot.pos.core.hardware.printer.ReceiptData
 import com.mykiot.pos.core.hardware.printer.ReceiptItemLine
@@ -27,6 +29,7 @@ import javax.inject.Inject
 class PosViewModel @Inject constructor(
     private val repository: PosRepository,
     private val printer: ReceiptPrinter,
+    private val res: ResProvider,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(PosUiState())
@@ -50,7 +53,10 @@ class PosViewModel @Inject constructor(
     fun onBarcodeScanned(code: String) {
         viewModelScope.launch {
             when (val r = repository.byBarcode(code)) {
-                is ApiResult.Success -> addToCart(r.data)
+                is ApiResult.Success -> {
+                    Beeper.pip()  // quét + thêm thành công → "pip"
+                    addToCart(r.data)
+                }
                 is ApiResult.Failure -> {
                     Beeper.error()  // không tìm thấy SP → "tit tit"
                     _state.update { it.copy(errorMessage = r.error.message) }
@@ -82,10 +88,54 @@ class PosViewModel @Inject constructor(
     fun setLineDiscount(index: Int, d: BigDecimal) =
         _state.update { it.copy(cart = it.cart.setLineDiscount(index, d)) }
 
+    fun setInvoiceDiscount(d: BigDecimal) =
+        _state.update { it.copy(cart = it.cart.withInvoiceDiscount(d)) }
+
     fun removeLine(index: Int) =
         _state.update { it.copy(cart = it.cart.removeLine(index)) }
 
     fun setCustomer(c: CustomerLite?) = _state.update { it.copy(customer = c) }
+
+    // ----- Chọn khách hàng -----
+    fun openCustomerPicker() = _state.update { it.copy(showCustomerPicker = true, customerResults = emptyList()) }
+    fun closeCustomerPicker() = _state.update { it.copy(showCustomerPicker = false, customerResults = emptyList()) }
+
+    fun searchCustomers(q: String) {
+        if (q.isBlank()) {
+            _state.update { it.copy(customerResults = emptyList()) }
+            return
+        }
+        viewModelScope.launch {
+            when (val r = repository.searchCustomers(q.trim())) {
+                is ApiResult.Success -> _state.update { it.copy(customerResults = r.data) }
+                is ApiResult.Failure -> _state.update { it.copy(errorMessage = r.error.message) }
+            }
+        }
+    }
+
+    fun pickCustomer(c: CustomerLite?) =
+        _state.update { it.copy(customer = c, showCustomerPicker = false, customerResults = emptyList()) }
+
+    /** Thêm nhanh KH rồi chọn luôn cho hoá đơn hiện tại. */
+    fun quickAddCustomer(name: String, phone: String?) {
+        if (name.isBlank()) {
+            _state.update { it.copy(errorMessage = res.get(R.string.pos_enter_customer_name)) }
+            return
+        }
+        _state.update { it.copy(loading = true, errorMessage = null) }
+        viewModelScope.launch {
+            when (val r = repository.createCustomer(name.trim(), phone)) {
+                is ApiResult.Success -> _state.update {
+                    it.copy(
+                        loading = false, customer = r.data,
+                        showCustomerPicker = false, customerResults = emptyList(),
+                        infoMessage = res.get(R.string.pos_customer_added, r.data.name),
+                    )
+                }
+                is ApiResult.Failure -> _state.update { it.copy(loading = false, errorMessage = r.error.message) }
+            }
+        }
+    }
 
     fun clearError() = _state.update { it.copy(errorMessage = null) }
 
@@ -97,7 +147,7 @@ class PosViewModel @Inject constructor(
     fun holdOrder() {
         val s = _state.value
         if (s.cart.isEmpty()) {
-            _state.update { it.copy(errorMessage = "Giỏ hàng trống") }
+            _state.update { it.copy(errorMessage = res.get(R.string.pos_cart_empty)) }
             return
         }
         _state.update { it.copy(loading = true, errorMessage = null) }
@@ -110,7 +160,7 @@ class PosViewModel @Inject constructor(
                             cart = it.cart.clear(),
                             customer = null,
                             heldDraftId = null,
-                            infoMessage = "Đã treo đơn ${r.data.code}",
+                            infoMessage = res.get(R.string.pos_held_order_done, r.data.code),
                         )
                     }
                     loadDrafts()
@@ -199,7 +249,7 @@ class PosViewModel @Inject constructor(
     fun checkout(payments: List<PaymentInputDto>, allowDebt: Boolean) {
         val s = _state.value
         if (s.cart.isEmpty()) {
-            _state.update { it.copy(errorMessage = "Giỏ hàng trống") }
+            _state.update { it.copy(errorMessage = res.get(R.string.pos_cart_empty)) }
             return
         }
         _state.update { it.copy(loading = true, errorMessage = null) }

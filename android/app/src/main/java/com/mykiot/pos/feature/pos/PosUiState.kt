@@ -11,6 +11,9 @@ data class PosUiState(
     val query: String = "",
     val searchResults: List<ProductBriefDto> = emptyList(),
     val customer: CustomerLite? = null,
+    // ----- Chọn khách hàng -----
+    val showCustomerPicker: Boolean = false,
+    val customerResults: List<CustomerLite> = emptyList(),
     val loading: Boolean = false,
     val errorMessage: String? = null,
     val infoMessage: String? = null,       // thông báo ngắn (vd: "Đã treo đơn")

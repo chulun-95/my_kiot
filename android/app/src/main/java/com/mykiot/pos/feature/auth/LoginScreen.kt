@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import com.mykiot.pos.R
@@ -93,13 +94,13 @@ fun LoginScreen(
             )
         }
         Spacer(Modifier.height(36.dp))
-        Text("Đăng nhập", style = MaterialTheme.typography.headlineMedium)
+        Text(stringResource(R.string.misc_login_title), style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(28.dp))
 
         AppTextField(
             value = state.phone,
             onValueChange = viewModel::onPhoneChange,
-            label = "Số điện thoại",
+            label = stringResource(R.string.misc_login_phone_label),
             keyboardType = KeyboardType.Phone,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -107,14 +108,14 @@ fun LoginScreen(
         AppTextField(
             value = state.password,
             onValueChange = viewModel::onPasswordChange,
-            label = "Mật khẩu",
+            label = stringResource(R.string.misc_login_password_label),
             keyboardType = KeyboardType.Password,
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
                         imageVector = if (passwordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                        contentDescription = if (passwordVisible) "Ẩn mật khẩu" else "Hiện mật khẩu",
+                        contentDescription = if (passwordVisible) stringResource(R.string.misc_login_password_hide) else stringResource(R.string.misc_login_password_show),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -130,7 +131,7 @@ fun LoginScreen(
         // Multi-tenant selection
         if (state.tenantChoices.isNotEmpty()) {
             Spacer(Modifier.height(16.dp))
-            SectionHeader("Chọn cửa hàng")
+            SectionHeader(stringResource(R.string.misc_login_select_shop))
             Spacer(Modifier.height(8.dp))
             state.tenantChoices.forEach { choice ->
                 OutlinedButton(
@@ -138,7 +139,7 @@ fun LoginScreen(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 ) {
-                    Text("${choice.name} (${choice.role})")
+                    Text(stringResource(R.string.misc_login_tenant_choice, choice.name, choice.role))
                 }
             }
         }
@@ -154,9 +155,9 @@ fun LoginScreen(
             ),
             modifier = Modifier.fillMaxWidth().height(54.dp),
         ) {
-            Text("Đăng nhập", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.misc_login_submit), fontWeight = FontWeight.SemiBold)
         }
     }
 
-    LoadingDialog(visible = state.loading, message = "Đang đăng nhập...")
+    LoadingDialog(visible = state.loading, message = stringResource(R.string.misc_login_loading))
 }

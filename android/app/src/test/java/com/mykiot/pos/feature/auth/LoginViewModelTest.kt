@@ -3,7 +3,9 @@ package com.mykiot.pos.feature.auth
 import com.mykiot.pos.core.auth.AuthRepository
 import com.mykiot.pos.core.auth.CurrentUser
 import com.mykiot.pos.core.auth.LoginOutcome
+import com.mykiot.pos.R
 import com.mykiot.pos.core.auth.TenantChoice
+import com.mykiot.pos.core.i18n.FakeResProvider
 import com.mykiot.pos.core.network.ApiError
 import com.mykiot.pos.core.network.ApiResult
 import io.mockk.coEvery
@@ -26,6 +28,7 @@ import org.junit.Test
 class LoginViewModelTest {
 
     private val repo: AuthRepository = mockk(relaxed = true)
+    private val res = FakeResProvider()
 
     // Unconfined: the login coroutine runs eagerly so state.value is final after submit().
     @Before fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -37,7 +40,7 @@ class LoginViewModelTest {
     fun `successful login sets loggedInUser and clears loading`() = runTest {
         coEvery { repo.login("0901234567", "secret123", null) } returns
             ApiResult.Success(LoginOutcome.LoggedIn(user()))
-        val vm = LoginViewModel(repo)
+        val vm = LoginViewModel(repo, res)
 
         vm.onPhoneChange("0901234567")
         vm.onPasswordChange("secret123")
@@ -54,7 +57,7 @@ class LoginViewModelTest {
     fun `invalid credentials surfaces vietnamese error`() = runTest {
         coEvery { repo.login(any(), any(), null) } returns
             ApiResult.Failure(ApiError("INVALID_CREDENTIALS", "Sai số điện thoại hoặc mật khẩu", 401))
-        val vm = LoginViewModel(repo)
+        val vm = LoginViewModel(repo, res)
         vm.onPhoneChange("0901234567"); vm.onPasswordChange("nope")
 
         vm.submit()
@@ -73,7 +76,7 @@ class LoginViewModelTest {
                     listOf(TenantChoice(1, "Shop A", "OWNER"), TenantChoice(2, "Shop B", "CASHIER")),
                 ),
             )
-        val vm = LoginViewModel(repo)
+        val vm = LoginViewModel(repo, res)
         vm.onPhoneChange("0901234567"); vm.onPasswordChange("secret123")
 
         vm.submit()
@@ -86,11 +89,11 @@ class LoginViewModelTest {
 
     @Test
     fun `blank fields produce validation error without calling repo`() = runTest {
-        val vm = LoginViewModel(repo)
+        val vm = LoginViewModel(repo, res)
 
         vm.submit()
 
-        assertEquals("Vui lòng nhập số điện thoại và mật khẩu", vm.state.value.errorMessage)
+        assertEquals(res.get(R.string.misc_login_blank_fields), vm.state.value.errorMessage)
         coVerify(exactly = 0) { repo.login(any(), any(), any()) }
     }
 }

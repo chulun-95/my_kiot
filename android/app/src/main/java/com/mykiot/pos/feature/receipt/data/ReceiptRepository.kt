@@ -35,18 +35,20 @@ open class ReceiptRepository @Inject constructor(
         runCatching { productApi.byBarcode(code) }
             .fold({ ApiResult.Success(it) }, { ApiResult.Failure(errorMapper.map(it)) })
 
-    /** Tạo phiếu nhập DRAFT rồi hoàn tất. */
-    open suspend fun submit(
+    /** Tạo phiếu nhập DRAFT (chưa cộng tồn — hoàn tất ở màn chi tiết). */
+    open suspend fun createDraft(
         basket: ReceiptBasket,
         supplierId: Long?,
         paidAmount: BigDecimal,
         paymentMethod: String,
+        note: String?,
     ): ApiResult<GoodsReceiptDto> = runCatching {
-        val draft = inventoryApi.createReceipt(
+        inventoryApi.createReceipt(
             GoodsReceiptCreateDto(
                 supplierId = supplierId,
                 paidAmount = paidAmount.toPlainString(),
                 paymentMethod = paymentMethod,
+                note = note?.ifBlank { null },
                 items = basket.activeLines().map {
                     GoodsReceiptItemInputDto(
                         productId = it.productId,
@@ -57,8 +59,17 @@ open class ReceiptRepository @Inject constructor(
                 },
             ),
         )
-        inventoryApi.completeReceipt(draft.id)
     }.fold({ ApiResult.Success(it) }, { ApiResult.Failure(errorMapper.map(it)) })
+
+    /** Lấy chi tiết 1 phiếu nhập (màn chi tiết). */
+    open suspend fun getReceipt(id: Long): ApiResult<GoodsReceiptDto> =
+        runCatching { inventoryApi.getReceipt(id) }
+            .fold({ ApiResult.Success(it) }, { ApiResult.Failure(errorMapper.map(it)) })
+
+    /** Hoàn tất phiếu nhập DRAFT → cộng tồn + tính giá vốn. */
+    open suspend fun complete(id: Long): ApiResult<GoodsReceiptDto> =
+        runCatching { inventoryApi.completeReceipt(id) }
+            .fold({ ApiResult.Success(it) }, { ApiResult.Failure(errorMapper.map(it)) })
 
     /** Khi quét/chọn SP để nhập: giá vốn mặc định = costPrice hiện tại (nếu được xem), nếu null → 0. */
     open fun toReceiptLine(dto: ProductBriefDto): ReceiptLine = ReceiptLine(

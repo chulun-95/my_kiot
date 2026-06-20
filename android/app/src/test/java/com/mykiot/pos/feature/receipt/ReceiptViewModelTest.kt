@@ -1,5 +1,7 @@
 package com.mykiot.pos.feature.receipt
 
+import com.mykiot.pos.R
+import com.mykiot.pos.core.i18n.FakeResProvider
 import com.mykiot.pos.core.network.ApiError
 import com.mykiot.pos.core.network.ApiResult
 import com.mykiot.pos.core.network.dto.GoodsReceiptDto
@@ -28,6 +30,7 @@ class ReceiptViewModelTest {
 
     private val repo: ReceiptRepository = mockk(relaxed = true)
     private val draftCache: ReceiptDraftCache = mockk(relaxed = true)
+    private val res = FakeResProvider()
 
     @Before fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -56,7 +59,7 @@ class ReceiptViewModelTest {
 
     @Test fun `scan adds product to basket`() = runTest {
         coEvery { repo.byBarcode(any()) } returns ApiResult.Success(brief(1))
-        val vm = ReceiptViewModel(repo, draftCache)
+        val vm = ReceiptViewModel(repo, draftCache, res)
 
         vm.onBarcodeScanned("x")
 
@@ -65,38 +68,39 @@ class ReceiptViewModelTest {
         assertEquals(0, BigDecimal("8000").compareTo(vm.state.value.basket.lines.first().costPrice))
     }
 
-    @Test fun `submit success clears basket and sets receipt code`() = runTest {
+    @Test fun `saveDraft success clears basket and sets draft id`() = runTest {
         coEvery { repo.byBarcode(any()) } returns ApiResult.Success(brief(1))
-        coEvery { repo.submit(any(), any(), any(), any()) } returns ApiResult.Success(receipt("NK20260609-003"))
-        val vm = ReceiptViewModel(repo, draftCache)
+        coEvery { repo.createDraft(any(), any(), any(), any(), any()) } returns
+            ApiResult.Success(receipt("NK20260609-003"))
+        val vm = ReceiptViewModel(repo, draftCache, res)
         vm.onBarcodeScanned("x")
 
-        vm.submit(BigDecimal.ZERO, "CASH")
+        vm.saveDraft()
 
-        assertEquals("NK20260609-003", vm.state.value.lastReceiptCode)
+        assertEquals(3L, vm.state.value.lastDraftId)
         assertEquals(0, vm.state.value.basket.lines.size)
         assertNull(vm.state.value.errorMessage)
     }
 
-    @Test fun `submit failure keeps basket and shows error`() = runTest {
+    @Test fun `saveDraft failure keeps basket and shows error`() = runTest {
         coEvery { repo.byBarcode(any()) } returns ApiResult.Success(brief(1))
-        coEvery { repo.submit(any(), any(), any(), any()) } returns
+        coEvery { repo.createDraft(any(), any(), any(), any(), any()) } returns
             ApiResult.Failure(ApiError("VALIDATION", "Giá vốn không hợp lệ", 400))
-        val vm = ReceiptViewModel(repo, draftCache)
+        val vm = ReceiptViewModel(repo, draftCache, res)
         vm.onBarcodeScanned("x")
 
-        vm.submit(BigDecimal.ZERO, "CASH")
+        vm.saveDraft()
 
         assertEquals(1, vm.state.value.basket.lines.size)
         assertEquals("Giá vốn không hợp lệ", vm.state.value.errorMessage)
-        assertNull(vm.state.value.lastReceiptCode)
+        assertNull(vm.state.value.lastDraftId)
     }
 
-    @Test fun `submit on empty basket shows vietnamese error`() = runTest {
-        val vm = ReceiptViewModel(repo, draftCache)
+    @Test fun `saveDraft on empty basket shows vietnamese error`() = runTest {
+        val vm = ReceiptViewModel(repo, draftCache, res)
 
-        vm.submit(BigDecimal.ZERO, "CASH")
+        vm.saveDraft()
 
-        assertEquals("Chưa có sản phẩm nào có số lượng để nhập", vm.state.value.errorMessage)
+        assertEquals(res.get(R.string.receipt_error_no_items), vm.state.value.errorMessage)
     }
 }

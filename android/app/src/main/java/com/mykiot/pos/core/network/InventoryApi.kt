@@ -16,6 +16,9 @@ interface InventoryApi {
     @POST("goods-receipts")
     suspend fun createReceipt(@Body body: GoodsReceiptCreateDto): GoodsReceiptDto
 
+    @GET("goods-receipts/{id}")
+    suspend fun getReceipt(@Path("id") id: Long): GoodsReceiptDto
+
     @POST("goods-receipts/{id}/complete")
     suspend fun completeReceipt(@Path("id") id: Long): GoodsReceiptDto
 

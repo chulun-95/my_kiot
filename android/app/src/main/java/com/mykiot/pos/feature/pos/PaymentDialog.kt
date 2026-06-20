@@ -18,17 +18,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.mykiot.pos.R
 import com.mykiot.pos.core.ui.MoneyInput
 import com.mykiot.pos.core.util.formatVnd
 import java.math.BigDecimal
-
-private val methods = listOf(
-    "CASH" to "Tiền mặt",
-    "BANK_TRANSFER" to "Chuyển khoản",
-    "MOMO" to "MoMo",
-    "VNPAY" to "VNPay",
-)
 
 @Composable
 fun PaymentDialog(
@@ -36,6 +31,12 @@ fun PaymentDialog(
     onDismiss: () -> Unit,
     onConfirm: (method: String, amount: BigDecimal, allowDebt: Boolean) -> Unit,
 ) {
+    val methods = listOf(
+        "CASH" to stringResource(R.string.pos_method_cash),
+        "BANK_TRANSFER" to stringResource(R.string.pos_method_bank_transfer),
+        "MOMO" to stringResource(R.string.pos_method_momo),
+        "VNPAY" to stringResource(R.string.pos_method_vnpay),
+    )
     var method by remember { mutableStateOf("CASH") }
     var amount by remember { mutableLongStateOf(total.setScale(0, java.math.RoundingMode.HALF_UP).toLong()) }
     val paid = BigDecimal(amount)
@@ -44,20 +45,20 @@ fun PaymentDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Thanh toán") },
+        title = { Text(stringResource(R.string.pos_payment_title)) },
         text = {
             Column {
-                Text("Tổng tiền: ${formatVnd(total)}")
+                Text(stringResource(R.string.pos_total_amount, formatVnd(total)))
                 Spacer(Modifier.height(8.dp))
                 MoneyInput(
                     value = amount,
                     onValueChange = { amount = it },
-                    label = "Khách đưa",
+                    label = stringResource(R.string.pos_customer_pays),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(8.dp))
-                if (change > BigDecimal.ZERO) Text("Thối lại: ${formatVnd(change)}")
-                if (debt > BigDecimal.ZERO) Text("Còn nợ: ${formatVnd(debt)}")
+                if (change > BigDecimal.ZERO) Text(stringResource(R.string.pos_change, formatVnd(change)))
+                if (debt > BigDecimal.ZERO) Text(stringResource(R.string.pos_debt, formatVnd(debt)))
                 Spacer(Modifier.height(8.dp))
                 methods.forEach { (code, label) ->
                     Row(
@@ -73,8 +74,8 @@ fun PaymentDialog(
         confirmButton = {
             TextButton(onClick = {
                 onConfirm(method, paid, debt > BigDecimal.ZERO)
-            }) { Text("Xác nhận") }
+            }) { Text(stringResource(R.string.pos_confirm)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Hủy") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.pos_cancel)) } },
     )
 }

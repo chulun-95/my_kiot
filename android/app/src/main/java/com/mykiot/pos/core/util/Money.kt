@@ -16,6 +16,27 @@ fun formatVnd(decimalString: String): String =
 fun formatVnd(amount: BigDecimal): String =
     formatVnd(amount.setScale(0, RoundingMode.HALF_UP).toLong())
 
+/**
+ * Số lượng kiểu VN: bỏ số 0 thừa ở phần thập phân, dùng "," cho thập phân và "." cho hàng nghìn.
+ * Backend trả DECIMAL(10,3) dạng chuỗi ("1.000" = 1.0) → KHÔNG in thô (sẽ trông như "1 nghìn").
+ *   "1.000" → "1"   ·  "1.500" → "1,5"  ·  "0.300" → "0,3"  ·  "1200" → "1.200"  ·  "1200.5" → "1.200,5"
+ */
+fun formatQty(value: BigDecimal): String {
+    val v = value.stripTrailingZeros()
+    val intPart = v.toBigInteger().abs().toString()
+    val grouped = intPart.reversed().chunked(3).joinToString(".").reversed()
+    val scale = v.scale().coerceAtLeast(0)
+    val sign = if (v.signum() < 0) "-" else ""
+    if (scale == 0) return "$sign$grouped"
+    // phần thập phân (đã bỏ 0 thừa) → ngăn cách bằng dấu phẩy
+    val frac = v.abs().remainder(BigDecimal.ONE)
+        .movePointRight(scale).toBigInteger().toString().padStart(scale, '0')
+    return "$sign$grouped,$frac"
+}
+
+fun formatQty(decimalString: String): String =
+    formatQty(try { BigDecimal(decimalString) } catch (_: Exception) { BigDecimal.ZERO })
+
 /** "13/06 10:30" — ISO 8601 → múi giờ VN (+07:00). Trả "—" nếu null hoặc lỗi parse. */
 fun formatDateTime(iso: String?): String {
     if (iso == null) return "—"

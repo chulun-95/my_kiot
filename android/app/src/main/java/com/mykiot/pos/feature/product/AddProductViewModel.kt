@@ -2,6 +2,8 @@ package com.mykiot.pos.feature.product
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mykiot.pos.R
+import com.mykiot.pos.core.i18n.ResProvider
 import com.mykiot.pos.core.network.ApiResult
 import com.mykiot.pos.core.network.dto.ProductBriefDto
 import com.mykiot.pos.core.network.dto.ProductCreateDto
@@ -30,6 +32,7 @@ data class AddProductUiState(
 @HiltViewModel
 class AddProductViewModel @Inject constructor(
     private val repository: ProductRepository,
+    private val res: ResProvider,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AddProductUiState())
@@ -60,13 +63,13 @@ class AddProductViewModel @Inject constructor(
     fun submit() {
         val s = _state.value
         if (s.name.isBlank()) {
-            _state.update { it.copy(errorMessage = "Vui lòng nhập tên sản phẩm") }
+            _state.update { it.copy(errorMessage = res.get(R.string.cat_product_err_name_required)) }
             return
         }
         val cost = normalizePrice(s.costPrice)
         val sale = normalizePrice(s.salePrice)
         if (cost == null || sale == null) {
-            _state.update { it.copy(errorMessage = "Giá nhập / giá bán không hợp lệ") }
+            _state.update { it.copy(errorMessage = res.get(R.string.cat_product_err_price_invalid)) }
             return
         }
         _state.update { it.copy(loading = true, errorMessage = null) }

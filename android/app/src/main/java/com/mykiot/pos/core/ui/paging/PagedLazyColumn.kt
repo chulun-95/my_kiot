@@ -16,7 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.mykiot.pos.R
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
@@ -37,7 +39,7 @@ fun <T> PagedLazyColumn(
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
     key: ((T) -> Any)? = null,
-    emptyText: String = "Chưa có dữ liệu",
+    emptyText: String = stringResource(R.string.core_empty_default),
     prefetchDistance: Int = 4,
     item: @Composable (T) -> Unit,
 ) {

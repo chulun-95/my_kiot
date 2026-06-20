@@ -26,11 +26,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mykiot.pos.R
 import com.mykiot.pos.core.ui.AppTextField
 import com.mykiot.pos.core.ui.LoadingDialog
 import com.mykiot.pos.feature.receipt.data.SupplierLite
@@ -62,19 +64,19 @@ fun AddSupplierScreen(
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
-            FormTopBar(title = "Thêm nhà cung cấp", onBack = onCancel)
+            FormTopBar(title = stringResource(R.string.cat_supplier_add), onBack = onCancel)
 
             AppTextField(
                 value = state.name,
                 onValueChange = viewModel::onName,
-                label = "Tên nhà cung cấp *",
+                label = stringResource(R.string.cat_supplier_field_name),
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(12.dp))
             AppTextField(
                 value = state.phone,
                 onValueChange = viewModel::onPhone,
-                label = "Số điện thoại",
+                label = stringResource(R.string.cat_supplier_field_phone),
                 keyboardType = KeyboardType.Phone,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -82,7 +84,7 @@ fun AddSupplierScreen(
             AppTextField(
                 value = state.address,
                 onValueChange = viewModel::onAddress,
-                label = "Địa chỉ",
+                label = stringResource(R.string.cat_supplier_field_address),
                 singleLine = false,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -97,11 +99,11 @@ fun AddSupplierScreen(
                     contentColor = MaterialTheme.colorScheme.surface,
                 ),
                 modifier = Modifier.fillMaxWidth().height(52.dp),
-            ) { Text("Lưu nhà cung cấp", fontWeight = FontWeight.SemiBold) }
+            ) { Text(stringResource(R.string.cat_supplier_save), fontWeight = FontWeight.SemiBold) }
         }
     }
 
-    LoadingDialog(visible = state.loading, message = "Đang lưu...")
+    LoadingDialog(visible = state.loading, message = stringResource(R.string.cat_supplier_saving))
 }
 
 @Composable
@@ -111,7 +113,7 @@ internal fun FormTopBar(title: String, onBack: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại")
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cat_supplier_back))
         }
         Spacer(Modifier.width(4.dp))
         Text(title, style = MaterialTheme.typography.titleLarge)

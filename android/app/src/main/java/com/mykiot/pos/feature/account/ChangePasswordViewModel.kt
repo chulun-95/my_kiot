@@ -2,7 +2,9 @@ package com.mykiot.pos.feature.account
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mykiot.pos.R
 import com.mykiot.pos.core.auth.AuthRepository
+import com.mykiot.pos.core.i18n.ResProvider
 import com.mykiot.pos.core.network.ApiResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +26,7 @@ data class ChangePasswordUiState(
 @HiltViewModel
 class ChangePasswordViewModel @Inject constructor(
     private val repository: AuthRepository,
+    private val res: ResProvider,
 ) : ViewModel() {
     private val _state = MutableStateFlow(ChangePasswordUiState())
     val state: StateFlow<ChangePasswordUiState> = _state.asStateFlow()
@@ -37,11 +40,11 @@ class ChangePasswordViewModel @Inject constructor(
         val s = _state.value
         when {
             s.current.isBlank() ->
-                { _state.update { it.copy(errorMessage = "Vui lòng nhập mật khẩu hiện tại") }; return }
+                { _state.update { it.copy(errorMessage = res.get(R.string.misc_change_password_current_blank)) }; return }
             s.newPass.length < 6 ->
-                { _state.update { it.copy(errorMessage = "Mật khẩu mới phải có ít nhất 6 ký tự") }; return }
+                { _state.update { it.copy(errorMessage = res.get(R.string.misc_change_password_min_length)) }; return }
             s.newPass != s.confirm ->
-                { _state.update { it.copy(errorMessage = "Xác nhận mật khẩu không khớp") }; return }
+                { _state.update { it.copy(errorMessage = res.get(R.string.misc_change_password_mismatch)) }; return }
         }
         _state.update { it.copy(saving = true, errorMessage = null) }
         viewModelScope.launch {

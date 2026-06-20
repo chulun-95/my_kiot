@@ -2,6 +2,8 @@ package com.mykiot.pos.feature.invoice
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mykiot.pos.R
+import com.mykiot.pos.core.i18n.ResProvider
 import com.mykiot.pos.core.network.ApiResult
 import com.mykiot.pos.core.network.dto.ReturnCreateDto
 import com.mykiot.pos.core.network.dto.ReturnItemInputDto
@@ -44,6 +46,7 @@ data class ReturnFormUiState(
 @HiltViewModel
 class ReturnFormViewModel @Inject constructor(
     private val repository: ReturnRepository,
+    private val res: ResProvider,
 ) : ViewModel() {
     private val _state = MutableStateFlow(ReturnFormUiState())
     val state: StateFlow<ReturnFormUiState> = _state.asStateFlow()
@@ -98,7 +101,7 @@ class ReturnFormViewModel @Inject constructor(
             .filter { it.returnQty.signum() > 0 }
             .map { ReturnItemInputDto(invoiceItemId = it.invoiceItemId, quantity = it.returnQty.toPlainString()) }
         if (items.isEmpty()) {
-            _state.update { it.copy(errorMessage = "Chọn ít nhất 1 sản phẩm để trả") }
+            _state.update { it.copy(errorMessage = res.get(R.string.misc_return_form_select_one)) }
             return
         }
         _state.update { it.copy(submitting = true, errorMessage = null) }

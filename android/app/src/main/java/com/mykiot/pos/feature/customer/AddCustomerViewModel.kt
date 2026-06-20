@@ -2,6 +2,8 @@ package com.mykiot.pos.feature.customer
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mykiot.pos.R
+import com.mykiot.pos.core.i18n.ResProvider
 import com.mykiot.pos.core.network.ApiResult
 import com.mykiot.pos.core.network.dto.CustomerCreateDto
 import com.mykiot.pos.core.network.dto.CustomerResponseDto
@@ -28,6 +30,7 @@ data class AddCustomerUiState(
 @HiltViewModel
 class AddCustomerViewModel @Inject constructor(
     private val repository: CustomerRepository,
+    private val res: ResProvider,
 ) : ViewModel() {
     private val _state = MutableStateFlow(AddCustomerUiState())
     val state: StateFlow<AddCustomerUiState> = _state.asStateFlow()
@@ -42,16 +45,16 @@ class AddCustomerViewModel @Inject constructor(
     fun submit() {
         val s = _state.value
         if (s.name.isBlank()) {
-            _state.update { it.copy(errorMessage = "Vui lòng nhập tên khách hàng") }
+            _state.update { it.copy(errorMessage = res.get(R.string.cat_customer_err_name_required)) }
             return
         }
         val phone = s.phone.trim()
         if (phone.isBlank()) {
-            _state.update { it.copy(errorMessage = "Vui lòng nhập số điện thoại") }
+            _state.update { it.copy(errorMessage = res.get(R.string.cat_customer_err_phone_required)) }
             return
         }
         if (!Regex("^0[35789]\\d{8}$").matches(phone)) {
-            _state.update { it.copy(errorMessage = "Số điện thoại không hợp lệ (VD: 0901234567)") }
+            _state.update { it.copy(errorMessage = res.get(R.string.cat_customer_err_phone_invalid)) }
             return
         }
         _state.update { it.copy(saving = true, errorMessage = null) }

@@ -6,7 +6,8 @@ object Routes {
 
     // Home inner nav (NavController trong HomeNavHost)
     const val HUB = "hub"                  // màn lưới chức năng (start destination)
-    const val RECEIPT = "receipt"          // Nhập hàng (màn cũ, nay là destination)
+    const val RECEIPT = "receipt"          // Nhập hàng (form tạo phiếu nháp)
+    const val RECEIPT_DETAIL = "receipt_detail/{id}"  // Chi tiết phiếu nhập (hoàn tất)
     const val INVENTORY = "inventory"      // Tồn kho
     const val REPORT = "report"            // Báo cáo
 
@@ -22,6 +23,7 @@ object Routes {
     const val RETURN_NEW = "return_new/{invoiceId}"
     const val CHANGE_PASSWORD = "change_password"
 
+    fun receiptDetail(id: Long) = "receipt_detail/$id"
     fun customerDetail(id: Long) = "customer_detail/$id"
     fun productDetail(id: Long) = "product_detail/$id"
     fun invoiceDetail(id: Long) = "invoice_detail/$id"

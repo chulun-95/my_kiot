@@ -32,23 +32,30 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mykiot.pos.R
 import com.mykiot.pos.core.ui.AppHeader
 import com.mykiot.pos.core.ui.LoadingDialog
 import com.mykiot.pos.core.ui.QtyStepper
 import com.mykiot.pos.core.ui.SectionHeader
 import com.mykiot.pos.core.ui.Spacing
+import com.mykiot.pos.core.util.formatQty
 import com.mykiot.pos.core.util.formatVnd
 import java.math.BigDecimal
 
-private val refundMethods = listOf(
-    "CASH" to "Tiền mặt",
-    "BANK_TRANSFER" to "Chuyển khoản",
-    "EWALLET" to "Ví điện tử",
-)
+private val refundMethodCodes = listOf("CASH", "BANK_TRANSFER", "EWALLET")
+
+@Composable
+private fun refundMethodLabel(code: String): String = when (code) {
+    "CASH" -> stringResource(R.string.misc_refund_method_cash)
+    "BANK_TRANSFER" -> stringResource(R.string.misc_refund_method_bank_transfer)
+    "EWALLET" -> stringResource(R.string.misc_refund_method_ewallet)
+    else -> code
+}
 
 @Composable
 fun ReturnFormScreen(
@@ -71,7 +78,8 @@ fun ReturnFormScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             AppHeader(
-                title = if (state.invoiceCode.isBlank()) "Trả hàng" else "Trả hàng · ${state.invoiceCode}",
+                title = if (state.invoiceCode.isBlank()) stringResource(R.string.misc_return_form_title)
+                    else stringResource(R.string.misc_return_form_title_with_code, state.invoiceCode),
                 onBack = onBack,
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
@@ -87,7 +95,7 @@ fun ReturnFormScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Tổng hoàn trả", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.misc_return_form_total_refund), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(formatVnd(state.totalRefund.toLong()), style = MaterialTheme.typography.titleLarge)
                 }
                 Spacer(Modifier.height(Spacing.md))
@@ -100,7 +108,7 @@ fun ReturnFormScreen(
                         contentColor = MaterialTheme.colorScheme.surface,
                     ),
                     modifier = Modifier.fillMaxWidth().height(56.dp),
-                ) { Text("Xác nhận trả hàng", fontWeight = FontWeight.SemiBold) }
+                ) { Text(stringResource(R.string.misc_return_form_confirm), fontWeight = FontWeight.SemiBold) }
             }
         },
     ) { padding ->
@@ -109,14 +117,14 @@ fun ReturnFormScreen(
         ) {
             item {
                 Spacer(Modifier.height(Spacing.sm))
-                SectionHeader("Phương thức hoàn tiền")
+                SectionHeader(stringResource(R.string.misc_return_form_refund_method))
                 Spacer(Modifier.height(Spacing.sm))
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    refundMethods.forEach { (code, label) ->
+                    refundMethodCodes.forEach { code ->
                         FilterChip(
                             selected = state.refundMethod == code,
                             onClick = { viewModel.setRefundMethod(code) },
-                            label = { Text(label) },
+                            label = { Text(refundMethodLabel(code)) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = MaterialTheme.colorScheme.onSurface,
                                 selectedLabelColor = MaterialTheme.colorScheme.surface,
@@ -125,7 +133,7 @@ fun ReturnFormScreen(
                     }
                 }
                 Spacer(Modifier.height(Spacing.lg))
-                SectionHeader("Sản phẩm trả")
+                SectionHeader(stringResource(R.string.misc_return_form_products))
                 Spacer(Modifier.height(Spacing.sm))
             }
 
@@ -138,7 +146,7 @@ fun ReturnFormScreen(
                 OutlinedTextField(
                     value = state.reason,
                     onValueChange = viewModel::setReason,
-                    label = { Text("Lý do trả (tuỳ chọn)") },
+                    label = { Text(stringResource(R.string.misc_return_form_reason_label)) },
                     singleLine = true,
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth(),
@@ -148,7 +156,11 @@ fun ReturnFormScreen(
         }
     }
 
-    LoadingDialog(visible = state.loading || state.submitting, message = if (state.submitting) "Đang lưu phiếu trả..." else "Đang tải...")
+    LoadingDialog(
+        visible = state.loading || state.submitting,
+        message = if (state.submitting) stringResource(R.string.misc_return_form_saving)
+            else stringResource(R.string.misc_return_form_loading),
+    )
 }
 
 @Composable
@@ -168,7 +180,7 @@ private fun ReturnLineCard(line: ReturnLineUi, onQty: (BigDecimal) -> Unit) {
                 Text(line.name, fontWeight = FontWeight.SemiBold, maxLines = 1)
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    "${line.sku} · còn trả được ${line.returnableQty.toPlainString()} ${line.unit ?: ""}".trim(),
+                    "${line.sku} · còn trả được ${formatQty(line.returnableQty)} ${line.unit ?: ""}".trim(),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -181,7 +193,7 @@ private fun ReturnLineCard(line: ReturnLineUi, onQty: (BigDecimal) -> Unit) {
             Spacer(Modifier.height(0.dp))
             if (fullyReturned) {
                 Text(
-                    "Đã trả hết",
+                    stringResource(R.string.misc_return_form_fully_returned),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

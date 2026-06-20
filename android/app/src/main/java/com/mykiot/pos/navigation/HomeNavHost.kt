@@ -17,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavBackStackEntry
@@ -26,6 +27,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.mykiot.pos.R
 import com.mykiot.pos.core.ui.AppHeader
 import com.mykiot.pos.feature.account.ChangePasswordScreen
 import com.mykiot.pos.feature.customer.AddCustomerScreen
@@ -39,6 +41,7 @@ import com.mykiot.pos.feature.pos.PosScreen
 import com.mykiot.pos.feature.product.AddProductScreen
 import com.mykiot.pos.feature.product.ProductDetailScreen
 import com.mykiot.pos.feature.product.ProductListScreen
+import com.mykiot.pos.feature.receipt.GoodsReceiptDetailScreen
 import com.mykiot.pos.feature.receipt.ReceiptScreen
 import com.mykiot.pos.feature.report.ReportScreen
 
@@ -69,13 +72,26 @@ private fun HomeNavHost(onOpenPos: () -> Unit, onLogout: () -> Unit) {
             )
         }
         composable(Routes.RECEIPT) { entry ->
-            FeatureScaffold("Nhập hàng", onBack = { nav.popOnce(entry) }) { ReceiptScreen() }
+            FeatureScaffold(stringResource(R.string.core_screen_receipt), onBack = { nav.popOnce(entry) }) {
+                ReceiptScreen(onCreatedDraft = { nav.navigateOnce(entry, Routes.receiptDetail(it)) })
+            }
+        }
+        composable(
+            Routes.RECEIPT_DETAIL,
+            arguments = listOf(navArgument("id") { type = NavType.LongType }),
+        ) { entry ->
+            val id = entry.arguments?.getLong("id") ?: 0L
+            GoodsReceiptDetailScreen(
+                receiptId = id,
+                onBack = { nav.popOnce(entry) },
+                onCompleted = { nav.popOnce(entry) },
+            )
         }
         composable(Routes.INVENTORY) { entry ->
-            FeatureScaffold("Tồn kho", onBack = { nav.popOnce(entry) }) { InventoryScreen() }
+            FeatureScaffold(stringResource(R.string.core_screen_inventory), onBack = { nav.popOnce(entry) }) { InventoryScreen() }
         }
         composable(Routes.REPORT) { entry ->
-            FeatureScaffold("Báo cáo", onBack = { nav.popOnce(entry) }) { ReportScreen() }
+            FeatureScaffold(stringResource(R.string.core_screen_report), onBack = { nav.popOnce(entry) }) { ReportScreen() }
         }
 
         // ----- Khách hàng (Phase 1) -----
@@ -118,10 +134,10 @@ private fun HomeNavHost(onOpenPos: () -> Unit, onLogout: () -> Unit) {
             AddProductScreen(onCreated = { nav.popOnce(entry) }, onCancel = { nav.popOnce(entry) })
         }
         composable(Routes.INVOICE_HISTORY) { entry ->
-            FeatureScaffold("Hóa đơn", onBack = { nav.popOnce(entry) }) { InvoiceListScreen() }
+            FeatureScaffold(stringResource(R.string.core_screen_invoices), onBack = { nav.popOnce(entry) }) { InvoiceListScreen() }
         }
         composable(Routes.RETURNS) { entry ->
-            FeatureScaffold("Trả hàng", onBack = { nav.popOnce(entry) }) {
+            FeatureScaffold(stringResource(R.string.core_screen_returns), onBack = { nav.popOnce(entry) }) {
                 ReturnsScreen(onOpenReturn = { nav.navigateOnce(entry, Routes.returnNew(it)) })
             }
         }
@@ -175,16 +191,5 @@ private fun FeatureScaffold(
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) { content() }
-    }
-}
-
-@Composable
-private fun PlaceholderScreen(title: String, onBack: () -> Unit) {
-    FeatureScaffold(title, onBack) {
-        Column(Modifier.fillMaxSize().padding(16.dp)) {
-            Text("Màn '$title' (đang dựng)")
-            Spacer(Modifier.height(12.dp))
-            Button(onClick = onBack) { Text("Quay lại") }
-        }
     }
 }

@@ -1,5 +1,7 @@
 package com.mykiot.pos.feature.invoice
 
+import com.mykiot.pos.R
+import com.mykiot.pos.core.i18n.FakeResProvider
 import com.mykiot.pos.core.network.ApiResult
 import com.mykiot.pos.core.network.dto.ReturnCreateDto
 import com.mykiot.pos.core.network.dto.ReturnResultDto
@@ -24,6 +26,7 @@ import java.math.BigDecimal
 
 class ReturnFormViewModelTest {
     private val repo = mockk<ReturnRepository>()
+    private val res = FakeResProvider()
 
     @Before fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
     @After fun tearDown() = Dispatchers.resetMain()
@@ -40,7 +43,7 @@ class ReturnFormViewModelTest {
 
     @Test fun `load maps returnable lines`() = runTest {
         coEvery { repo.returnable(5) } returns ApiResult.Success(returnable())
-        val vm = ReturnFormViewModel(repo)
+        val vm = ReturnFormViewModel(repo, res)
         vm.load(5)
         testScheduler.advanceUntilIdle()
         assertEquals(1, vm.state.value.lines.size)
@@ -49,7 +52,7 @@ class ReturnFormViewModelTest {
 
     @Test fun `setQty clamps to returnable max`() = runTest {
         coEvery { repo.returnable(5) } returns ApiResult.Success(returnable())
-        val vm = ReturnFormViewModel(repo)
+        val vm = ReturnFormViewModel(repo, res)
         vm.load(5)
         testScheduler.advanceUntilIdle()
         vm.setQty(0, BigDecimal("99"))
@@ -58,12 +61,12 @@ class ReturnFormViewModelTest {
 
     @Test fun `submit with no qty sets error and does not call create`() = runTest {
         coEvery { repo.returnable(5) } returns ApiResult.Success(returnable())
-        val vm = ReturnFormViewModel(repo)
+        val vm = ReturnFormViewModel(repo, res)
         vm.load(5)
         testScheduler.advanceUntilIdle()
         vm.submit()
         testScheduler.advanceUntilIdle()
-        assertEquals("Chọn ít nhất 1 sản phẩm để trả", vm.state.value.errorMessage)
+        assertEquals(res.get(R.string.misc_return_form_select_one), vm.state.value.errorMessage)
         coVerify(exactly = 0) { repo.create(any()) }
     }
 
@@ -72,7 +75,7 @@ class ReturnFormViewModelTest {
         val body = slot<ReturnCreateDto>()
         coEvery { repo.create(capture(body)) } returns
             ApiResult.Success(ReturnResultDto(id = 9, code = "TH20260613-001", totalRefund = 8000.0, status = "COMPLETED"))
-        val vm = ReturnFormViewModel(repo)
+        val vm = ReturnFormViewModel(repo, res)
         vm.load(5)
         testScheduler.advanceUntilIdle()
         vm.setQty(0, BigDecimal("2"))

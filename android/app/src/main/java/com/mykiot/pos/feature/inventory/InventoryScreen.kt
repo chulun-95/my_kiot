@@ -37,7 +37,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mykiot.pos.core.hardware.scanner.MlKitScannerScreen
 import com.mykiot.pos.core.ui.AppSearchField
 import com.mykiot.pos.core.ui.LoadingDialog
+import androidx.compose.ui.res.stringResource
+import com.mykiot.pos.R
 import com.mykiot.pos.core.ui.MonoBadge
+import com.mykiot.pos.core.util.formatQty
 import com.mykiot.pos.core.ui.paging.PagedLazyColumn
 import java.math.BigDecimal
 
@@ -74,11 +77,11 @@ fun InventoryScreen(viewModel: InventoryViewModel = hiltViewModel()) {
             AppSearchField(
                 value = query,
                 onValueChange = viewModel::onQueryChange,
-                placeholder = "Lọc theo tên / SKU / mã vạch",
+                placeholder = stringResource(R.string.inv_search_placeholder),
                 modifier = Modifier.fillMaxWidth(),
                 trailing = {
                     IconButton(onClick = { showScanner = true }) {
-                        Icon(Icons.Filled.QrCodeScanner, contentDescription = "Quét mã vạch")
+                        Icon(Icons.Filled.QrCodeScanner, contentDescription = stringResource(R.string.inv_scan_barcode))
                     }
                 },
             )
@@ -88,7 +91,7 @@ fun InventoryScreen(viewModel: InventoryViewModel = hiltViewModel()) {
                 state = state,
                 onLoadMore = viewModel::loadMore,
                 key = { it.productId },
-                emptyText = "Chưa có sản phẩm trong kho",
+                emptyText = stringResource(R.string.inv_empty),
             ) { it ->
                     val qty = it.quantity.toBigDecimalOrZero()
                     val out = qty.signum() <= 0
@@ -108,21 +111,21 @@ fun InventoryScreen(viewModel: InventoryViewModel = hiltViewModel()) {
                                 Text(it.productName, fontWeight = FontWeight.SemiBold, maxLines = 1)
                                 Spacer(Modifier.height(2.dp))
                                 Text(
-                                    "${it.productSku} • ${it.unit}",
+                                    stringResource(R.string.inv_sku_unit, it.productSku, it.unit),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                             Column(horizontalAlignment = Alignment.End) {
-                                Text(it.quantity, style = MaterialTheme.typography.titleMedium)
+                                Text(formatQty(qty), style = MaterialTheme.typography.titleMedium)
                                 when {
                                     out -> {
                                         Spacer(Modifier.height(4.dp))
-                                        MonoBadge("Hết", filled = true)
+                                        MonoBadge(stringResource(R.string.inv_badge_out), filled = true)
                                     }
                                     low -> {
                                         Spacer(Modifier.height(4.dp))
-                                        MonoBadge("Sắp hết", filled = false)
+                                        MonoBadge(stringResource(R.string.inv_badge_low), filled = false)
                                     }
                                 }
                             }
@@ -132,7 +135,7 @@ fun InventoryScreen(viewModel: InventoryViewModel = hiltViewModel()) {
         }
     }
 
-    LoadingDialog(visible = state.refreshing && state.items.isEmpty(), message = "Đang tải tồn kho...")
+    LoadingDialog(visible = state.refreshing && state.items.isEmpty(), message = stringResource(R.string.inv_loading))
 }
 
 private fun String.toBigDecimalOrZero(): BigDecimal =

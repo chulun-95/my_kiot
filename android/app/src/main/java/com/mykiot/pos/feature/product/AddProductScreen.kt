@@ -29,10 +29,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mykiot.pos.R
 import com.mykiot.pos.core.hardware.scanner.MlKitScannerScreen
 import com.mykiot.pos.core.network.dto.ProductBriefDto
 import com.mykiot.pos.core.ui.AppTextField
@@ -79,23 +81,23 @@ fun AddProductScreen(
             Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
-            FormTopBar(title = "Thêm sản phẩm", onBack = onCancel)
+            FormTopBar(title = stringResource(R.string.cat_product_add), onBack = onCancel)
 
             AppTextField(
                 value = state.name,
                 onValueChange = viewModel::onName,
-                label = "Tên sản phẩm *",
+                label = stringResource(R.string.cat_product_field_name),
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(12.dp))
             AppTextField(
                 value = state.barcode,
                 onValueChange = viewModel::onBarcode,
-                label = "Mã vạch",
+                label = stringResource(R.string.cat_product_field_barcode),
                 modifier = Modifier.fillMaxWidth(),
                 trailingIcon = {
                     IconButton(onClick = { showScanner = true }) {
-                        Icon(Icons.Filled.QrCodeScanner, contentDescription = "Quét mã vạch")
+                        Icon(Icons.Filled.QrCodeScanner, contentDescription = stringResource(R.string.cat_product_scan_barcode))
                     }
                 },
             )
@@ -104,14 +106,14 @@ fun AddProductScreen(
                 AppTextField(
                     value = state.sku,
                     onValueChange = viewModel::onSku,
-                    label = "SKU (tự sinh nếu trống)",
+                    label = stringResource(R.string.cat_product_field_sku),
                     modifier = Modifier.weight(1f),
                 )
                 Spacer(Modifier.width(12.dp))
                 AppTextField(
                     value = state.unit,
                     onValueChange = viewModel::onUnit,
-                    label = "Đơn vị",
+                    label = stringResource(R.string.cat_product_field_unit),
                     modifier = Modifier.width(120.dp),
                 )
             }
@@ -120,14 +122,14 @@ fun AddProductScreen(
                 MoneyInput(
                     value = state.costPrice.toLongOrNull() ?: 0L,
                     onValueChange = { viewModel.onCost(it.toString()) },
-                    label = "Giá nhập",
+                    label = stringResource(R.string.cat_product_field_cost),
                     modifier = Modifier.weight(1f),
                 )
                 Spacer(Modifier.width(12.dp))
                 MoneyInput(
                     value = state.salePrice.toLongOrNull() ?: 0L,
                     onValueChange = { viewModel.onSale(it.toString()) },
-                    label = "Giá bán",
+                    label = stringResource(R.string.cat_product_field_sale),
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -142,10 +144,10 @@ fun AddProductScreen(
                     contentColor = MaterialTheme.colorScheme.surface,
                 ),
                 modifier = Modifier.fillMaxWidth().height(52.dp),
-            ) { Text("Lưu sản phẩm", fontWeight = FontWeight.SemiBold) }
+            ) { Text(stringResource(R.string.cat_product_save), fontWeight = FontWeight.SemiBold) }
             Spacer(Modifier.height(24.dp))
         }
     }
 
-    LoadingDialog(visible = state.loading, message = "Đang lưu...")
+    LoadingDialog(visible = state.loading, message = stringResource(R.string.cat_product_saving))
 }
