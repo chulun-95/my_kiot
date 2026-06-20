@@ -60,4 +60,17 @@ class InventoryViewModelTest {
 
         assertEquals(1L, vm.movements.value.item?.productId)
     }
+
+    @Test fun `selectTab LOW loads low stock items`() = runTest {
+        coEvery { repo.list(any(), any()) } returns page()
+        coEvery { repo.lowStock() } returns ApiResult.Success(
+            listOf(InventoryItemDto(productId = 1, productSku = "SP1", productName = "Mì gói", unit = "gói", quantity = "2", minStock = 5, salePrice = "5000"))
+        )
+        val vm = InventoryViewModel(repo)
+
+        vm.selectTab(InventoryTab.LOW)
+
+        assertEquals(InventoryTab.LOW, vm.tab.value)
+        assertEquals(1, vm.lowStock.value.items.size)
+    }
 }

@@ -22,6 +22,12 @@ class InventoryViewModel @Inject constructor(
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
 
+    private val _tab = MutableStateFlow(InventoryTab.ALL)
+    val tab: StateFlow<InventoryTab> = _tab.asStateFlow()
+
+    private val _lowStock = MutableStateFlow(LowStockState())
+    val lowStock: StateFlow<LowStockState> = _lowStock.asStateFlow()
+
     /** Thẻ kho (movements) của 1 SP — tách khỏi state phân trang. */
     private val _movements = MutableStateFlow(MovementsState())
     val movements: StateFlow<MovementsState> = _movements.asStateFlow()
@@ -35,6 +41,23 @@ class InventoryViewModel @Inject constructor(
         _query.value = q
         if (q.isBlank() || q.length >= 2) refresh()
     }
+
+    fun selectTab(tab: InventoryTab) {
+        _tab.value = tab
+        if (tab == InventoryTab.LOW && _lowStock.value.items.isEmpty()) loadLowStock()
+    }
+
+    fun loadLowStock() {
+        _lowStock.update { it.copy(loading = true, error = null) }
+        viewModelScope.launch {
+            when (val r = repository.lowStock()) {
+                is ApiResult.Success -> _lowStock.update { it.copy(loading = false, items = r.data) }
+                is ApiResult.Failure -> _lowStock.update { it.copy(loading = false, error = r.error) }
+            }
+        }
+    }
+
+    fun clearLowStockError() = _lowStock.update { it.copy(error = null) }
 
     fun openMovements(item: InventoryItemDto) {
         _movements.value = MovementsState(item = item)
