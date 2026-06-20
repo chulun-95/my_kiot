@@ -41,6 +41,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -102,7 +104,14 @@ fun HubScreen(
     onNavigate: (String) -> Unit,
     onOpenPos: () -> Unit,
     onLogout: () -> Unit,
+    viewModel: HubViewModel = hiltViewModel(),
 ) {
+    val user by viewModel.user.collectAsStateWithLifecycle()
+    val isOwner = user?.role == "OWNER"
+    val visibleGroups = hubGroups
+        .map { g -> g.copy(items = g.items.filter { !it.ownerOnly || isOwner }) }
+        .filter { it.items.isNotEmpty() }
+
     var showLogoutConfirm by remember { mutableStateOf(false) }
 
     if (showLogoutConfirm) {
@@ -145,7 +154,7 @@ fun HubScreen(
         ) {
             PosButton(onClick = onOpenPos)
             Spacer(Modifier.height(20.dp))
-            hubGroups.forEachIndexed { index, group ->
+            visibleGroups.forEachIndexed { index, group ->
                 SectionHeader(stringResource(group.title))
                 Spacer(Modifier.height(10.dp))
                 LazyVerticalGrid(
@@ -161,7 +170,7 @@ fun HubScreen(
                         HubCard(item, onClick = { onNavigate(item.route) })
                     }
                 }
-                if (index != hubGroups.lastIndex) Spacer(Modifier.height(20.dp))
+                if (index != visibleGroups.lastIndex) Spacer(Modifier.height(20.dp))
             }
             Spacer(Modifier.height(24.dp))
         }
