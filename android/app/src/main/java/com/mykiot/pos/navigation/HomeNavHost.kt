@@ -44,6 +44,8 @@ import com.mykiot.pos.feature.product.ProductListScreen
 import com.mykiot.pos.feature.receipt.GoodsReceiptDetailScreen
 import com.mykiot.pos.feature.receipt.ReceiptScreen
 import com.mykiot.pos.feature.report.ReportScreen
+import com.mykiot.pos.feature.supplier.AddSupplierScreen
+import com.mykiot.pos.feature.supplier.SupplierListScreen
 
 /**
  * Gốc của Home: giữ overlay POS toàn màn (ngoài nav-stack để không phá luồng quét/in),
@@ -154,6 +156,25 @@ private fun HomeNavHost(onOpenPos: () -> Unit, onLogout: () -> Unit) {
         }
         composable(Routes.CHANGE_PASSWORD) { entry ->
             ChangePasswordScreen(onBack = { nav.popOnce(entry) }, onDone = { nav.popOnce(entry) })
+        }
+
+        // ----- Nhà cung cấp (Phase B) -----
+        composable(Routes.SUPPLIERS) { entry ->
+            SupplierListScreen(
+                onBack = { nav.popOnce(entry) },
+                onAdd = { nav.navigateOnce(entry, Routes.SUPPLIER_ADD) },
+                onEdit = { nav.navigateOnce(entry, Routes.supplierEdit(it)) },
+            )
+        }
+        composable(Routes.SUPPLIER_ADD) { entry ->
+            AddSupplierScreen(onSaved = { nav.popOnce(entry) }, onCancel = { nav.popOnce(entry) })
+        }
+        composable(
+            Routes.SUPPLIER_EDIT,
+            arguments = listOf(navArgument("id") { type = NavType.LongType }),
+        ) { entry ->
+            val id = entry.arguments?.getLong("id") ?: 0L
+            AddSupplierScreen(supplierId = id, onSaved = { nav.popOnce(entry) }, onCancel = { nav.popOnce(entry) })
         }
     }
 }

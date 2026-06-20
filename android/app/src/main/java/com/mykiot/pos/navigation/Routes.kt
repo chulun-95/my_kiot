@@ -23,9 +23,14 @@ object Routes {
     const val RETURN_NEW = "return_new/{invoiceId}"
     const val CHANGE_PASSWORD = "change_password"
 
+    const val SUPPLIERS = "suppliers"
+    const val SUPPLIER_ADD = "supplier_add"
+    const val SUPPLIER_EDIT = "supplier_edit/{id}"
+
     fun receiptDetail(id: Long) = "receipt_detail/$id"
     fun customerDetail(id: Long) = "customer_detail/$id"
     fun productDetail(id: Long) = "product_detail/$id"
     fun invoiceDetail(id: Long) = "invoice_detail/$id"
     fun returnNew(invoiceId: Long) = "return_new/$invoiceId"
+    fun supplierEdit(id: Long) = "supplier_edit/$id"
 }
