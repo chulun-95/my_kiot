@@ -1,0 +1,88 @@
+<resources>
+
+    <!-- ===== Hóa đơn (InvoiceListScreen) ===== -->
+    <string name="misc_invoice_cancel_title">Hủy hóa đơn?</string>
+    <string name="misc_invoice_cancel_warning">Hủy sẽ hoàn lại tồn kho. Không thể hoàn tác.</string>
+    <string name="misc_invoice_cancel_reason_label">Lý do hủy</string>
+    <string name="misc_invoice_empty">Chưa có hóa đơn</string>
+    <string name="misc_invoice_loading">Đang tải hóa đơn...</string>
+    <string name="misc_invoice_status_sold">Đã bán</string>
+    <string name="misc_invoice_status_cancelled">Đã hủy</string>
+    <string name="misc_invoice_cancel_action">Hủy</string>
+
+    <!-- Bộ lọc hóa đơn (InvoiceFilter) -->
+    <string name="misc_invoice_filter_all">Tất cả</string>
+    <string name="misc_invoice_filter_completed">Đã bán</string>
+    <string name="misc_invoice_filter_cancelled">Đã hủy</string>
+
+    <!-- ===== Trả hàng (ReturnsScreen) ===== -->
+    <string name="misc_returns_empty">Chưa có hóa đơn nào có thể trả</string>
+    <string name="misc_returns_loading">Đang tải hóa đơn...</string>
+    <string name="misc_returns_action">Trả hàng</string>
+
+    <!-- ===== Phiếu trả (ReturnFormScreen / ReturnFormViewModel) ===== -->
+    <string name="misc_return_form_title">Trả hàng</string>
+    <string name="misc_return_form_title_with_code">Trả hàng · %1$s</string>
+    <string name="misc_return_form_total_refund">Tổng hoàn trả</string>
+    <string name="misc_return_form_confirm">Xác nhận trả hàng</string>
+    <string name="misc_return_form_refund_method">Phương thức hoàn tiền</string>
+    <string name="misc_return_form_products">Sản phẩm trả</string>
+    <string name="misc_return_form_reason_label">Lý do trả (tuỳ chọn)</string>
+    <string name="misc_return_form_saving">Đang lưu phiếu trả...</string>
+    <string name="misc_return_form_loading">Đang tải...</string>
+    <string name="misc_return_form_line_returnable">%1$s · còn trả được %2$s %3$s</string>
+    <string name="misc_return_form_line_price">%1$s/%2$s</string>
+    <string name="misc_return_form_fully_returned">Đã trả hết</string>
+    <string name="misc_return_form_select_one">Chọn ít nhất 1 sản phẩm để trả</string>
+
+    <!-- Phương thức hoàn tiền (refundMethods) -->
+    <string name="misc_refund_method_cash">Tiền mặt</string>
+    <string name="misc_refund_method_bank_transfer">Chuyển khoản</string>
+    <string name="misc_refund_method_ewallet">Ví điện tử</string>
+
+    <!-- ===== Báo cáo (ReportScreen) ===== -->
+    <string name="misc_report_today">Hôm nay</string>
+    <string name="misc_report_revenue">Doanh thu</string>
+    <string name="misc_report_invoice_count">Số hóa đơn</string>
+    <string name="misc_report_customers">Khách hàng</string>
+    <string name="misc_report_low_stock">Hàng sắp hết</string>
+    <string name="misc_report_out_of_stock">hết: %1$s</string>
+    <string name="misc_report_profit">Lợi nhuận</string>
+    <string name="misc_report_revenue_7d">Doanh thu 7 ngày</string>
+    <string name="misc_report_payment_structure">Cơ cấu thanh toán</string>
+    <string name="misc_report_top_products">Top sản phẩm</string>
+    <string name="misc_report_loading">Đang tải báo cáo...</string>
+
+    <!-- Nhãn phương thức thanh toán (methodLabel) -->
+    <string name="misc_payment_method_cash">Tiền mặt</string>
+    <string name="misc_payment_method_bank_transfer">Chuyển khoản</string>
+    <string name="misc_payment_method_momo">MoMo</string>
+    <string name="misc_payment_method_vnpay">VNPay</string>
+
+    <!-- ===== Đăng nhập (LoginScreen / LoginViewModel) ===== -->
+    <string name="misc_login_brand">MY KIOT</string>
+    <string name="misc_login_logo_desc">MyKiot</string>
+    <string name="misc_login_title">Đăng nhập</string>
+    <string name="misc_login_phone_label">Số điện thoại</string>
+    <string name="misc_login_password_label">Mật khẩu</string>
+    <string name="misc_login_password_hide">Ẩn mật khẩu</string>
+    <string name="misc_login_password_show">Hiện mật khẩu</string>
+    <string name="misc_login_select_shop">Chọn cửa hàng</string>
+    <string name="misc_login_tenant_choice">%1$s (%2$s)</string>
+    <string name="misc_login_submit">Đăng nhập</string>
+    <string name="misc_login_loading">Đang đăng nhập...</string>
+    <string name="misc_login_blank_fields">Vui lòng nhập số điện thoại và mật khẩu</string>
+
+    <!-- ===== Đổi mật khẩu (ChangePasswordScreen / ChangePasswordViewModel) ===== -->
+    <string name="misc_change_password_title">Đổi mật khẩu</string>
+    <string name="misc_change_password_current_label">Mật khẩu hiện tại</string>
+    <string name="misc_change_password_new_label">Mật khẩu mới</string>
+    <string name="misc_change_password_new_supporting">Tối thiểu 6 ký tự</string>
+    <string name="misc_change_password_confirm_label">Xác nhận mật khẩu mới</string>
+    <string name="misc_change_password_submit">Đổi mật khẩu</string>
+    <string name="misc_change_password_saving">Đang đổi mật khẩu...</string>
+    <string name="misc_change_password_current_blank">Vui lòng nhập mật khẩu hiện tại</string>
+    <string name="misc_change_password_min_length">Mật khẩu mới phải có ít nhất 6 ký tự</string>
+    <string name="misc_change_password_mismatch">Xác nhận mật khẩu không khớp</string>
+
+</resources>

@@ -1,0 +1,55 @@
+<resources>
+    <!-- ===== Nhập hàng (receipt) ===== -->
+
+    <!-- ReceiptScreen -->
+    <string name="receipt_received_toast">Đã nhập kho: %1$s</string>
+    <string name="receipt_unknown_product_title">Sản phẩm chưa có</string>
+    <string name="receipt_unknown_product_message">Mã vạch \"%1$s\" chưa tồn tại. Bạn có muốn thêm sản phẩm mới không?</string>
+    <string name="receipt_add_new">Thêm mới</string>
+    <string name="receipt_skip">Bỏ qua</string>
+    <string name="receipt_pick_supplier">Chọn nhà cung cấp</string>
+    <string name="receipt_search_placeholder">Tìm sản phẩm để nhập</string>
+    <string name="receipt_scan">Quét mã</string>
+    <string name="receipt_items_header">Sản phẩm nhập</string>
+    <string name="receipt_total">Tổng nhập</string>
+    <string name="receipt_pay_full">Trả đủ</string>
+    <string name="receipt_paid">Tiền trả</string>
+    <string name="receipt_note_optional">Ghi chú (tuỳ chọn)</string>
+    <string name="receipt_save_draft">Lưu phiếu nháp</string>
+    <string name="receipt_saving">Đang lưu phiếu nhập...</string>
+
+    <!-- Phương thức thanh toán -->
+    <string name="receipt_method_cash">Tiền mặt</string>
+    <string name="receipt_method_bank">Chuyển khoản</string>
+    <string name="receipt_method_momo">MoMo</string>
+    <string name="receipt_method_vnpay">VNPay</string>
+
+    <!-- ReceiptLineRow -->
+    <string name="receipt_remove_product">Xoá sản phẩm</string>
+    <string name="receipt_remove_confirm">Xoá \"%1$s\" khỏi phiếu nhập?</string>
+    <string name="receipt_quantity">Số lượng</string>
+    <string name="receipt_cost_price">Giá nhập</string>
+    <string name="receipt_line_total">Thành tiền: %1$s</string>
+    <string name="receipt_zero_money">0 đ</string>
+
+    <!-- SupplierPickerDialog -->
+    <string name="receipt_supplier_search_placeholder">Tìm theo tên, SĐT...</string>
+    <string name="receipt_add_supplier">Thêm nhà cung cấp mới</string>
+    <string name="receipt_no_supplier">— Không chọn NCC —</string>
+
+    <!-- GoodsReceiptDetailScreen -->
+    <string name="receipt_detail_title">Chi tiết phiếu nhập</string>
+    <string name="receipt_detail_subtitle">%1$s · %2$s</string>
+    <string name="receipt_detail_line">%1$s %2$s × %3$s</string>
+    <string name="receipt_no_supplier_short">Không có NCC</string>
+    <string name="receipt_product_fallback">SP #%1$d</string>
+    <string name="receipt_paid_amount">Đã trả</string>
+    <string name="receipt_complete">Hoàn tất nhập</string>
+    <string name="receipt_processing">Đang xử lý...</string>
+    <string name="receipt_status_draft">Phiếu nháp</string>
+    <string name="receipt_status_completed">Đã hoàn tất</string>
+    <string name="receipt_status_cancelled">Đã huỷ</string>
+
+    <!-- ReceiptViewModel -->
+    <string name="receipt_error_no_items">Chưa có sản phẩm nào có số lượng để nhập</string>
+</resources>

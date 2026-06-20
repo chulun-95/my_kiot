@@ -1,0 +1,69 @@
+<resources>
+    <!-- ===== POS / Bán hàng (module pos) ===== -->
+
+    <!-- Màn bán hàng -->
+    <string name="pos_title">Bán hàng</string>
+    <string name="pos_held_orders_count">Đơn treo (%1$d)</string>
+    <string name="pos_search_placeholder">Tìm sản phẩm (tên / SKU / mã vạch)</string>
+    <string name="pos_scan_barcode">Quét mã</string>
+    <string name="pos_cart">Giỏ hàng</string>
+    <string name="pos_invoice_discount_label">Giảm hoá đơn</string>
+    <string name="pos_discount">Giảm giá</string>
+    <string name="pos_grand_total">Tổng cộng</string>
+    <string name="pos_hold_order">Treo đơn</string>
+    <string name="pos_pay">Thanh toán</string>
+    <string name="pos_processing">Đang xử lý...</string>
+
+    <!-- Chế độ quét -->
+    <string name="pos_scan_done">Hoàn tất</string>
+    <string name="pos_scan_added_count">Đã thêm (%1$d)</string>
+
+    <!-- Hàng chọn khách -->
+    <string name="pos_guest_customer">Khách lẻ</string>
+    <string name="pos_pick_customer">Chọn khách</string>
+    <string name="pos_customer_short">" Khách"</string>
+    <string name="pos_clear_customer">Bỏ chọn khách</string>
+
+    <!-- Đơn treo -->
+    <string name="pos_held_orders">Đơn treo</string>
+    <string name="pos_no_held_orders">Chưa có đơn treo nào</string>
+    <string name="pos_held_order_subtitle">%1$s · %2$s</string>
+    <string name="pos_close">Đóng</string>
+
+    <!-- Dòng giỏ hàng -->
+    <string name="pos_remove_product_title">Xoá sản phẩm</string>
+    <string name="pos_remove_product_message">Xoá \"%1$s\" khỏi giỏ hàng?</string>
+    <string name="pos_price_per_unit">%1$s/%2$s</string>
+    <string name="pos_price_with_discount">%1$s  • giảm %2$s</string>
+    <string name="pos_unit_price">Đơn giá</string>
+    <string name="pos_line_discount">Giảm giá dòng</string>
+    <string name="pos_save">Lưu</string>
+    <string name="pos_cancel">Huỷ</string>
+
+    <!-- Dialog chọn khách -->
+    <string name="pos_pick_customer_title">Chọn khách hàng</string>
+    <string name="pos_search_customer_label">Tìm theo tên hoặc SĐT</string>
+    <string name="pos_guest_customer_option">Khách lẻ (không chọn)</string>
+    <string name="pos_add_new_customer">+ Thêm khách mới</string>
+    <string name="pos_customer_name_label">Tên khách</string>
+    <string name="pos_customer_phone_label">Số điện thoại (tuỳ chọn)</string>
+    <string name="pos_save_customer_and_pick">Lưu khách &amp; chọn</string>
+
+    <!-- Dialog thanh toán -->
+    <string name="pos_payment_title">Thanh toán</string>
+    <string name="pos_total_amount">Tổng tiền: %1$s</string>
+    <string name="pos_customer_pays">Khách đưa</string>
+    <string name="pos_change">Thối lại: %1$s</string>
+    <string name="pos_debt">Còn nợ: %1$s</string>
+    <string name="pos_confirm">Xác nhận</string>
+    <string name="pos_method_cash">Tiền mặt</string>
+    <string name="pos_method_bank_transfer">Chuyển khoản</string>
+    <string name="pos_method_momo">MoMo</string>
+    <string name="pos_method_vnpay">VNPay</string>
+
+    <!-- ViewModel messages -->
+    <string name="pos_cart_empty">Giỏ hàng trống</string>
+    <string name="pos_enter_customer_name">Vui lòng nhập tên khách hàng</string>
+    <string name="pos_customer_added">Đã thêm khách %1$s</string>
+    <string name="pos_held_order_done">Đã treo đơn %1$s</string>
+</resources>

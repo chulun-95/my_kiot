@@ -1,0 +1,39 @@
+<resources>
+    <!-- ===== core/ui (component dùng chung) ===== -->
+    <string name="core_loading_default">Đang xử lý...</string>
+    <string name="core_empty_default">Chưa có dữ liệu</string>
+
+    <!-- ===== navigation: Hub + NavHost ===== -->
+    <string name="core_hub_title">my_kiot POS</string>
+    <string name="core_logout_confirm_message">Bạn có chắc chắn muốn đăng xuất không?</string>
+
+    <string name="core_pos_button_title">BÁN HÀNG</string>
+    <string name="core_pos_button_subtitle">Mở màn POS để bán hàng</string>
+
+    <!-- Nhóm hub -->
+    <string name="core_hub_group_inventory">Kho</string>
+    <string name="core_hub_group_catalog">Danh mục</string>
+    <string name="core_hub_group_sales">Bán hàng</string>
+    <string name="core_hub_group_report">Báo cáo</string>
+    <string name="core_hub_group_system">Hệ thống</string>
+
+    <!-- Mục hub -->
+    <string name="core_hub_receipt">Nhập hàng</string>
+    <string name="core_hub_inventory">Tồn kho</string>
+    <string name="core_hub_returns">Trả hàng</string>
+    <string name="core_hub_products">Sản phẩm</string>
+    <string name="core_hub_customers">Khách hàng</string>
+    <string name="core_hub_invoices">Hóa đơn</string>
+    <string name="core_hub_report">Tổng quan</string>
+    <string name="core_hub_change_password">Đổi mật khẩu</string>
+
+    <!-- Tiêu đề màn (FeatureScaffold) -->
+    <string name="core_screen_receipt">Nhập hàng</string>
+    <string name="core_screen_inventory">Tồn kho</string>
+    <string name="core_screen_report">Báo cáo</string>
+    <string name="core_screen_invoices">Hóa đơn</string>
+    <string name="core_screen_returns">Trả hàng</string>
+
+    <!-- Placeholder -->
+    <string name="core_placeholder_building">Màn \'%1$s\' (đang dựng)</string>
+</resources>

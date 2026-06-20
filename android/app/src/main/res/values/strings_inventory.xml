@@ -1,0 +1,22 @@
+<resources>
+    <!-- ===== Tồn kho (inventory) ===== -->
+
+    <!-- InventoryScreen -->
+    <string name="inv_search_placeholder">Lọc theo tên / SKU / mã vạch</string>
+    <string name="inv_scan_barcode">Quét mã vạch</string>
+    <string name="inv_empty">Chưa có sản phẩm trong kho</string>
+    <string name="inv_sku_unit">%1$s • %2$s</string>
+    <string name="inv_badge_out">Hết</string>
+    <string name="inv_badge_low">Sắp hết</string>
+    <string name="inv_loading">Đang tải tồn kho...</string>
+
+    <!-- MovementsDialog -->
+    <string name="inv_kardex_title">Thẻ kho — %1$s</string>
+    <string name="inv_no_movements">Chưa có giao dịch.</string>
+    <string name="inv_movement_row">%1$s: %2$s (còn %3$s)</string>
+    <string name="inv_type_sale">Bán</string>
+    <string name="inv_type_receipt">Nhập</string>
+    <string name="inv_type_cancel_sale">Hủy bán</string>
+    <string name="inv_type_cancel_receipt">Hủy nhập</string>
+    <string name="inv_type_adjustment">Điều chỉnh</string>
+</resources>
