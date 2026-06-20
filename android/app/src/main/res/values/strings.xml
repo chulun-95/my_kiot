@@ -6,6 +6,7 @@
     <string name="common_cancel">Huỷ</string>
     <string name="common_delete">Xoá</string>
     <string name="common_close">Đóng</string>
+    <string name="common_error_title">Đã xảy ra lỗi</string>
     <string name="common_back">Quay lại</string>
     <string name="common_confirm">Xác nhận</string>
     <string name="common_add">Thêm</string>
