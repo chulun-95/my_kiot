@@ -4,6 +4,13 @@
 > Mục tiêu: đưa Backend (FastAPI) + Web (React) lên Internet cho người dùng ngoài truy cập,
 > phục vụ ~5 cửa hàng, chi phí thấp nhất có thể mà vẫn **always-on** (không cold-start),
 > và dễ dàng scale/chuyển đổi khi nhiều cửa hàng hơn.
+>
+> **Cập nhật 2026-06-20 — Provider đã chốt:** **Vietnix "VPS CHEAP 1"** (2GB RAM, 2 vCPU,
+> 40GB SSD, backup tự động 1 lần/tuần) ~**151k/tháng** (453k/3 tháng). Chọn vì chỉ đắt hơn
+> AZDIGI 1GB (~119k/3th) ~32k mà gấp đôi RAM/CPU, gấp 4 đĩa, kèm backup tuần. Vì là **2GB**
+> nên khi deploy chỉnh `docker-compose.deploy.yml`: `--workers 2`, `mem_limit` api ~1g/db ~640m,
+> Postgres `shared_buffers=256MB`, `max_connections=50` (config 1GB hiện commit vẫn chạy được,
+> chỉ dùng dè). **Triển khai Phần B HOÃN** — làm sau khi hệ thống hoàn thiện hoàn toàn.
 
 ## 0. Bối cảnh & quyết định đã chốt
 
