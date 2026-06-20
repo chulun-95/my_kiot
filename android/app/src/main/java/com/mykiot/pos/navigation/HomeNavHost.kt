@@ -30,6 +30,7 @@ import androidx.navigation.navArgument
 import com.mykiot.pos.R
 import com.mykiot.pos.core.ui.AppHeader
 import com.mykiot.pos.feature.account.ChangePasswordScreen
+import com.mykiot.pos.feature.category.CategoryTreeScreen
 import com.mykiot.pos.feature.customer.AddCustomerScreen
 import com.mykiot.pos.feature.customer.CustomerDetailScreen
 import com.mykiot.pos.feature.customer.CustomerListScreen
@@ -175,6 +176,11 @@ private fun HomeNavHost(onOpenPos: () -> Unit, onLogout: () -> Unit) {
         ) { entry ->
             val id = entry.arguments?.getLong("id") ?: 0L
             AddSupplierScreen(supplierId = id, onSaved = { nav.popOnce(entry) }, onCancel = { nav.popOnce(entry) })
+        }
+
+        // ----- Nhóm hàng (Phase C) -----
+        composable(Routes.CATEGORIES) { entry ->
+            CategoryTreeScreen(onBack = { nav.popOnce(entry) })
         }
     }
 }

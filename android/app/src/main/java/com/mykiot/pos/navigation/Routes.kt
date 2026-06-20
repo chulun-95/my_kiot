@@ -26,6 +26,7 @@ object Routes {
     const val SUPPLIERS = "suppliers"
     const val SUPPLIER_ADD = "supplier_add"
     const val SUPPLIER_EDIT = "supplier_edit/{id}"
+    const val CATEGORIES = "categories"
 
     fun receiptDetail(id: Long) = "receipt_detail/$id"
     fun customerDetail(id: Long) = "customer_detail/$id"

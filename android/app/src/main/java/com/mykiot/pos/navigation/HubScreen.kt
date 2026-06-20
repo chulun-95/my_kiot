@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.AssignmentReturn
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Assessment
+import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Group
@@ -79,6 +80,7 @@ private val hubGroups = listOf(
             HubItem(R.string.core_hub_products, Routes.PRODUCTS, Icons.Outlined.Sell),
             HubItem(R.string.core_hub_customers, Routes.CUSTOMERS, Icons.Outlined.Group),
             HubItem(R.string.core_hub_suppliers, Routes.SUPPLIERS, Icons.Outlined.LocalShipping),
+            HubItem(R.string.core_hub_categories, Routes.CATEGORIES, Icons.Outlined.Category),
         ),
     ),
     HubGroup(
