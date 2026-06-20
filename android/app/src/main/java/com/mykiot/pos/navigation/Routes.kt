@@ -8,6 +8,7 @@ object Routes {
     const val HUB = "hub"                  // màn lưới chức năng (start destination)
     const val RECEIPT = "receipt"          // Nhập hàng (form tạo phiếu nháp)
     const val RECEIPT_DETAIL = "receipt_detail/{id}"  // Chi tiết phiếu nhập (hoàn tất)
+    const val RECEIPT_HISTORY = "receipt_history"     // Lịch sử nhập
     const val INVENTORY = "inventory"      // Tồn kho
     const val REPORT = "report"            // Báo cáo
 

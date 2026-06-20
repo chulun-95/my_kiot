@@ -43,6 +43,7 @@ import com.mykiot.pos.feature.product.AddProductScreen
 import com.mykiot.pos.feature.product.ProductDetailScreen
 import com.mykiot.pos.feature.product.ProductListScreen
 import com.mykiot.pos.feature.receipt.GoodsReceiptDetailScreen
+import com.mykiot.pos.feature.receipt.GoodsReceiptListScreen
 import com.mykiot.pos.feature.receipt.ReceiptScreen
 import com.mykiot.pos.feature.report.ReportScreen
 import com.mykiot.pos.feature.supplier.AddSupplierScreen
@@ -88,6 +89,12 @@ private fun HomeNavHost(onOpenPos: () -> Unit, onLogout: () -> Unit) {
                 receiptId = id,
                 onBack = { nav.popOnce(entry) },
                 onCompleted = { nav.popOnce(entry) },
+            )
+        }
+        composable(Routes.RECEIPT_HISTORY) { entry ->
+            GoodsReceiptListScreen(
+                onBack = { nav.popOnce(entry) },
+                onOpenDetail = { nav.navigateOnce(entry, Routes.receiptDetail(it)) },
             )
         }
         composable(Routes.INVENTORY) { entry ->
