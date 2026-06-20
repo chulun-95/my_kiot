@@ -37,6 +37,11 @@
     <string name="receipt_add_supplier">Thêm nhà cung cấp mới</string>
     <string name="receipt_no_supplier">— Không chọn NCC —</string>
 
+    <!-- GoodsReceiptListScreen -->
+    <string name="core_hub_receipt_history">Lịch sử nhập</string>
+    <string name="receipt_history_title">Lịch sử phiếu nhập</string>
+    <string name="receipt_history_empty">Chưa có phiếu nhập</string>
+
     <!-- GoodsReceiptDetailScreen -->
     <string name="receipt_detail_title">Chi tiết phiếu nhập</string>
     <string name="receipt_detail_subtitle">%1$s · %2$s</string>
