@@ -19,8 +19,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,6 +36,7 @@ import com.mykiot.pos.R
 import com.mykiot.pos.core.hardware.scanner.MlKitScannerScreen
 import com.mykiot.pos.core.network.dto.ProductBriefDto
 import com.mykiot.pos.core.ui.AppTextField
+import com.mykiot.pos.core.ui.ErrorDialog
 import com.mykiot.pos.core.ui.LoadingDialog
 import com.mykiot.pos.core.ui.MoneyInput
 import com.mykiot.pos.feature.supplier.FormTopBar
@@ -54,13 +53,9 @@ fun AddProductScreen(
     viewModel: AddProductViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val snackbar = remember { SnackbarHostState() }
     var showScanner by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { viewModel.prefillBarcode(initialBarcode) }
-    LaunchedEffect(state.errorMessage) {
-        state.errorMessage?.let { snackbar.showSnackbar(it); viewModel.clearError() }
-    }
     LaunchedEffect(state.created) {
         state.created?.let(onCreated)
     }
@@ -74,7 +69,6 @@ fun AddProductScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbar) },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         Column(
@@ -150,4 +144,5 @@ fun AddProductScreen(
     }
 
     LoadingDialog(visible = state.loading, message = stringResource(R.string.cat_product_saving))
+    state.error?.let { ErrorDialog(it) { viewModel.clearError() } }
 }

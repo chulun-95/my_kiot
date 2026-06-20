@@ -6,6 +6,7 @@ import com.mykiot.pos.R
 import com.mykiot.pos.core.hardware.Beeper
 import com.mykiot.pos.core.i18n.ResProvider
 import com.mykiot.pos.core.hardware.printer.PrintResult
+import com.mykiot.pos.core.network.ApiError
 import com.mykiot.pos.core.hardware.printer.ReceiptData
 import com.mykiot.pos.core.hardware.printer.ReceiptItemLine
 import com.mykiot.pos.core.hardware.printer.ReceiptPrinter
@@ -41,7 +42,7 @@ class PosViewModel @Inject constructor(
             viewModelScope.launch {
                 when (val r = repository.search(q)) {
                     is ApiResult.Success -> _state.update { it.copy(searchResults = r.data) }
-                    is ApiResult.Failure -> _state.update { it.copy(errorMessage = r.error.message) }
+                    is ApiResult.Failure -> _state.update { it.copy(error = r.error) }
                 }
             }
         } else {
@@ -59,7 +60,7 @@ class PosViewModel @Inject constructor(
                 }
                 is ApiResult.Failure -> {
                     Beeper.error()  // không tìm thấy SP → "tit tit"
-                    _state.update { it.copy(errorMessage = r.error.message) }
+                    _state.update { it.copy(error = r.error) }
                 }
             }
         }
@@ -72,7 +73,7 @@ class PosViewModel @Inject constructor(
         _state.update {
             it.copy(
                 cart = it.cart.addScanned(line),
-                errorMessage = null,
+                error = null,
                 query = "",
                 searchResults = emptyList(),
             )
@@ -108,7 +109,7 @@ class PosViewModel @Inject constructor(
         viewModelScope.launch {
             when (val r = repository.searchCustomers(q.trim())) {
                 is ApiResult.Success -> _state.update { it.copy(customerResults = r.data) }
-                is ApiResult.Failure -> _state.update { it.copy(errorMessage = r.error.message) }
+                is ApiResult.Failure -> _state.update { it.copy(error = r.error) }
             }
         }
     }
@@ -119,10 +120,10 @@ class PosViewModel @Inject constructor(
     /** Thêm nhanh KH rồi chọn luôn cho hoá đơn hiện tại. */
     fun quickAddCustomer(name: String, phone: String?) {
         if (name.isBlank()) {
-            _state.update { it.copy(errorMessage = res.get(R.string.pos_enter_customer_name)) }
+            _state.update { it.copy(error = ApiError("VALIDATION", res.get(R.string.pos_enter_customer_name))) }
             return
         }
-        _state.update { it.copy(loading = true, errorMessage = null) }
+        _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             when (val r = repository.createCustomer(name.trim(), phone)) {
                 is ApiResult.Success -> _state.update {
@@ -132,12 +133,12 @@ class PosViewModel @Inject constructor(
                         infoMessage = res.get(R.string.pos_customer_added, r.data.name),
                     )
                 }
-                is ApiResult.Failure -> _state.update { it.copy(loading = false, errorMessage = r.error.message) }
+                is ApiResult.Failure -> _state.update { it.copy(loading = false, error = r.error) }
             }
         }
     }
 
-    fun clearError() = _state.update { it.copy(errorMessage = null) }
+    fun clearError() = _state.update { it.copy(error = null) }
 
     fun clearInfo() = _state.update { it.copy(infoMessage = null) }
 
@@ -147,10 +148,10 @@ class PosViewModel @Inject constructor(
     fun holdOrder() {
         val s = _state.value
         if (s.cart.isEmpty()) {
-            _state.update { it.copy(errorMessage = res.get(R.string.pos_cart_empty)) }
+            _state.update { it.copy(error = ApiError("VALIDATION", res.get(R.string.pos_cart_empty))) }
             return
         }
-        _state.update { it.copy(loading = true, errorMessage = null) }
+        _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             when (val r = repository.saveDraft(s.cart, s.customer?.id, s.heldDraftId)) {
                 is ApiResult.Success -> {
@@ -166,7 +167,7 @@ class PosViewModel @Inject constructor(
                     loadDrafts()
                 }
                 is ApiResult.Failure ->
-                    _state.update { it.copy(loading = false, errorMessage = r.error.message) }
+                    _state.update { it.copy(loading = false, error = r.error) }
             }
         }
     }
@@ -175,7 +176,7 @@ class PosViewModel @Inject constructor(
         viewModelScope.launch {
             when (val r = repository.drafts()) {
                 is ApiResult.Success -> _state.update { it.copy(drafts = r.data) }
-                is ApiResult.Failure -> _state.update { it.copy(errorMessage = r.error.message) }
+                is ApiResult.Failure -> _state.update { it.copy(error = r.error) }
             }
         }
     }
@@ -189,7 +190,7 @@ class PosViewModel @Inject constructor(
 
     /** Khôi phục 1 đơn treo vào giỏ để tiếp tục bán/thanh toán. */
     fun restoreDraft(id: Long) {
-        _state.update { it.copy(loading = true, showDrafts = false, errorMessage = null) }
+        _state.update { it.copy(loading = true, showDrafts = false, error = null) }
         viewModelScope.launch {
             when (val r = repository.getInvoice(id)) {
                 is ApiResult.Success -> {
@@ -206,7 +207,7 @@ class PosViewModel @Inject constructor(
                     }
                 }
                 is ApiResult.Failure ->
-                    _state.update { it.copy(loading = false, errorMessage = r.error.message) }
+                    _state.update { it.copy(loading = false, error = r.error) }
             }
         }
     }
@@ -238,7 +239,7 @@ class PosViewModel @Inject constructor(
             val result = printer.print(data)
             _state.update {
                 it.copy(
-                    errorMessage = (result as? PrintResult.Error)?.message,
+                    error = (result as? PrintResult.Error)?.message?.let { msg -> ApiError("PRINT_ERROR", msg) },
                     lastInvoiceCode = null,
                     lastInvoice = null,
                 )
@@ -249,10 +250,10 @@ class PosViewModel @Inject constructor(
     fun checkout(payments: List<PaymentInputDto>, allowDebt: Boolean) {
         val s = _state.value
         if (s.cart.isEmpty()) {
-            _state.update { it.copy(errorMessage = res.get(R.string.pos_cart_empty)) }
+            _state.update { it.copy(error = ApiError("VALIDATION", res.get(R.string.pos_cart_empty))) }
             return
         }
-        _state.update { it.copy(loading = true, errorMessage = null) }
+        _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             when (val r = repository.checkout(s.cart, s.customer?.id, s.heldDraftId, payments, allowDebt)) {
                 is ApiResult.Success -> _state.update {
@@ -267,7 +268,7 @@ class PosViewModel @Inject constructor(
                 }
                 is ApiResult.Failure -> {
                     if (r.error.code == "INSUFFICIENT_STOCK") Beeper.error()  // hết hàng → "tit tit"
-                    _state.update { it.copy(loading = false, errorMessage = r.error.message) }
+                    _state.update { it.copy(loading = false, error = r.error) }
                 }
             }
         }

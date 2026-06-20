@@ -13,13 +13,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -30,6 +27,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mykiot.pos.R
 import com.mykiot.pos.core.ui.AppHeader
 import com.mykiot.pos.core.ui.AppTextField
+import com.mykiot.pos.core.ui.ErrorDialog
 import com.mykiot.pos.core.ui.LoadingDialog
 
 @Composable
@@ -39,11 +37,7 @@ fun AddCustomerScreen(
     viewModel: AddCustomerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val snackbar = remember { SnackbarHostState() }
 
-    LaunchedEffect(state.errorMessage) {
-        state.errorMessage?.let { snackbar.showSnackbar(it); viewModel.clearError() }
-    }
     LaunchedEffect(state.created) { state.created?.let { onCreated(it.id) } }
     LoadingDialog(visible = state.saving)
 
@@ -52,7 +46,6 @@ fun AddCustomerScreen(
         topBar = {
             AppHeader(title = stringResource(R.string.cat_customer_add), onBack = onCancel, modifier = Modifier.padding(horizontal = 16.dp))
         },
-        snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         Column(
             Modifier
@@ -98,4 +91,5 @@ fun AddCustomerScreen(
             Spacer(Modifier.height(24.dp))
         }
     }
+    state.error?.let { ErrorDialog(it) { viewModel.clearError() } }
 }

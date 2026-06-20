@@ -87,7 +87,7 @@ class PosViewModelTest {
         vm.onBarcodeScanned("nope")
 
         assertEquals(0, vm.state.value.cart.lines.size)
-        assertEquals("Không tìm thấy sản phẩm", vm.state.value.errorMessage)
+        assertEquals("Không tìm thấy sản phẩm", vm.state.value.error?.message)
     }
 
     @Test fun `checkout success sets invoice code and clears cart`() = runTest {
@@ -102,7 +102,7 @@ class PosViewModelTest {
         val s = vm.state.value
         assertEquals("HD20260609-007", s.lastInvoiceCode)
         assertEquals(0, s.cart.lines.size)
-        assertNull(s.errorMessage)
+        assertNull(s.error)
     }
 
     @Test fun `checkout failure keeps cart and shows error`() = runTest {
@@ -115,7 +115,7 @@ class PosViewModelTest {
         vm.checkout(emptyList(), allowDebt = false)
 
         assertEquals(1, vm.state.value.cart.lines.size)
-        assertEquals("SP1 chỉ còn 0", vm.state.value.errorMessage)
+        assertEquals("SP1 chỉ còn 0", vm.state.value.error?.message)
         assertNull(vm.state.value.lastInvoiceCode)
     }
 
@@ -124,6 +124,6 @@ class PosViewModelTest {
 
         vm.checkout(emptyList(), allowDebt = false)
 
-        assertEquals(res.get(R.string.pos_cart_empty), vm.state.value.errorMessage)
+        assertEquals(res.get(R.string.pos_cart_empty), vm.state.value.error?.message)
     }
 }

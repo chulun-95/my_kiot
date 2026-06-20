@@ -54,6 +54,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mykiot.pos.R
 import com.mykiot.pos.core.hardware.scanner.EmbeddedScanner
 import com.mykiot.pos.core.network.dto.InvoiceBriefDto
+import com.mykiot.pos.core.ui.ErrorDialog
 import com.mykiot.pos.core.ui.AppHeader
 import com.mykiot.pos.core.ui.AppSearchField
 import com.mykiot.pos.core.ui.LoadingDialog
@@ -78,13 +79,6 @@ fun PosScreen(
 
     LaunchedEffect(Unit) { viewModel.loadDrafts() }
 
-    // Hiển thị lỗi tiếng Việt
-    LaunchedEffect(state.errorMessage) {
-        state.errorMessage?.let {
-            snackbar.showSnackbar(it)
-            viewModel.clearError()
-        }
-    }
     LaunchedEffect(state.infoMessage) {
         state.infoMessage?.let {
             snackbar.showSnackbar(it)
@@ -281,6 +275,7 @@ fun PosScreen(
     }
 
     LoadingDialog(visible = state.loading, message = stringResource(R.string.pos_processing))
+    state.error?.let { ErrorDialog(it) { viewModel.clearError() } }
 }
 
 /**

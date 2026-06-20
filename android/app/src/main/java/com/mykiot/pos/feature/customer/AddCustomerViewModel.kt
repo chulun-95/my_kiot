@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mykiot.pos.R
 import com.mykiot.pos.core.i18n.ResProvider
+import com.mykiot.pos.core.network.ApiError
 import com.mykiot.pos.core.network.ApiResult
 import com.mykiot.pos.core.network.dto.CustomerCreateDto
 import com.mykiot.pos.core.network.dto.CustomerResponseDto
@@ -24,7 +25,7 @@ data class AddCustomerUiState(
     val note: String = "",
     val saving: Boolean = false,
     val created: CustomerResponseDto? = null,
-    val errorMessage: String? = null,
+    val error: ApiError? = null,
 )
 
 @HiltViewModel
@@ -40,24 +41,24 @@ class AddCustomerViewModel @Inject constructor(
     fun onEmail(v: String) = _state.update { it.copy(email = v) }
     fun onAddress(v: String) = _state.update { it.copy(address = v) }
     fun onNote(v: String) = _state.update { it.copy(note = v) }
-    fun clearError() = _state.update { it.copy(errorMessage = null) }
+    fun clearError() = _state.update { it.copy(error = null) }
 
     fun submit() {
         val s = _state.value
         if (s.name.isBlank()) {
-            _state.update { it.copy(errorMessage = res.get(R.string.cat_customer_err_name_required)) }
+            _state.update { it.copy(error = ApiError("VALIDATION", res.get(R.string.cat_customer_err_name_required))) }
             return
         }
         val phone = s.phone.trim()
         if (phone.isBlank()) {
-            _state.update { it.copy(errorMessage = res.get(R.string.cat_customer_err_phone_required)) }
+            _state.update { it.copy(error = ApiError("VALIDATION", res.get(R.string.cat_customer_err_phone_required))) }
             return
         }
         if (!Regex("^0[35789]\\d{8}$").matches(phone)) {
-            _state.update { it.copy(errorMessage = res.get(R.string.cat_customer_err_phone_invalid)) }
+            _state.update { it.copy(error = ApiError("VALIDATION", res.get(R.string.cat_customer_err_phone_invalid))) }
             return
         }
-        _state.update { it.copy(saving = true, errorMessage = null) }
+        _state.update { it.copy(saving = true, error = null) }
         viewModelScope.launch {
             val body = CustomerCreateDto(
                 name = s.name.trim(),
@@ -68,7 +69,7 @@ class AddCustomerViewModel @Inject constructor(
             )
             when (val r = repository.create(body)) {
                 is ApiResult.Success -> _state.update { it.copy(saving = false, created = r.data) }
-                is ApiResult.Failure -> _state.update { it.copy(saving = false, errorMessage = r.error.message) }
+                is ApiResult.Failure -> _state.update { it.copy(saving = false, error = r.error) }
             }
         }
     }

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.mykiot.pos.R
 import com.mykiot.pos.core.auth.AuthRepository
 import com.mykiot.pos.core.i18n.ResProvider
+import com.mykiot.pos.core.network.ApiError
 import com.mykiot.pos.core.network.ApiResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +21,7 @@ data class ChangePasswordUiState(
     val confirm: String = "",
     val saving: Boolean = false,
     val done: Boolean = false,
-    val errorMessage: String? = null,
+    val error: ApiError? = null,
 )
 
 @HiltViewModel
@@ -34,23 +35,23 @@ class ChangePasswordViewModel @Inject constructor(
     fun onCurrent(v: String) = _state.update { it.copy(current = v) }
     fun onNew(v: String) = _state.update { it.copy(newPass = v) }
     fun onConfirm(v: String) = _state.update { it.copy(confirm = v) }
-    fun clearError() = _state.update { it.copy(errorMessage = null) }
+    fun clearError() = _state.update { it.copy(error = null) }
 
     fun submit() {
         val s = _state.value
         when {
             s.current.isBlank() ->
-                { _state.update { it.copy(errorMessage = res.get(R.string.misc_change_password_current_blank)) }; return }
+                { _state.update { it.copy(error = ApiError("VALIDATION", res.get(R.string.misc_change_password_current_blank))) }; return }
             s.newPass.length < 6 ->
-                { _state.update { it.copy(errorMessage = res.get(R.string.misc_change_password_min_length)) }; return }
+                { _state.update { it.copy(error = ApiError("VALIDATION", res.get(R.string.misc_change_password_min_length))) }; return }
             s.newPass != s.confirm ->
-                { _state.update { it.copy(errorMessage = res.get(R.string.misc_change_password_mismatch)) }; return }
+                { _state.update { it.copy(error = ApiError("VALIDATION", res.get(R.string.misc_change_password_mismatch))) }; return }
         }
-        _state.update { it.copy(saving = true, errorMessage = null) }
+        _state.update { it.copy(saving = true, error = null) }
         viewModelScope.launch {
             when (val r = repository.changePassword(s.current, s.newPass, s.confirm)) {
                 is ApiResult.Success -> _state.update { it.copy(saving = false, done = true) }
-                is ApiResult.Failure -> _state.update { it.copy(saving = false, errorMessage = r.error.message) }
+                is ApiResult.Failure -> _state.update { it.copy(saving = false, error = r.error) }
             }
         }
     }

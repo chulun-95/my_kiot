@@ -33,7 +33,7 @@ class ChangePasswordViewModelTest {
         vm.onConfirm("123")
         vm.submit()
         testScheduler.advanceUntilIdle()
-        assertEquals(res.get(R.string.misc_change_password_min_length), vm.state.value.errorMessage)
+        assertEquals(res.get(R.string.misc_change_password_min_length), vm.state.value.error?.message)
         coVerify(exactly = 0) { repo.changePassword(any(), any(), any()) }
     }
 
@@ -45,7 +45,7 @@ class ChangePasswordViewModelTest {
         vm.onConfirm("abcxyz")
         vm.submit()
         testScheduler.advanceUntilIdle()
-        assertEquals(res.get(R.string.misc_change_password_mismatch), vm.state.value.errorMessage)
+        assertEquals(res.get(R.string.misc_change_password_mismatch), vm.state.value.error?.message)
     }
 
     @Test

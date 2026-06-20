@@ -66,7 +66,7 @@ class ReturnFormViewModelTest {
         testScheduler.advanceUntilIdle()
         vm.submit()
         testScheduler.advanceUntilIdle()
-        assertEquals(res.get(R.string.misc_return_form_select_one), vm.state.value.errorMessage)
+        assertEquals(res.get(R.string.misc_return_form_select_one), vm.state.value.error?.message)
         coVerify(exactly = 0) { repo.create(any()) }
     }
 

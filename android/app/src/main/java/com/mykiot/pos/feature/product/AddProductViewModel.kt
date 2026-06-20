@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mykiot.pos.R
 import com.mykiot.pos.core.i18n.ResProvider
+import com.mykiot.pos.core.network.ApiError
 import com.mykiot.pos.core.network.ApiResult
 import com.mykiot.pos.core.network.dto.ProductBriefDto
 import com.mykiot.pos.core.network.dto.ProductCreateDto
@@ -25,7 +26,7 @@ data class AddProductUiState(
     val costPrice: String = "",
     val salePrice: String = "",
     val loading: Boolean = false,
-    val errorMessage: String? = null,
+    val error: ApiError? = null,
     val created: ProductBriefDto? = null,
 )
 
@@ -52,7 +53,7 @@ class AddProductViewModel @Inject constructor(
     fun onUnit(v: String) = _state.update { it.copy(unit = v) }
     fun onCost(v: String) = _state.update { it.copy(costPrice = v) }
     fun onSale(v: String) = _state.update { it.copy(salePrice = v) }
-    fun clearError() = _state.update { it.copy(errorMessage = null) }
+    fun clearError() = _state.update { it.copy(error = null) }
 
     private fun normalizePrice(v: String): String? {
         val t = v.trim().replace(",", "")
@@ -63,16 +64,16 @@ class AddProductViewModel @Inject constructor(
     fun submit() {
         val s = _state.value
         if (s.name.isBlank()) {
-            _state.update { it.copy(errorMessage = res.get(R.string.cat_product_err_name_required)) }
+            _state.update { it.copy(error = ApiError("VALIDATION", res.get(R.string.cat_product_err_name_required))) }
             return
         }
         val cost = normalizePrice(s.costPrice)
         val sale = normalizePrice(s.salePrice)
         if (cost == null || sale == null) {
-            _state.update { it.copy(errorMessage = res.get(R.string.cat_product_err_price_invalid)) }
+            _state.update { it.copy(error = ApiError("VALIDATION", res.get(R.string.cat_product_err_price_invalid))) }
             return
         }
-        _state.update { it.copy(loading = true, errorMessage = null) }
+        _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             val dto = ProductCreateDto(
                 name = s.name.trim(),
@@ -84,7 +85,7 @@ class AddProductViewModel @Inject constructor(
             )
             when (val r = repository.create(dto)) {
                 is ApiResult.Success -> _state.update { it.copy(loading = false, created = r.data) }
-                is ApiResult.Failure -> _state.update { it.copy(loading = false, errorMessage = r.error.message) }
+                is ApiResult.Failure -> _state.update { it.copy(loading = false, error = r.error) }
             }
         }
     }

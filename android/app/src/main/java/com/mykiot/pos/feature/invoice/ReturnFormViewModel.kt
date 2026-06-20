@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mykiot.pos.R
 import com.mykiot.pos.core.i18n.ResProvider
+import com.mykiot.pos.core.network.ApiError
 import com.mykiot.pos.core.network.ApiResult
 import com.mykiot.pos.core.network.dto.ReturnCreateDto
 import com.mykiot.pos.core.network.dto.ReturnItemInputDto
@@ -37,7 +38,7 @@ data class ReturnFormUiState(
     val loading: Boolean = false,
     val submitting: Boolean = false,
     val done: ReturnResultDto? = null,
-    val errorMessage: String? = null,
+    val error: ApiError? = null,
 ) {
     val totalRefund: Double
         get() = lines.sumOf { it.returnQty.toDouble() * it.unitPrice }
@@ -55,7 +56,7 @@ class ReturnFormViewModel @Inject constructor(
 
     fun load(id: Long) {
         invoiceId = id
-        _state.update { it.copy(loading = true, errorMessage = null) }
+        _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             when (val r = repository.returnable(id)) {
                 is ApiResult.Success -> _state.update {
@@ -75,7 +76,7 @@ class ReturnFormViewModel @Inject constructor(
                         },
                     )
                 }
-                is ApiResult.Failure -> _state.update { it.copy(loading = false, errorMessage = r.error.message) }
+                is ApiResult.Failure -> _state.update { it.copy(loading = false, error = r.error) }
             }
         }
     }
@@ -93,7 +94,7 @@ class ReturnFormViewModel @Inject constructor(
 
     fun setRefundMethod(m: String) = _state.update { it.copy(refundMethod = m) }
     fun setReason(r: String) = _state.update { it.copy(reason = r) }
-    fun clearError() = _state.update { it.copy(errorMessage = null) }
+    fun clearError() = _state.update { it.copy(error = null) }
 
     fun submit() {
         val s = _state.value
@@ -101,10 +102,10 @@ class ReturnFormViewModel @Inject constructor(
             .filter { it.returnQty.signum() > 0 }
             .map { ReturnItemInputDto(invoiceItemId = it.invoiceItemId, quantity = it.returnQty.toPlainString()) }
         if (items.isEmpty()) {
-            _state.update { it.copy(errorMessage = res.get(R.string.misc_return_form_select_one)) }
+            _state.update { it.copy(error = ApiError("VALIDATION", res.get(R.string.misc_return_form_select_one))) }
             return
         }
-        _state.update { it.copy(submitting = true, errorMessage = null) }
+        _state.update { it.copy(submitting = true, error = null) }
         viewModelScope.launch {
             val body = ReturnCreateDto(
                 invoiceId = invoiceId,
@@ -114,7 +115,7 @@ class ReturnFormViewModel @Inject constructor(
             )
             when (val r = repository.create(body)) {
                 is ApiResult.Success -> _state.update { it.copy(submitting = false, done = r.data) }
-                is ApiResult.Failure -> _state.update { it.copy(submitting = false, errorMessage = r.error.message) }
+                is ApiResult.Failure -> _state.update { it.copy(submitting = false, error = r.error) }
             }
         }
     }

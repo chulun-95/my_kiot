@@ -23,13 +23,10 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -39,6 +36,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mykiot.pos.R
 import com.mykiot.pos.core.ui.AppHeader
+import com.mykiot.pos.core.ui.ErrorDialog
 import com.mykiot.pos.core.ui.LoadingDialog
 import com.mykiot.pos.core.ui.QtyStepper
 import com.mykiot.pos.core.ui.SectionHeader
@@ -65,17 +63,12 @@ fun ReturnFormScreen(
     viewModel: ReturnFormViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val snackbar = remember { SnackbarHostState() }
 
     LaunchedEffect(invoiceId) { viewModel.load(invoiceId) }
-    LaunchedEffect(state.errorMessage) {
-        state.errorMessage?.let { snackbar.showSnackbar(it); viewModel.clearError() }
-    }
     LaunchedEffect(state.done) { if (state.done != null) onDone() }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             AppHeader(
                 title = if (state.invoiceCode.isBlank()) stringResource(R.string.misc_return_form_title)
@@ -161,6 +154,7 @@ fun ReturnFormScreen(
         message = if (state.submitting) stringResource(R.string.misc_return_form_saving)
             else stringResource(R.string.misc_return_form_loading),
     )
+    state.error?.let { ErrorDialog(it) { viewModel.clearError() } }
 }
 
 @Composable

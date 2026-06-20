@@ -31,7 +31,7 @@ class AddCustomerViewModelTest {
         val vm = AddCustomerViewModel(repo, res)
         vm.submit()
         testScheduler.advanceUntilIdle()
-        assertEquals(res.get(R.string.cat_customer_err_name_required), vm.state.value.errorMessage)
+        assertEquals(res.get(R.string.cat_customer_err_name_required), vm.state.value.error?.message)
         coVerify(exactly = 0) { repo.create(any()) }
     }
 

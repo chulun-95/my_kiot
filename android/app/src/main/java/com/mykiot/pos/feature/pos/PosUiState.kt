@@ -1,5 +1,6 @@
 package com.mykiot.pos.feature.pos
 
+import com.mykiot.pos.core.network.ApiError
 import com.mykiot.pos.core.network.dto.InvoiceBriefDto
 import com.mykiot.pos.core.network.dto.InvoiceDto
 import com.mykiot.pos.core.network.dto.ProductBriefDto
@@ -15,7 +16,7 @@ data class PosUiState(
     val showCustomerPicker: Boolean = false,
     val customerResults: List<CustomerLite> = emptyList(),
     val loading: Boolean = false,
-    val errorMessage: String? = null,
+    val error: ApiError? = null,
     val infoMessage: String? = null,       // thông báo ngắn (vd: "Đã treo đơn")
     val lastInvoiceCode: String? = null,   // set sau khi checkout thành công → trigger in
     val lastInvoice: InvoiceDto? = null,   // chi tiết hoá đơn để render bill

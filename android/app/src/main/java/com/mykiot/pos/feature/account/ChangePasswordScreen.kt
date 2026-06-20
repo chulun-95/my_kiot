@@ -10,13 +10,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -29,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mykiot.pos.R
 import com.mykiot.pos.core.ui.AppHeader
 import com.mykiot.pos.core.ui.AppTextField
+import com.mykiot.pos.core.ui.ErrorDialog
 import com.mykiot.pos.core.ui.LoadingDialog
 import com.mykiot.pos.core.ui.Spacing
 
@@ -39,17 +37,12 @@ fun ChangePasswordScreen(
     viewModel: ChangePasswordViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val snackbar = remember { SnackbarHostState() }
 
-    LaunchedEffect(state.errorMessage) {
-        state.errorMessage?.let { snackbar.showSnackbar(it); viewModel.clearError() }
-    }
     LaunchedEffect(state.done) { if (state.done) onDone() }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = { AppHeader(title = stringResource(R.string.misc_change_password_title), onBack = onBack, modifier = Modifier.padding(horizontal = 16.dp)) },
-        snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         Column(
             Modifier.fillMaxSize().padding(padding).padding(horizontal = Spacing.lg, vertical = Spacing.lg),
@@ -96,4 +89,5 @@ fun ChangePasswordScreen(
     }
 
     LoadingDialog(visible = state.saving, message = stringResource(R.string.misc_change_password_saving))
+    state.error?.let { ErrorDialog(it) { viewModel.clearError() } }
 }
