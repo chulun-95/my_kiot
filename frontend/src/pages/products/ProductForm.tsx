@@ -197,19 +197,23 @@ export default function ProductForm() {
         </label>
         <div className="grid grid-cols-3 gap-3">
           <label className="block">
-            <span className="text-sm text-slate-700">Đơn vị</span>
+            <span className="text-sm text-slate-700">Đơn vị *</span>
             <FieldHint text="Đơn vị tính khi bán: cái, gói, chai, lon, kg, lít, thùng... Hiển thị trên giỏ hàng POS và bill in." />
             <input
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
+              required
               maxLength={30}
               className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
-              {...viValidity({ tooLong: 'Đơn vị tối đa 30 ký tự' })}
+              {...viValidity({
+                valueMissing: 'Vui lòng nhập đơn vị tính',
+                tooLong: 'Đơn vị tối đa 30 ký tự',
+              })}
             />
           </label>
           {isOwner && (
             <label className="block">
-              <span className="text-sm text-slate-700">Giá vốn</span>
+              <span className="text-sm text-slate-700">Giá vốn *</span>
               <FieldHint text="Giá nhập trung bình (bình quân gia quyền) — dùng để tính lợi nhuận. Hệ thống tự cập nhật mỗi lần nhập kho. Cashier không thấy giá vốn." />
               <div className="mt-1">
                 <MoneyInput
@@ -217,6 +221,7 @@ export default function ProductForm() {
                   onChange={(v) => setCostPrice(String(v))}
                   className="w-full px-3 py-2 border border-slate-300 rounded"
                   aria-label="Giá vốn"
+                  required
                 />
               </div>
             </label>
