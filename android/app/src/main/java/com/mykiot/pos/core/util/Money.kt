@@ -48,3 +48,10 @@ fun formatDateTime(iso: String?): String {
         iso.take(10)
     }
 }
+
+/** "1.234" — số nguyên có dấu chấm ngăn nghìn kiểu VN, không đơn vị. */
+fun formatCount(n: Int): String {
+    val digits = kotlin.math.abs(n).toString().reversed().chunked(3).joinToString(".").reversed()
+    val sign = if (n < 0) "-" else ""
+    return "$sign$digits"
+}
