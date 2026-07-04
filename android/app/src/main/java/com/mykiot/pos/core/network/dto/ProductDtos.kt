@@ -21,6 +21,9 @@ data class ProductBriefDto(
     val unit: String,
     @SerialName("sale_price") val salePrice: Double,
     @SerialName("cost_price") val costPrice: Double? = null,
+    @SerialName("min_stock") val minStock: Int = 0,
+    @SerialName("category_id") val categoryId: Long? = null,
+    val description: String? = null,
     @SerialName("image_url") val imageUrl: String? = null,
     @SerialName("allow_negative") val allowNegative: Boolean = false,
     val status: String,
@@ -44,10 +47,29 @@ data class ProductCreateDto(
     val name: String,
     val sku: String? = null,
     val barcode: String? = null,
+    @SerialName("category_id") val categoryId: Long? = null,
     val unit: String = "cái",
     @SerialName("cost_price") val costPrice: String = "0",
     @SerialName("sale_price") val salePrice: String = "0",
     @SerialName("min_stock") val minStock: Int = 0,
     val status: String = "ACTIVE",
     @SerialName("allow_negative") val allowNegative: Boolean = false,
+)
+
+/**
+ * Body sửa SP (PUT /products/{id}). [costPrice] nullable riêng với [ProductCreateDto] —
+ * nếu Cashier sửa SP (form ẩn field giá vốn) thì gửi null để KHÔNG ghi đè giá vốn hiện
+ * có (backend bỏ qua field null khi update, xem `update_product` trong service.py).
+ */
+@Serializable
+data class ProductUpdateDto(
+    val name: String,
+    val sku: String? = null,
+    val barcode: String? = null,
+    @SerialName("category_id") val categoryId: Long? = null,
+    val unit: String = "cái",
+    @SerialName("cost_price") val costPrice: String? = null,
+    @SerialName("sale_price") val salePrice: String = "0",
+    @SerialName("min_stock") val minStock: Int = 0,
+    val status: String = "ACTIVE",
 )

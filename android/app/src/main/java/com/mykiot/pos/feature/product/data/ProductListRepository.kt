@@ -20,4 +20,8 @@ open class ProductListRepository @Inject constructor(
     open suspend fun get(id: Long): ApiResult<ProductBriefDto> =
         runCatching { productApi.get(id) }
             .fold({ ApiResult.Success(it) }, { ApiResult.Failure(errorMapper.map(it)) })
+
+    open suspend fun delete(id: Long): ApiResult<Unit> =
+        runCatching { productApi.delete(id) }
+            .fold({ ApiResult.Success(Unit) }, { ApiResult.Failure(errorMapper.map(it)) })
 }
