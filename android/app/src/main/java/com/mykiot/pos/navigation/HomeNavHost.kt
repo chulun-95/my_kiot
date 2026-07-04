@@ -140,7 +140,11 @@ private fun HomeNavHost(onOpenPos: () -> Unit, onLogout: () -> Unit) {
             arguments = listOf(navArgument("id") { type = NavType.LongType }),
         ) { entry ->
             val id = entry.arguments?.getLong("id") ?: 0L
-            ProductDetailScreen(productId = id, onBack = { nav.popOnce(entry) })
+            ProductDetailScreen(
+                productId = id,
+                onBack = { nav.popOnce(entry) },
+                onEdit = { nav.navigateOnce(entry, Routes.productEdit(it)) },
+            )
         }
         composable(Routes.PRODUCT_ADD) { entry ->
             AddProductScreen(onCreated = { nav.popOnce(entry) }, onCancel = { nav.popOnce(entry) })

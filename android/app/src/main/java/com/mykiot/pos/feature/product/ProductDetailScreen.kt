@@ -8,12 +8,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -22,6 +30,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mykiot.pos.R
 import com.mykiot.pos.core.ui.AppHeader
+import com.mykiot.pos.core.ui.ConfirmDialog
+import com.mykiot.pos.core.ui.ErrorDialog
 import com.mykiot.pos.core.ui.LoadingDialog
 import com.mykiot.pos.core.ui.SectionHeader
 import com.mykiot.pos.core.ui.Spacing
@@ -31,15 +41,34 @@ import com.mykiot.pos.core.util.formatVnd
 fun ProductDetailScreen(
     productId: Long,
     onBack: () -> Unit,
+    onEdit: (Long) -> Unit,
     viewModel: ProductDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     LaunchedEffect(productId) { viewModel.load(productId) }
+    LaunchedEffect(state.deleted) { if (state.deleted) onBack() }
     val p = state.product
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        topBar = { AppHeader(title = p?.name ?: stringResource(R.string.cat_product_title), onBack = onBack, modifier = Modifier.padding(horizontal = 16.dp)) },
+        topBar = {
+            AppHeader(
+                title = p?.name ?: stringResource(R.string.cat_product_title),
+                onBack = onBack,
+                modifier = Modifier.padding(horizontal = 16.dp),
+                actions = {
+                    IconButton(onClick = { onEdit(productId) }, enabled = !state.loading) {
+                        Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.cat_product_edit))
+                    }
+                    if (state.isOwner) {
+                        IconButton(onClick = { showDeleteConfirm = true }, enabled = !state.loading) {
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.cat_product_delete))
+                        }
+                    }
+                },
+            )
+        },
     ) { padding ->
         Column(
             Modifier.fillMaxSize().padding(padding).padding(horizontal = Spacing.lg, vertical = Spacing.md),
@@ -76,6 +105,16 @@ fun ProductDetailScreen(
     }
 
     LoadingDialog(visible = state.loading && state.product == null, message = stringResource(R.string.cat_product_loading))
+
+    if (showDeleteConfirm) {
+        ConfirmDialog(
+            title = stringResource(R.string.cat_product_delete_confirm_title),
+            message = stringResource(R.string.cat_product_delete_confirm_message),
+            onConfirm = { viewModel.delete(productId) },
+            onDismiss = { showDeleteConfirm = false },
+        )
+    }
+    state.deleteError?.let { ErrorDialog(it) { viewModel.clearDeleteError() } }
 }
 
 @Composable
