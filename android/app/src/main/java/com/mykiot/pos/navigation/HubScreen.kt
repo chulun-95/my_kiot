@@ -20,18 +20,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.AssignmentReturn
-import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
-import androidx.compose.material.icons.outlined.Assessment
-import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Group
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.Inventory2
-import androidx.compose.material.icons.outlined.LocalShipping
 import androidx.compose.material.icons.outlined.PointOfSale
-import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -54,50 +44,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.annotation.StringRes
 import com.mykiot.pos.R
 import com.mykiot.pos.core.ui.AppHeader
-
-private data class HubItem(
-    @StringRes val label: Int,
-    val route: String,
-    val icon: ImageVector,
-    val ownerOnly: Boolean = false,
-)
-
-private data class HubGroup(@StringRes val title: Int, val items: List<HubItem>)
-
-private val hubGroups = listOf(
-    HubGroup(
-        R.string.core_hub_group_quick,
-        listOf(
-            HubItem(R.string.core_hub_inventory, Routes.INVENTORY, Icons.Outlined.Inventory2),
-            HubItem(R.string.core_hub_receipt, Routes.RECEIPT, Icons.AutoMirrored.Outlined.ReceiptLong),
-            HubItem(R.string.core_hub_products, Routes.PRODUCTS, Icons.Outlined.Sell),
-            HubItem(R.string.core_hub_customers, Routes.CUSTOMERS, Icons.Outlined.Group),
-        ),
-    ),
-    HubGroup(
-        R.string.core_hub_group_manage,
-        listOf(
-            HubItem(R.string.core_hub_suppliers, Routes.SUPPLIERS, Icons.Outlined.LocalShipping),
-            HubItem(R.string.core_hub_categories, Routes.CATEGORIES, Icons.Outlined.Category),
-            HubItem(R.string.core_hub_receipt_history, Routes.RECEIPT_HISTORY, Icons.Outlined.History),
-            HubItem(R.string.core_hub_returns, Routes.RETURNS, Icons.AutoMirrored.Outlined.AssignmentReturn),
-        ),
-    ),
-    HubGroup(
-        R.string.core_hub_group_other,
-        listOf(
-            HubItem(R.string.core_hub_invoices, Routes.INVOICE_HISTORY, Icons.Outlined.Description),
-            HubItem(R.string.core_hub_report, Routes.REPORT, Icons.Outlined.Assessment, ownerOnly = true),
-        ),
-    ),
-)
 
 @Composable
 fun HubScreen(

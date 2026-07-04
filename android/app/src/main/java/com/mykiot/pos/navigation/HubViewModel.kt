@@ -20,10 +20,7 @@ data class HubUiState(
     val captions: Map<String, String> = emptyMap(),
 )
 
-private val HUB_CAPTION_ROUTES = listOf(
-    Routes.INVENTORY, Routes.PRODUCTS, Routes.CUSTOMERS, Routes.SUPPLIERS, Routes.RECEIPT,
-    Routes.RETURNS, Routes.CATEGORIES, Routes.RECEIPT_HISTORY, Routes.INVOICE_HISTORY, Routes.REPORT,
-)
+private val HUB_CAPTION_ROUTES: List<String> = hubGroups.flatMap { it.items }.map { it.route }
 
 @HiltViewModel
 class HubViewModel @Inject constructor(

@@ -4,7 +4,6 @@
     <string name="core_empty_default">Chưa có dữ liệu</string>
 
     <!-- ===== navigation: Hub + NavHost ===== -->
-    <string name="core_hub_title">my_kiot POS</string>
     <string name="core_logout_confirm_message">Bạn có chắc chắn muốn đăng xuất không?</string>
 
     <string name="core_pos_button_title">BÁN HÀNG</string>
