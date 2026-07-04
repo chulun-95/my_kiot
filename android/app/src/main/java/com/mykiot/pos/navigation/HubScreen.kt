@@ -68,7 +68,7 @@ private data class HubGroup(@StringRes val title: Int, val items: List<HubItem>)
 
 private val hubGroups = listOf(
     HubGroup(
-        R.string.core_hub_group_inventory,
+        R.string.core_hub_group_other,
         listOf(
             HubItem(R.string.core_hub_receipt, Routes.RECEIPT, Icons.AutoMirrored.Outlined.ReceiptLong),
             HubItem(R.string.core_hub_inventory, Routes.INVENTORY, Icons.Outlined.Inventory2),
@@ -77,7 +77,7 @@ private val hubGroups = listOf(
         ),
     ),
     HubGroup(
-        R.string.core_hub_group_catalog,
+        R.string.core_hub_group_other,
         listOf(
             HubItem(R.string.core_hub_products, Routes.PRODUCTS, Icons.Outlined.Sell),
             HubItem(R.string.core_hub_customers, Routes.CUSTOMERS, Icons.Outlined.Group),
@@ -86,19 +86,19 @@ private val hubGroups = listOf(
         ),
     ),
     HubGroup(
-        R.string.core_hub_group_sales,
+        R.string.core_hub_group_other,
         listOf(
             HubItem(R.string.core_hub_invoices, Routes.INVOICE_HISTORY, Icons.Outlined.Description),
         ),
     ),
     HubGroup(
-        R.string.core_hub_group_report,
+        R.string.core_hub_group_other,
         listOf(
             HubItem(R.string.core_hub_report, Routes.REPORT, Icons.Outlined.Assessment, ownerOnly = true),
         ),
     ),
     HubGroup(
-        R.string.core_hub_group_system,
+        R.string.core_hub_group_other,
         listOf(
             HubItem(R.string.core_hub_change_password, Routes.CHANGE_PASSWORD, Icons.Outlined.Lock),
         ),
