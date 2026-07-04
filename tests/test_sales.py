@@ -506,6 +506,119 @@ async def test_list_invoices_filter_by_status(client, shop):
 
 
 @pytest.mark.asyncio
+async def test_list_invoices_includes_customer_name(client, shop):
+    h = shop["headers"]
+    await client.post("/api/v1/invoices", json={
+        "customer_id": shop["customer"]["id"],
+        "items": [{"product_id": shop["p1"]["id"], "quantity": 1}],
+    }, headers=h)
+
+    r = await client.get("/api/v1/invoices", headers=h)
+    assert r.status_code == 200
+    matched = [it for it in r.json()["items"] if it["customer_id"] == shop["customer"]["id"]]
+    assert matched
+    assert matched[0]["customer_name"] == "Nguyễn Văn A"
+
+
+@pytest.mark.asyncio
+async def test_list_invoices_search_by_code(client, shop):
+    h = shop["headers"]
+    inv = (await client.post("/api/v1/invoices", json={
+        "items": [{"product_id": shop["p1"]["id"], "quantity": 1}],
+    }, headers=h)).json()
+
+    r = await client.get(f"/api/v1/invoices?search={inv['code']}", headers=h)
+    assert r.status_code == 200
+    body = r.json()
+    assert len(body["items"]) == 1
+    assert body["items"][0]["id"] == inv["id"]
+
+
+@pytest.mark.asyncio
+async def test_list_invoices_search_by_customer_name(client, shop):
+    h = shop["headers"]
+    await client.post("/api/v1/invoices", json={
+        "customer_id": shop["customer"]["id"],
+        "items": [{"product_id": shop["p1"]["id"], "quantity": 1}],
+    }, headers=h)
+    # Hóa đơn khách vãng lai — không được khớp khi tìm theo tên KH.
+    await client.post("/api/v1/invoices", json={
+        "items": [{"product_id": shop["p2"]["id"], "quantity": 1}],
+    }, headers=h)
+
+    r = await client.get("/api/v1/invoices?search=văn a", headers=h)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["items"]
+    assert all(it["customer_id"] == shop["customer"]["id"] for it in body["items"])
+
+
+@pytest.mark.asyncio
+async def test_list_invoices_search_by_customer_phone(client, shop):
+    h = shop["headers"]
+    await client.post("/api/v1/invoices", json={
+        "customer_id": shop["customer"]["id"],
+        "items": [{"product_id": shop["p1"]["id"], "quantity": 1}],
+    }, headers=h)
+
+    r = await client.get("/api/v1/invoices?search=0987654321", headers=h)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["items"]
+    assert all(it["customer_id"] == shop["customer"]["id"] for it in body["items"])
+
+
+@pytest.mark.asyncio
+async def test_list_invoices_search_no_match_returns_empty(client, shop):
+    h = shop["headers"]
+    await client.post("/api/v1/invoices", json={
+        "items": [{"product_id": shop["p1"]["id"], "quantity": 1}],
+    }, headers=h)
+
+    r = await client.get("/api/v1/invoices?search=khong-ton-tai-xyz", headers=h)
+    assert r.status_code == 200
+    assert r.json()["items"] == []
+
+
+@pytest.mark.asyncio
+async def test_list_invoices_filter_by_date_range_includes_today(client, shop):
+    from datetime import date as date_cls
+
+    h = shop["headers"]
+    inv = (await client.post("/api/v1/invoices", json={
+        "items": [{"product_id": shop["p1"]["id"], "quantity": 1}],
+    }, headers=h)).json()
+    await client.post(f"/api/v1/invoices/{inv['id']}/complete", json={
+        "payments": [{"method": "CASH", "amount": float(inv["total"])}],
+    }, headers=h)
+
+    today = date_cls.today().isoformat()
+    r = await client.get(f"/api/v1/invoices?from={today}&to={today}", headers=h)
+    assert r.status_code == 200
+    ids = [it["id"] for it in r.json()["items"]]
+    assert inv["id"] in ids
+
+
+@pytest.mark.asyncio
+async def test_list_invoices_filter_by_date_range_excludes_out_of_range(client, shop):
+    from datetime import date as date_cls, timedelta as td
+
+    h = shop["headers"]
+    inv = (await client.post("/api/v1/invoices", json={
+        "items": [{"product_id": shop["p1"]["id"], "quantity": 1}],
+    }, headers=h)).json()
+    await client.post(f"/api/v1/invoices/{inv['id']}/complete", json={
+        "payments": [{"method": "CASH", "amount": float(inv["total"])}],
+    }, headers=h)
+
+    tomorrow = (date_cls.today() + td(days=1)).isoformat()
+    r = await client.get(f"/api/v1/invoices?from={tomorrow}", headers=h)
+    assert r.status_code == 200
+    ids = [it["id"] for it in r.json()["items"]]
+    assert inv["id"] not in ids
+
+
+@pytest.mark.asyncio
 async def test_list_drafts(client, shop):
     h = shop["headers"]
     await client.post("/api/v1/invoices", json={

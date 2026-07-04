@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -55,7 +56,6 @@ import androidx.compose.ui.unit.dp
 import androidx.annotation.StringRes
 import com.mykiot.pos.R
 import com.mykiot.pos.core.ui.AppHeader
-import com.mykiot.pos.core.ui.SectionHeader
 
 private data class HubItem(
     @StringRes val label: Int,
@@ -161,7 +161,12 @@ fun HubScreen(
             PosButton(onClick = onOpenPos)
             Spacer(Modifier.height(20.dp))
             visibleGroups.forEachIndexed { index, group ->
-                SectionHeader(stringResource(group.title))
+                Text(
+                    stringResource(group.title).uppercase(),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
                 Spacer(Modifier.height(10.dp))
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
@@ -225,7 +230,7 @@ private fun HubCard(item: HubItem, onClick: () -> Unit) {
         shadowElevation = 1.dp,
         modifier = Modifier
             .fillMaxWidth()
-            .height(96.dp),
+            .height(108.dp),
     ) {
         Column(
             Modifier
@@ -242,6 +247,7 @@ private fun HubCard(item: HubItem, onClick: () -> Unit) {
                     item.icon,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(30.dp),
                 )
                 Icon(
                     Icons.Outlined.ChevronRight,
@@ -252,7 +258,8 @@ private fun HubCard(item: HubItem, onClick: () -> Unit) {
             Text(
                 stringResource(item.label),
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

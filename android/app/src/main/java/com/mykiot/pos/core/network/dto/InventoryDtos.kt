@@ -120,8 +120,32 @@ data class InventoryListDto(
     val pagination: PaginationDto? = null,
 )
 
+/** 1 dòng cảnh báo hàng sắp/hết — shape riêng của GET /inventory/low-stock
+ *  (KHÁC InventoryItemDto: có severity + shortage, không có giá). */
 @Serializable
-data class LowStockDto(val items: List<InventoryItemDto> = emptyList())
+data class LowStockItemDto(
+    @SerialName("product_id") val productId: Long,
+    @SerialName("product_sku") val productSku: String,
+    @SerialName("product_name") val productName: String,
+    val unit: String,
+    val quantity: String,
+    @SerialName("min_stock") val minStock: Int,
+    val severity: String,            // OUT_OF_STOCK | LOW
+    val shortage: String,
+)
+
+@Serializable
+data class LowStockSummaryDto(
+    @SerialName("out_of_stock_count") val outOfStockCount: Int = 0,
+    @SerialName("low_count") val lowCount: Int = 0,
+    @SerialName("total_count") val totalCount: Int = 0,
+)
+
+@Serializable
+data class LowStockDto(
+    val items: List<LowStockItemDto> = emptyList(),
+    val summary: LowStockSummaryDto? = null,
+)
 
 @Serializable
 data class StockMovementDto(

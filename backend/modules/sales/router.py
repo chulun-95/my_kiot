@@ -1,7 +1,9 @@
 from __future__ import annotations
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Query, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database import get_db
@@ -97,6 +99,9 @@ async def list_invoices(
     status_filter: str | None = Query(default=None, alias="status"),
     customer_id: int | None = Query(default=None, ge=1),
     cashier_id: int | None = Query(default=None, ge=1),
+    search: str | None = Query(default=None),
+    from_date: date | None = Query(default=None, alias="from"),
+    to_date: date | None = Query(default=None, alias="to"),
 ):
     result = await sales_service.list_invoices(
         db,
@@ -106,9 +111,23 @@ async def list_invoices(
         status=status_filter,
         customer_id=customer_id,
         cashier_id=cashier_id,
+        search=search,
+        from_date=from_date,
+        to_date=to_date,
     )
+    items = result["items"]
+
+    # Nạp tên khách theo lô để hiển thị + làm rõ kết quả tìm theo tên/SĐT.
+    cust_ids = {inv.customer_id for inv in items if inv.customer_id}
+    cmap: dict[int, str] = {}
+    if cust_ids:
+        rows = (
+            await db.execute(select(Customer).where(Customer.id.in_(cust_ids)))
+        ).scalars().all()
+        cmap = {c.id: c.name for c in rows}
+
     return InvoiceListResponse(
-        items=[_to_brief(inv) for inv in result["items"]],
+        items=[_to_brief(inv, cmap.get(inv.customer_id)) for inv in items],
         pagination=Pagination(**result["pagination"]),
     )
 

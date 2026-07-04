@@ -13,9 +13,15 @@ open class InvoiceListRepository @Inject constructor(
     private val salesApi: SalesApi,
     private val errorMapper: ErrorMapper,
 ) {
-    open suspend fun list(status: String?, page: Int = 1): ApiResult<PageResult<InvoiceBriefDto>> =
+    open suspend fun list(
+        status: String?,
+        search: String? = null,
+        from: String? = null,
+        to: String? = null,
+        page: Int = 1,
+    ): ApiResult<PageResult<InvoiceBriefDto>> =
         runCatching {
-            val r = salesApi.list(status = status, page = page)
+            val r = salesApi.list(status = status, search = search, from = from, to = to, page = page)
             PageResult.from(r.items, r.pagination)
         }.fold({ ApiResult.Success(it) }, { ApiResult.Failure(errorMapper.map(it)) })
 

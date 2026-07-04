@@ -24,19 +24,49 @@ open class InvoiceListViewModel @Inject constructor(
     private val _filter = MutableStateFlow(InvoiceFilter.ALL)
     val filter: StateFlow<InvoiceFilter> = _filter.asStateFlow()
 
+    private val _search = MutableStateFlow("")
+    val search: StateFlow<String> = _search.asStateFlow()
+
+    /** Khoảng ngày lọc (ISO "YYYY-MM-DD") — null nghĩa là không lọc. */
+    private val _dateFrom = MutableStateFlow<String?>(null)
+    val dateFrom: StateFlow<String?> = _dateFrom.asStateFlow()
+    private val _dateTo = MutableStateFlow<String?>(null)
+    val dateTo: StateFlow<String?> = _dateTo.asStateFlow()
+
     private val _cancelingId = MutableStateFlow<Long?>(null)
     val cancelingId: StateFlow<Long?> = _cancelingId.asStateFlow()
 
     fun load() = refresh()
 
     override suspend fun fetch(page: Int): ApiResult<PageResult<InvoiceBriefDto>> =
-        repository.list(status = forcedStatus ?: _filter.value.toStatus(), page = page)
+        repository.list(
+            status = forcedStatus ?: _filter.value.toStatus(),
+            search = _search.value.takeIf { it.isNotBlank() },
+            from = _dateFrom.value,
+            to = _dateTo.value,
+            page = page,
+        )
 
     fun setFilter(f: InvoiceFilter) {
         if (forcedStatus != null || _filter.value == f) return
         _filter.value = f
         refresh()
     }
+
+    /** Tìm theo mã HĐ / tên / SĐT khách. Refresh khi xóa trắng hoặc nhập ≥ 2 ký tự. */
+    fun onSearchChange(q: String) {
+        _search.value = q
+        if (q.isBlank() || q.trim().length >= 2) refresh()
+    }
+
+    /** Đặt khoảng ngày lọc (null,null = bỏ lọc) rồi tải lại. */
+    fun setDateRange(from: String?, to: String?) {
+        _dateFrom.value = from
+        _dateTo.value = to
+        refresh()
+    }
+
+    fun clearDateRange() = setDateRange(null, null)
 
     fun requestCancel(id: Long) { _cancelingId.value = id }
 

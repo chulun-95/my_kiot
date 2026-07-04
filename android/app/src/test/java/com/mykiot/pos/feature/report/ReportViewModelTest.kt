@@ -74,7 +74,7 @@ class ReportViewModelTest {
 
     @Test fun `revenue and top products loaded for owner`() = runTest {
         coEvery { repo.dashboard() } returns ApiResult.Success(dashboard())
-        coEvery { repo.revenueLast7Days() } returns ApiResult.Success(
+        coEvery { repo.revenueRange(any(), any()) } returns ApiResult.Success(
             RevenueDto(totalRevenue = 500000.0, series = emptyList()),
         )
         coEvery { repo.topProducts(any()) } returns ApiResult.Success(TopProductsDto(items = emptyList()))
@@ -82,19 +82,19 @@ class ReportViewModelTest {
 
         vm.load()
 
-        assertEquals(500000.0, vm.state.value.revenue7d?.totalRevenue ?: 0.0, 0.001)
+        assertEquals(500000.0, vm.state.value.revenue?.totalRevenue ?: 0.0, 0.001)
         assertEquals(0, vm.state.value.topProducts?.items?.size)
     }
 
     @Test fun `revenue and top products hidden for cashier 403`() = runTest {
         coEvery { repo.dashboard() } returns ApiResult.Success(dashboard())
-        coEvery { repo.revenueLast7Days() } returns ApiResult.Failure(ApiError("FORBIDDEN", "x", 403))
+        coEvery { repo.revenueRange(any(), any()) } returns ApiResult.Failure(ApiError("FORBIDDEN", "x", 403))
         coEvery { repo.topProducts(any()) } returns ApiResult.Failure(ApiError("FORBIDDEN", "x", 403))
         val vm = ReportViewModel(repo)
 
         vm.load()
 
-        assertNull(vm.state.value.revenue7d)
+        assertNull(vm.state.value.revenue)
         assertNull(vm.state.value.topProducts)
     }
 }

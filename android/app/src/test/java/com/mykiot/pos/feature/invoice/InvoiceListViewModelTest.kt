@@ -47,10 +47,10 @@ class InvoiceListViewModelTest {
     )
 
     @Test fun `load passes null status to repo`() = runTest {
-        coEvery { repo.list(null, any()) } returns page()
+        coEvery { repo.list(null, any(), any(), any(), any()) } returns page()
         val vm = InvoiceListViewModel(repo)
         vm.load()
-        coVerify { repo.list(null, 1) }
+        coVerify { repo.list(status = null, page = 1) }
     }
 
     @Test fun `load populates items on success`() = runTest {
@@ -74,7 +74,7 @@ class InvoiceListViewModelTest {
         vm.load()
         vm.setFilter(InvoiceFilter.COMPLETED)
         assertEquals(InvoiceFilter.COMPLETED, vm.filter.value)
-        coVerify { repo.list("COMPLETED", 1) }
+        coVerify { repo.list(status = "COMPLETED", page = 1) }
     }
 
     @Test fun `setFilter CANCELLED refetches with CANCELLED status`() = runTest {
@@ -82,7 +82,7 @@ class InvoiceListViewModelTest {
         val vm = InvoiceListViewModel(repo)
         vm.load()
         vm.setFilter(InvoiceFilter.CANCELLED)
-        coVerify { repo.list("CANCELLED", 1) }
+        coVerify { repo.list(status = "CANCELLED", page = 1) }
     }
 
     @Test fun `requestCancel sets cancelingId`() = runTest {

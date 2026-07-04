@@ -47,7 +47,7 @@ class ReturnsViewModelTest {
         coEvery { repo.list("COMPLETED", any()) } returns page()
         val vm = ReturnsViewModel(repo)
         vm.load()
-        coVerify(exactly = 1) { repo.list("COMPLETED", 1) }
+        coVerify(exactly = 1) { repo.list(status = "COMPLETED", page = 1) }
     }
 
     @Test fun `load populates only COMPLETED invoices`() = runTest {

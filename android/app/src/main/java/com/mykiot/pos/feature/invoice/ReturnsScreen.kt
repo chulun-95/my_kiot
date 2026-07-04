@@ -11,8 +11,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -20,6 +24,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -29,10 +36,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mykiot.pos.R
 import com.mykiot.pos.core.network.dto.InvoiceBriefDto
+import com.mykiot.pos.core.ui.AppDateRangePickerDialog
+import com.mykiot.pos.core.ui.AppSearchField
 import com.mykiot.pos.core.ui.LoadingDialog
 import com.mykiot.pos.core.ui.paging.PagedLazyColumn
 import com.mykiot.pos.core.util.formatDateTime
 import com.mykiot.pos.core.util.formatVnd
+import com.mykiot.pos.core.util.rangeLabel
 
 @Composable
 fun ReturnsScreen(
@@ -40,6 +50,10 @@ fun ReturnsScreen(
     viewModel: ReturnsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.paging.collectAsStateWithLifecycle()
+    val search by viewModel.search.collectAsStateWithLifecycle()
+    val dateFrom by viewModel.dateFrom.collectAsStateWithLifecycle()
+    val dateTo by viewModel.dateTo.collectAsStateWithLifecycle()
+    var showPicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { viewModel.load() }
 
@@ -52,15 +66,51 @@ fun ReturnsScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp),
         ) {
+            AppSearchField(
+                value = search,
+                onValueChange = viewModel::onSearchChange,
+                placeholder = stringResource(R.string.misc_returns_search_hint),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+            val hasRange = dateFrom != null && dateTo != null
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = hasRange,
+                    onClick = { showPicker = true },
+                    label = {
+                        Text(
+                            if (hasRange) rangeLabel(dateFrom!!, dateTo!!)
+                            else stringResource(R.string.misc_returns_date_all),
+                        )
+                    },
+                    leadingIcon = { Icon(Icons.Outlined.DateRange, contentDescription = null) },
+                )
+                if (hasRange) {
+                    TextButton(onClick = viewModel::clearDateRange) {
+                        Text(stringResource(R.string.misc_returns_date_clear))
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
             PagedLazyColumn(
                 state = state,
                 onLoadMore = viewModel::loadMore,
+                onRefresh = viewModel::refresh,
                 key = { it.id },
                 emptyText = stringResource(R.string.misc_returns_empty),
             ) { inv ->
                 ReturnCard(invoice = inv, onReturn = { onOpenReturn(inv.id) })
             }
         }
+    }
+
+    if (showPicker) {
+        AppDateRangePickerDialog(
+            title = stringResource(R.string.misc_report_range_picker_title),
+            onDismiss = { showPicker = false },
+            onConfirm = { from, to -> showPicker = false; viewModel.setDateRange(from, to) },
+        )
     }
 
     LoadingDialog(visible = state.refreshing && state.items.isEmpty(), message = stringResource(R.string.misc_returns_loading))

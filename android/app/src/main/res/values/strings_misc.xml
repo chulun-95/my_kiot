@@ -19,6 +19,9 @@
     <string name="misc_returns_empty">Chưa có hóa đơn nào có thể trả</string>
     <string name="misc_returns_loading">Đang tải hóa đơn...</string>
     <string name="misc_returns_action">Trả hàng</string>
+    <string name="misc_returns_search_hint">Tìm theo mã HĐ, tên/SĐT khách</string>
+    <string name="misc_returns_date_all">Tất cả ngày</string>
+    <string name="misc_returns_date_clear">Xóa lọc</string>
 
     <!-- ===== Phiếu trả (ReturnFormScreen / ReturnFormViewModel) ===== -->
     <string name="misc_return_form_title">Trả hàng</string>
@@ -49,9 +52,23 @@
     <string name="misc_report_out_of_stock">hết: %1$s</string>
     <string name="misc_report_profit">Lợi nhuận</string>
     <string name="misc_report_revenue_7d">Doanh thu 7 ngày</string>
+    <string name="misc_report_revenue_chart">Doanh thu theo ngày</string>
     <string name="misc_report_payment_structure">Cơ cấu thanh toán</string>
     <string name="misc_report_top_products">Top sản phẩm</string>
     <string name="misc_report_loading">Đang tải báo cáo...</string>
+
+    <!-- Chọn khoảng ngày + chi tiết doanh thu từng ngày -->
+    <string name="misc_report_range_7d">7 ngày</string>
+    <string name="misc_report_range_30d">30 ngày</string>
+    <string name="misc_report_range_month">Tháng này</string>
+    <string name="misc_report_range_custom">Tùy chọn</string>
+    <string name="misc_report_range_picker_title">Chọn khoảng ngày</string>
+    <string name="misc_report_revenue_empty">Chưa có doanh thu trong khoảng này</string>
+    <string name="misc_report_total_in_range">Tổng khoảng: %1$s · LN %2$s</string>
+    <string name="misc_report_day_list">Chi tiết từng ngày</string>
+    <string name="misc_report_day_invoices">%1$d hóa đơn</string>
+    <string name="misc_report_dt_short">DT</string>
+    <string name="misc_report_ln_short">LN</string>
 
     <!-- Nhãn phương thức thanh toán (methodLabel) -->
     <string name="misc_payment_method_cash">Tiền mặt</string>

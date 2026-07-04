@@ -102,6 +102,7 @@ fun ProductListScreen(
             PagedLazyColumn(
                 state = state,
                 onLoadMore = viewModel::loadMore,
+                onRefresh = viewModel::refresh,
                 key = { it.id },
                 emptyText = stringResource(R.string.cat_product_empty),
             ) { p ->

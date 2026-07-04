@@ -85,6 +85,7 @@ fun SupplierListScreen(
             PagedLazyColumn(
                 state = paging,
                 onLoadMore = viewModel::loadMore,
+                onRefresh = viewModel::refresh,
                 key = { it.id },
                 emptyText = stringResource(R.string.cat_supplier_empty),
             ) { supplier ->

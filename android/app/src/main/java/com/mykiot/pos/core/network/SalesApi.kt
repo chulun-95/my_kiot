@@ -23,6 +23,9 @@ interface SalesApi {
     @GET("invoices")
     suspend fun list(
         @Query("status") status: String? = null,
+        @Query("search") search: String? = null,
+        @Query("from") from: String? = null,
+        @Query("to") to: String? = null,
         @Query("page") page: Int = 1,
         @Query("limit") limit: Int = 30,
     ): InvoiceListDto

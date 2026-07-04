@@ -1,6 +1,7 @@
 package com.mykiot.pos.core.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -26,13 +27,16 @@ fun KpiTile(
     modifier: Modifier = Modifier,
     accent: Color? = null,
     caption: String? = null,
+    onClick: (() -> Unit)? = null,
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         shadowElevation = 1.dp,
-        modifier = modifier.height(112.dp),
+        modifier = modifier
+            .height(112.dp)
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
     ) {
         Column(Modifier.padding(14.dp)) {
             Icon(

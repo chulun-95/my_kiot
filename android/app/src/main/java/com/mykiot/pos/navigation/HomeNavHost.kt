@@ -101,7 +101,9 @@ private fun HomeNavHost(onOpenPos: () -> Unit, onLogout: () -> Unit) {
             FeatureScaffold(stringResource(R.string.core_screen_inventory), onBack = { nav.popOnce(entry) }) { InventoryScreen() }
         }
         composable(Routes.REPORT) { entry ->
-            FeatureScaffold(stringResource(R.string.core_screen_report), onBack = { nav.popOnce(entry) }) { ReportScreen() }
+            FeatureScaffold(stringResource(R.string.core_screen_report), onBack = { nav.popOnce(entry) }) {
+                ReportScreen(onOpenInventory = { nav.navigateOnce(entry, Routes.INVENTORY) })
+            }
         }
 
         // ----- Khách hàng (Phase 1) -----

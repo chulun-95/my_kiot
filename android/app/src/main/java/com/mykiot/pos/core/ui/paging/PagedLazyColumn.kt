@@ -10,8 +10,10 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -32,6 +34,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
  * @param key      khóa ổn định cho mỗi item (giúp Compose tái sử dụng & giữ vị trí cuộn).
  * @param item     composable render 1 dòng.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun <T> PagedLazyColumn(
     state: PagingState<T>,
@@ -41,6 +44,7 @@ fun <T> PagedLazyColumn(
     key: ((T) -> Any)? = null,
     emptyText: String = stringResource(R.string.core_empty_default),
     prefetchDistance: Int = 4,
+    onRefresh: (() -> Unit)? = null,
     item: @Composable (T) -> Unit,
 ) {
     // Theo dõi vị trí cuộn → tự load more khi gần chạm đáy.
@@ -54,34 +58,46 @@ fun <T> PagedLazyColumn(
             }
     }
 
-    if (state.isEmpty && !state.refreshing) {
-        Text(
-            emptyText,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(vertical = 16.dp),
-        )
-        return
-    }
+    // Nội dung danh sách (kể cả empty-state cũng để dạng cuộn được để kéo refresh hoạt động).
+    val list: @Composable () -> Unit = {
+        LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+            if (state.isEmpty && !state.refreshing) {
+                item(key = "__paging_empty__") {
+                    Box(
+                        Modifier.fillParentMaxSize().padding(32.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(emptyText, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+            items(state.items, key = key) { item(it) }
 
-    LazyColumn(state = listState, modifier = modifier.fillMaxSize()) {
-        items(state.items, key = key) { item(it) }
-
-        if (state.loadingMore) {
-            item(key = "__paging_loading_more__") {
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(28.dp),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        strokeWidth = 2.5.dp,
-                    )
+            if (state.loadingMore) {
+                item(key = "__paging_loading_more__") {
+                    Box(
+                        Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(28.dp),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            strokeWidth = 2.5.dp,
+                        )
+                    }
                 }
             }
         }
+    }
+
+    if (onRefresh != null) {
+        PullToRefreshBox(
+            isRefreshing = state.refreshing,
+            onRefresh = onRefresh,
+            modifier = modifier.fillMaxSize(),
+        ) { list() }
+    } else {
+        Box(modifier.fillMaxSize()) { list() }
     }
 }
 

@@ -120,6 +120,7 @@ fun InventoryScreen(viewModel: InventoryViewModel = hiltViewModel()) {
                     PagedLazyColumn(
                         state = state,
                         onLoadMore = viewModel::loadMore,
+                        onRefresh = viewModel::refresh,
                         key = { it.productId },
                         emptyText = stringResource(R.string.inv_empty),
                     ) { item ->

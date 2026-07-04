@@ -64,6 +64,7 @@ fun GoodsReceiptListScreen(
             PagedLazyColumn(
                 state = paging,
                 onLoadMore = viewModel::loadMore,
+                onRefresh = viewModel::refresh,
                 key = { it.id },
                 emptyText = stringResource(R.string.receipt_history_empty),
             ) { r ->

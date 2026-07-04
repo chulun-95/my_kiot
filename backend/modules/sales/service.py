@@ -1,9 +1,9 @@
 from __future__ import annotations
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -644,6 +644,9 @@ async def list_invoices(
     status: str | None = None,
     customer_id: int | None = None,
     cashier_id: int | None = None,
+    search: str | None = None,
+    from_date: date | None = None,
+    to_date: date | None = None,
 ) -> dict[str, Any]:
     stmt = select(Invoice).where(Invoice.tenant_id == tenant_id)
     if status:
@@ -652,6 +655,35 @@ async def list_invoices(
         stmt = stmt.where(Invoice.customer_id == customer_id)
     if cashier_id is not None:
         stmt = stmt.where(Invoice.cashier_id == cashier_id)
+
+    # Tìm theo mã hóa đơn HOẶC tên / SĐT khách (khách lẻ chỉ khớp theo mã).
+    if search and search.strip():
+        q = search.strip()
+        like = f"%{q.lower()}%"
+        stmt = stmt.outerjoin(Customer, Customer.id == Invoice.customer_id).where(
+            or_(
+                func.lower(Invoice.code).like(like),
+                func.lower(Customer.name).like(like),
+                Customer.phone.like(f"%{q}%"),
+            )
+        )
+
+    # Lọc theo ngày (giờ VN) trên thời điểm hiển thị = completed_at, fallback created_at.
+    if from_date is not None or to_date is not None:
+        vn = timezone(timedelta(hours=7))
+        when_col = func.coalesce(Invoice.completed_at, Invoice.created_at)
+        if from_date is not None:
+            start = datetime(
+                from_date.year, from_date.month, from_date.day, tzinfo=vn
+            ).astimezone(timezone.utc)
+            stmt = stmt.where(when_col >= start)
+        if to_date is not None:
+            end = (
+                datetime(to_date.year, to_date.month, to_date.day, tzinfo=vn)
+                + timedelta(days=1)
+            ).astimezone(timezone.utc)
+            stmt = stmt.where(when_col < end)
+
     stmt = stmt.order_by(Invoice.created_at.desc())
     return await paginate(db, stmt, page=page, limit=limit)
 
