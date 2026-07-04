@@ -170,4 +170,31 @@ class AddProductViewModelTest {
         testScheduler.advanceUntilIdle()
         assertEquals(listOf("Đồ uống", "— Nước ngọt"), viewModel.state.value.categories.map { it.label })
     }
+
+    @Test
+    fun `startEdit sets categoryId, then loadCategories backfills categoryLabel`() = runTest {
+        coEvery { repo.get(9) } returns ApiResult.Success(
+            ProductBriefDto(
+                id = 9, sku = "SP000009", name = "Sprite", unit = "chai",
+                salePrice = 15000.0, costPrice = 11000.0, status = "ACTIVE",
+                categoryId = 2,  // Set categoryId to match child category
+            ),
+        )
+        coEvery { categoryRepo.tree() } returns ApiResult.Success(
+            listOf(
+                CategoryNodeDto(id = 1, name = "Đồ uống", children = listOf(CategoryNodeDto(id = 2, name = "Nước ngọt"))),
+            ),
+        )
+        val viewModel = vm()
+        // Call startEdit first — this sets categoryId=2 but categoryLabel="" (categories list is empty yet)
+        viewModel.startEdit(9)
+        testScheduler.advanceUntilIdle()
+        assertEquals(2L, viewModel.state.value.categoryId)
+        assertEquals("", viewModel.state.value.categoryLabel)  // Empty because categories not loaded yet
+
+        // Now call loadCategories — this should backfill categoryLabel from the tree
+        viewModel.loadCategories()
+        testScheduler.advanceUntilIdle()
+        assertEquals("— Nước ngọt", viewModel.state.value.categoryLabel)
+    }
 }
