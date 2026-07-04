@@ -10,12 +10,34 @@
     <string name="core_pos_button_title">BÁN HÀNG</string>
     <string name="core_pos_button_subtitle">Mở màn POS để bán hàng</string>
 
+    <!-- Dòng chào theo vai trò -->
+    <string name="core_hub_greeting_owner">Xin chào, Chủ cửa hàng</string>
+    <string name="core_hub_greeting_cashier">Xin chào, Thu ngân</string>
+    <string name="core_hub_settings_desc">Cài đặt</string>
+
     <!-- Nhóm hub -->
-    <string name="core_hub_group_inventory">Kho</string>
-    <string name="core_hub_group_catalog">Danh mục</string>
-    <string name="core_hub_group_sales">Bán hàng</string>
-    <string name="core_hub_group_report">Báo cáo</string>
-    <string name="core_hub_group_system">Hệ thống</string>
+    <string name="core_hub_group_quick">Thao tác nhanh</string>
+    <string name="core_hub_group_manage">Quản lý</string>
+    <string name="core_hub_group_other">Khác</string>
+
+    <!-- Caption dòng phụ mỗi card -->
+    <string name="core_hub_caption_inventory_out">%1$d hết hàng</string>
+    <string name="core_hub_caption_inventory_low">%1$d sắp hết hàng</string>
+    <string name="core_hub_caption_inventory_ok">Đủ hàng</string>
+    <string name="core_hub_caption_inventory_fallback">Xem tồn kho</string>
+    <string name="core_hub_caption_products">%1$s sản phẩm · %2$d sắp hết</string>
+    <string name="core_hub_caption_products_fallback">Xem danh sách</string>
+    <string name="core_hub_caption_customers">%1$d khách hàng</string>
+    <string name="core_hub_caption_customers_fallback">Xem danh sách</string>
+    <string name="core_hub_caption_suppliers">%1$d nhà cung cấp</string>
+    <string name="core_hub_caption_suppliers_fallback">Xem danh sách</string>
+    <string name="core_hub_caption_receipt_draft">%1$d phiếu chờ</string>
+    <string name="core_hub_caption_receipt_fallback">Tạo phiếu nhập mới</string>
+    <string name="core_hub_caption_returns">Xử lý trả hàng</string>
+    <string name="core_hub_caption_categories">Quản lý nhóm hàng</string>
+    <string name="core_hub_caption_receipt_history">Xem chi tiết</string>
+    <string name="core_hub_caption_invoices">Xem lịch sử bán</string>
+    <string name="core_hub_caption_report">Xem tổng quan</string>
 
     <!-- Mục hub -->
     <string name="core_hub_receipt">Nhập hàng</string>
