@@ -145,6 +145,13 @@ private fun HomeNavHost(onOpenPos: () -> Unit, onLogout: () -> Unit) {
         composable(Routes.PRODUCT_ADD) { entry ->
             AddProductScreen(onCreated = { nav.popOnce(entry) }, onCancel = { nav.popOnce(entry) })
         }
+        composable(
+            Routes.PRODUCT_EDIT,
+            arguments = listOf(navArgument("id") { type = NavType.LongType }),
+        ) { entry ->
+            val id = entry.arguments?.getLong("id") ?: 0L
+            AddProductScreen(productId = id, onSaved = { nav.popOnce(entry) }, onCancel = { nav.popOnce(entry) })
+        }
         composable(Routes.INVOICE_HISTORY) { entry ->
             FeatureScaffold(stringResource(R.string.core_screen_invoices), onBack = { nav.popOnce(entry) }) { InvoiceListScreen() }
         }
