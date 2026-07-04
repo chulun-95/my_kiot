@@ -248,7 +248,11 @@ async def update_product(
     return _to_product_response(product, user)
 
 
-@product_router.delete("/{product_id}", response_model=MessageResponse)
+@product_router.delete(
+    "/{product_id}",
+    response_model=MessageResponse,
+    dependencies=[Depends(require_role("OWNER"))],
+)
 async def delete_product(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],

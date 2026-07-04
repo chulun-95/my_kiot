@@ -170,6 +170,36 @@ async def test_delete_product_soft(client, registered_owner):
 
 
 @pytest.mark.asyncio
+async def test_delete_product_requires_owner(client, registered_owner):
+    """CASHIER role must get 403 on DELETE /products/{id}."""
+    h_owner = _auth(registered_owner["access_token"])
+    p = (await client.post("/api/v1/products", json={
+        "name": "Bia", "unit": "lon", "sale_price": 10000,
+    }, headers=h_owner)).json()
+
+    cashier_resp = await client.post("/api/v1/staff", json={
+        "full_name": "Cashier Test",
+        "phone": "0987654321",
+        "password": "secret123",
+        "role": "CASHIER",
+    }, headers=h_owner)
+    assert cashier_resp.status_code == 201, cashier_resp.text
+
+    login = await client.post("/api/v1/auth/login", json={
+        "phone": "0987654321",
+        "password": "secret123",
+    })
+    h_cashier = _auth(login.json()["access_token"])
+
+    r = await client.delete(f"/api/v1/products/{p['id']}", headers=h_cashier)
+    assert r.status_code == 403
+
+    # SP vẫn còn nguyên (chưa bị xóa)
+    r2 = await client.get(f"/api/v1/products/{p['id']}", headers=h_owner)
+    assert r2.status_code == 200
+
+
+@pytest.mark.asyncio
 async def test_list_products_pagination(client, registered_owner):
     h = _auth(registered_owner["access_token"])
     for i in range(25):
