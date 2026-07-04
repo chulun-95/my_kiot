@@ -250,6 +250,38 @@ async def test_update_supplier(client, registered_owner):
 
 
 @pytest.mark.asyncio
+async def test_update_supplier_partial_does_not_wipe_omitted_fields(client, registered_owner):
+    """Partial update (chỉ gửi 'phone') không được xóa email/tax_code/note đã có.
+
+    Regression: Android gửi JSON với các field null tường minh do
+    encodeDefaults=true, nhưng backend không nên coi 'không gửi trong body'
+    giống 'gửi null' khi field đó thực sự vắng mặt trong payload. Test này
+    verify hành vi ở tầng service/route với payload thực sự chỉ chứa 'phone'.
+    """
+    h = _auth(registered_owner["access_token"])
+    s = (await client.post("/api/v1/suppliers", json={
+        "name": "NCC Đầy Đủ",
+        "phone": "0241000002",
+        "email": "ncc@example.com",
+        "address": "KCN Sóng Thần",
+        "tax_code": "0987654321",
+        "note": "Giao hàng thứ 2 hàng tuần",
+    }, headers=h)).json()
+
+    r = await client.put(f"/api/v1/suppliers/{s['id']}", json={
+        "phone": "0241999999",
+    }, headers=h)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["phone"] == "0241999999"
+    assert body["email"] == "ncc@example.com"
+    assert body["tax_code"] == "0987654321"
+    assert body["note"] == "Giao hàng thứ 2 hàng tuần"
+    assert body["address"] == "KCN Sóng Thần"
+    assert body["name"] == "NCC Đầy Đủ"
+
+
+@pytest.mark.asyncio
 async def test_list_suppliers_search(client, registered_owner):
     h = _auth(registered_owner["access_token"])
     await client.post("/api/v1/suppliers", json={"name": "NCC A"}, headers=h)

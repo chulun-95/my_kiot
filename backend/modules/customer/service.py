@@ -123,7 +123,7 @@ async def update_customer(
     for k, v in data.items():
         if k == "name" and v is not None:
             customer.name = v.strip()
-        else:
+        elif v is not None:
             setattr(customer, k, v)
 
     new_values = {k: getattr(customer, k) for k in old_snapshot.keys()}
@@ -309,7 +309,7 @@ async def update_supplier(
     for k, v in data.items():
         if k == "name" and v is not None:
             supplier.name = v.strip()
-        else:
+        elif v is not None:
             setattr(supplier, k, v)
 
     new_values = {k: getattr(supplier, k) for k in old_snapshot.keys()}
