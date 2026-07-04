@@ -562,6 +562,28 @@ class AddProductViewModelTest {
     }
 
     @Test
+    fun `cashier editing product sends null cost price to avoid overwriting hidden value`() = runTest {
+        // Cashier GET response has costPrice = null (ẩn theo can_see_cost ở backend) — nếu submit()
+        // gửi "0" thay vì null, sẽ ghi đè giá vốn thật của OWNER về 0 (mất dữ liệu).
+        coEvery { repo.get(9) } returns ApiResult.Success(
+            ProductBriefDto(
+                id = 9, sku = "SP000009", name = "Pepsi", unit = "chai",
+                salePrice = 15000.0, costPrice = null, status = "ACTIVE",
+            ),
+        )
+        coEvery { repo.update(eq(9), any()) } returns ApiResult.Success(
+            ProductBriefDto(id = 9, sku = "SP000009", name = "Pepsi", unit = "chai", salePrice = 15000.0, status = "ACTIVE"),
+        )
+        val viewModel = vm(isOwner = false)
+        viewModel.startEdit(9)
+        testScheduler.advanceUntilIdle()
+        viewModel.submit()
+        testScheduler.advanceUntilIdle()
+        coVerify { repo.update(eq(9), match { it.costPrice == null }) }
+        assertTrue(viewModel.state.value.saved)
+    }
+
+    @Test
     fun `loadCategories flattens tree with indentation for children`() = runTest {
         coEvery { categoryRepo.tree() } returns ApiResult.Success(
             listOf(
@@ -803,7 +825,7 @@ private fun flattenCategories(nodes: List<CategoryNodeDto>, depth: Int = 0): Lis
 - [ ] **Step 5: Chạy lại test, xác nhận PASS**
 
 Run: `cd android && ./gradlew testDebugUnitTest --tests "com.mykiot.pos.feature.product.AddProductViewModelTest"`
-Expected: BUILD SUCCESSFUL, 8 test PASS.
+Expected: BUILD SUCCESSFUL, 9 test PASS.
 
 - [ ] **Step 6: Commit**
 
