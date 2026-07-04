@@ -92,9 +92,7 @@ fun HubScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             AppHeader(
-                title = stringResource(
-                    if (isOwner) R.string.core_hub_greeting_owner else R.string.core_hub_greeting_cashier,
-                ),
+                title = stringResource(R.string.core_hub_greeting, user?.tenantName ?: ""),
                 modifier = Modifier.padding(horizontal = 16.dp),
                 actions = {
                     Box {
@@ -247,7 +245,7 @@ private fun HubCard(item: HubItem, caption: String, onClick: () -> Unit) {
                 )
                 Text(
                     caption,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                 )

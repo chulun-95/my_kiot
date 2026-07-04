@@ -9,9 +9,8 @@
     <string name="core_pos_button_title">BÁN HÀNG</string>
     <string name="core_pos_button_subtitle">Mở màn POS để bán hàng</string>
 
-    <!-- Dòng chào theo vai trò -->
-    <string name="core_hub_greeting_owner">Xin chào, Chủ cửa hàng</string>
-    <string name="core_hub_greeting_cashier">Xin chào, Thu ngân</string>
+    <!-- Dòng chào theo tên cửa hàng -->
+    <string name="core_hub_greeting">Xin chào, %1$s</string>
     <string name="core_hub_settings_desc">Cài đặt</string>
 
     <!-- Nhóm hub -->
