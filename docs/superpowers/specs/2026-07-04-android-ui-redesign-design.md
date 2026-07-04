@@ -105,8 +105,8 @@ Không màn nào đổi logic/ViewModel. Chỉ thay style + dùng component mớ
 |-----|--------------------|
 | **Hub** (`navigation/HubScreen.kt`) | `HubCard`: ô icon nền teal nhạt (soft tile). `PosButton`: teal + bóng. Group header giữ nguyên. |
 | **POS** (`feature/pos/PosScreen.kt`) | Theo mockup đã duyệt: nút quét tròn teal, nút Thanh toán teal (bóng), Treo đơn viền teal, giỏ hàng divider + stepper, badge "đơn treo" teal nhạt, tổng tiền in đậm. Cấu trúc giữ nguyên. |
-| **Sản phẩm** (`ProductListScreen`, `ProductDetailScreen`, `AddProductScreen`) | List dùng `ListRow` + badge tồn kho (Còn/Sắp hết/Hết). Form field teal. Detail: header + badge + nút theo hệ mới. |
-| **Tồn kho** (`InventoryScreen`) | `ListRow` + badge tồn kho. |
+| **Sản phẩm** (`ProductListScreen`, `ProductDetailScreen`, `AddProductScreen`) | List dùng `ListRow`; badge trạng thái **INACTIVE** (dữ liệu hiện có — ProductBriefDto **không** có tồn kho nên KHÔNG hiển thị badge tồn ở đây). Form field teal. Detail: header + nút theo hệ mới. |
+| **Tồn kho** (`InventoryScreen`) | `ListRow` + badge tồn kho (Còn/Sắp hết/Hết) — đây là nơi có dữ liệu `quantity`/`minStock`. Tách logic phân loại tồn thành hàm thuần `stockLevel(qty, minStock)`. |
 | **Hóa đơn** (`InvoiceListScreen`, chi tiết) | `ListRow` + `StatusBadge` (Đã TT/Bán nợ/Đã hủy/Nháp). |
 | **Trả hàng** (`ReturnsScreen`, `ReturnFormScreen`) | Badge + nút theo hệ mới. |
 | **Phiếu nhập** (`GoodsReceiptListScreen`, `GoodsReceiptDetailScreen`, `ReceiptScreen`) | `ListRow` + badge trạng thái phiếu; form teal. |
