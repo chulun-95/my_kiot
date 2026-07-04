@@ -410,7 +410,9 @@ async def update_product(
 
     data = payload.model_dump(exclude_unset=True)
     for k, v in data.items():
-        if k in {"sku", "barcode", "image_url", "description"} and v is not None:
+        if k == "category_id":
+            product.category_id = v
+        elif k in {"sku", "barcode", "image_url", "description"} and v is not None:
             setattr(product, k, v)
         elif k == "name" and v is not None:
             product.name = v.strip()

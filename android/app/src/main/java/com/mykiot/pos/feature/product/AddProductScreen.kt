@@ -143,13 +143,15 @@ fun AddProductScreen(
             }
             Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth()) {
-                MoneyInput(
-                    value = state.costPrice.toLongOrNull() ?: 0L,
-                    onValueChange = { viewModel.onCost(it.toString()) },
-                    label = stringResource(R.string.cat_product_field_cost),
-                    modifier = Modifier.weight(1f),
-                )
-                Spacer(Modifier.width(12.dp))
+                if (state.isOwner) {
+                    MoneyInput(
+                        value = state.costPrice.toLongOrNull() ?: 0L,
+                        onValueChange = { viewModel.onCost(it.toString()) },
+                        label = stringResource(R.string.cat_product_field_cost),
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(12.dp))
+                }
                 MoneyInput(
                     value = state.salePrice.toLongOrNull() ?: 0L,
                     onValueChange = { viewModel.onSale(it.toString()) },

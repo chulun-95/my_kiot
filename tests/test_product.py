@@ -151,6 +151,26 @@ async def test_update_product_sku_collision(client, registered_owner):
 
 
 @pytest.mark.asyncio
+async def test_update_product_clear_category(client, registered_owner):
+    h = _auth(registered_owner["access_token"])
+    cat = (await client.post(
+        "/api/v1/categories", json={"name": "Đồ uống"}, headers=h
+    )).json()
+    p = (await client.post("/api/v1/products", json={
+        "name": "Pepsi", "sale_price": 12000, "category_id": cat["id"],
+    }, headers=h)).json()
+    assert p["category_id"] == cat["id"]
+
+    r = await client.put(
+        f"/api/v1/products/{p['id']}",
+        json={"category_id": None},
+        headers=h,
+    )
+    assert r.status_code == 200
+    assert r.json()["category_id"] is None
+
+
+@pytest.mark.asyncio
 async def test_delete_product_soft(client, registered_owner):
     h = _auth(registered_owner["access_token"])
     p = (await client.post("/api/v1/products", json={

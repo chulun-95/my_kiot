@@ -19,7 +19,7 @@ import javax.inject.Singleton
 object NetworkModule {
 
     @Provides @Singleton
-    fun json(): Json = Json { ignoreUnknownKeys = true }
+    fun json(): Json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
     @Provides @Singleton
     fun authInterceptor(tokenStore: TokenStore) = AuthInterceptor(tokenStore)
