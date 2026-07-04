@@ -6,6 +6,7 @@ import com.mykiot.pos.core.network.ApiResult
 import com.mykiot.pos.core.network.dto.ProductBriefDto
 import com.mykiot.pos.feature.product.data.ProductListRepository
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -68,5 +69,16 @@ class ProductDetailViewModelTest {
         testScheduler.advanceUntilIdle()
         assertEquals("Bạn không có quyền thực hiện", viewModel.state.value.deleteError?.message)
         assertFalse(viewModel.state.value.deleted)
+    }
+
+    @Test
+    fun `delete guard prevents concurrent invocations`() = runTest {
+        coEvery { repo.delete(5) } returns ApiResult.Success(Unit)
+        val viewModel = vm()
+        viewModel.delete(5)
+        viewModel.delete(5)  // Second call should be ignored
+        testScheduler.advanceUntilIdle()
+        coVerify(exactly = 1) { repo.delete(5) }
+        assertTrue(viewModel.state.value.deleted)
     }
 }

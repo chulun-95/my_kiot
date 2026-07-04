@@ -45,6 +45,7 @@ class ProductDetailViewModel @Inject constructor(
     fun clearError() = _state.update { it.copy(errorMessage = null) }
 
     fun delete(id: Long) {
+        if (_state.value.loading) return
         _state.update { it.copy(loading = true, deleteError = null) }
         viewModelScope.launch {
             when (val r = repository.delete(id)) {
