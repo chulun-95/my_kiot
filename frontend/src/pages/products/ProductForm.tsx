@@ -222,6 +222,7 @@ export default function ProductForm() {
                   className="w-full px-3 py-2 border border-slate-300 rounded"
                   aria-label="Giá vốn"
                   required
+                  {...viValidity({ valueMissing: 'Vui lòng nhập giá vốn' })}
                 />
               </div>
             </label>
@@ -236,6 +237,7 @@ export default function ProductForm() {
                 className="w-full px-3 py-2 border border-slate-300 rounded"
                 aria-label="Giá bán"
                 required
+                {...viValidity({ valueMissing: 'Vui lòng nhập giá bán' })}
               />
             </div>
           </label>
