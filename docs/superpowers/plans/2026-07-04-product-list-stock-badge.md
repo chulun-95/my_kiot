@@ -43,10 +43,15 @@ async def test_list_products_stock_status_low(client, registered_owner):
     p = (await client.post("/api/v1/products", json={
         "name": "SP Sắp Hết", "sale_price": 10000, "min_stock": 5,
     }, headers=h)).json()
+    # supplier_id BẮT BUỘC ở đây: complete goods-receipt với paid_amount=0 (mặc định)
+    # và không có supplier_id sẽ bị chặn bởi rule DEBT_REQUIRES_SUPPLIER (400).
+    sup = (await client.post("/api/v1/suppliers", json={"name": "NCC Test"}, headers=h)).json()
     r = (await client.post("/api/v1/goods-receipts", json={
+        "supplier_id": sup["id"],
         "items": [{"product_id": p["id"], "quantity": 3, "cost_price": 5000}],
     }, headers=h)).json()
-    await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
+    complete = await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
+    assert complete.status_code == 200, complete.text
 
     resp = await client.get("/api/v1/products", headers=h)
     item = next(i for i in resp.json()["items"] if i["id"] == p["id"])
@@ -83,10 +88,13 @@ async def test_list_products_stock_status_none_when_sufficient(client, registere
     p = (await client.post("/api/v1/products", json={
         "name": "SP Đủ Hàng", "sale_price": 10000, "min_stock": 5,
     }, headers=h)).json()
+    sup = (await client.post("/api/v1/suppliers", json={"name": "NCC Test"}, headers=h)).json()
     r = (await client.post("/api/v1/goods-receipts", json={
+        "supplier_id": sup["id"],
         "items": [{"product_id": p["id"], "quantity": 100, "cost_price": 5000}],
     }, headers=h)).json()
-    await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
+    complete = await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
+    assert complete.status_code == 200, complete.text
 
     resp = await client.get("/api/v1/products", headers=h)
     item = next(i for i in resp.json()["items"] if i["id"] == p["id"])

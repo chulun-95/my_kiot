@@ -105,7 +105,7 @@ async def delete_category(
 product_router = APIRouter(prefix="/api/v1/products", tags=["products"])
 
 
-def _to_product_response(p, user: User) -> ProductResponse:
+def _to_product_response(p, user: User, stock_status: str | None = None) -> ProductResponse:
     show_cost = can_see_cost(getattr(user, "_tenant", None), user.role)
     data = {
         "id": p.id,
@@ -125,6 +125,7 @@ def _to_product_response(p, user: User) -> ProductResponse:
         "created_at": p.created_at,
         "updated_at": p.updated_at,
         "units": [ProductUnitResponse.model_validate(u) for u in (p.units or [])],
+        "stock_status": stock_status,
     }
     return ProductResponse(**data)
 
@@ -167,7 +168,10 @@ async def list_products(
         status=status,
     )
     return ProductListResponse(
-        items=[_to_product_response(p, user) for p in result["items"]],
+        items=[
+            _to_product_response(p, user, stock_status=result["stock_by_id"].get(p.id))
+            for p in result["items"]
+        ],
         pagination=Pagination(**result["pagination"]),
     )
 

@@ -152,6 +152,7 @@ class ProductResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     units: list[ProductUnitResponse] = []
+    stock_status: Literal["OUT", "LOW"] | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -342,3 +342,65 @@ async def test_auto_sku_sequential(client, registered_owner):
     assert p1["sku"] != p2["sku"]
     assert p1["sku"].startswith("SP")
     assert p2["sku"].startswith("SP")
+
+
+@pytest.mark.asyncio
+async def test_list_products_stock_status_low(client, registered_owner):
+    h = _auth(registered_owner["access_token"])
+    p = (await client.post("/api/v1/products", json={
+        "name": "SP Sắp Hết", "sale_price": 10000, "min_stock": 5,
+    }, headers=h)).json()
+    sup = (await client.post("/api/v1/suppliers", json={"name": "NCC Test"}, headers=h)).json()
+    r = (await client.post("/api/v1/goods-receipts", json={
+        "supplier_id": sup["id"],
+        "items": [{"product_id": p["id"], "quantity": 3, "cost_price": 5000}],
+    }, headers=h)).json()
+    complete = await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
+    assert complete.status_code == 200, complete.text
+
+    resp = await client.get("/api/v1/products", headers=h)
+    item = next(i for i in resp.json()["items"] if i["id"] == p["id"])
+    assert item["stock_status"] == "LOW"
+
+
+@pytest.mark.asyncio
+async def test_list_products_stock_status_out_never_stocked(client, registered_owner):
+    h = _auth(registered_owner["access_token"])
+    p = (await client.post("/api/v1/products", json={
+        "name": "SP Chưa Nhập", "sale_price": 10000, "min_stock": 5,
+    }, headers=h)).json()
+
+    resp = await client.get("/api/v1/products", headers=h)
+    item = next(i for i in resp.json()["items"] if i["id"] == p["id"])
+    assert item["stock_status"] == "OUT"
+
+
+@pytest.mark.asyncio
+async def test_list_products_stock_status_none_when_min_stock_zero(client, registered_owner):
+    h = _auth(registered_owner["access_token"])
+    p = (await client.post("/api/v1/products", json={
+        "name": "SP Không Ngưỡng", "sale_price": 10000,
+    }, headers=h)).json()
+
+    resp = await client.get("/api/v1/products", headers=h)
+    item = next(i for i in resp.json()["items"] if i["id"] == p["id"])
+    assert item["stock_status"] is None
+
+
+@pytest.mark.asyncio
+async def test_list_products_stock_status_none_when_sufficient(client, registered_owner):
+    h = _auth(registered_owner["access_token"])
+    p = (await client.post("/api/v1/products", json={
+        "name": "SP Đủ Hàng", "sale_price": 10000, "min_stock": 5,
+    }, headers=h)).json()
+    sup = (await client.post("/api/v1/suppliers", json={"name": "NCC Test"}, headers=h)).json()
+    r = (await client.post("/api/v1/goods-receipts", json={
+        "supplier_id": sup["id"],
+        "items": [{"product_id": p["id"], "quantity": 100, "cost_price": 5000}],
+    }, headers=h)).json()
+    complete = await client.post(f"/api/v1/goods-receipts/{r['id']}/complete", headers=h)
+    assert complete.status_code == 200, complete.text
+
+    resp = await client.get("/api/v1/products", headers=h)
+    item = next(i for i in resp.json()["items"] if i["id"] == p["id"])
+    assert item["stock_status"] is None

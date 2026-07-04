@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.exceptions import AppError
+from backend.modules.inventory.models import Inventory
 from backend.modules.product.models import Category, Product, ProductImage, ProductUnit
 from backend.modules.product.schemas import (
     CategoryCreateRequest,
@@ -491,6 +492,18 @@ async def soft_delete_product(
     await db.commit()
 
 
+def _classify_stock(quantity, min_stock: int) -> str | None:
+    """Phân loại tồn kho cho 1 sản phẩm. min_stock<=0 → không cảnh báo (đúng quy tắc
+    đã dùng ở report_service._low_stock_counts: chỉ cảnh báo khi min_stock > 0)."""
+    if min_stock <= 0:
+        return None
+    if quantity is None or quantity <= 0:
+        return "OUT"
+    if quantity <= min_stock:
+        return "LOW"
+    return None
+
+
 async def list_products(
     db: AsyncSession,
     tenant_id: int,
@@ -527,7 +540,23 @@ async def list_products(
         stmt = stmt.where(Product.status == status)
 
     stmt = stmt.order_by(Product.created_at.desc())
-    return await paginate(db, stmt, page=page, limit=limit)
+    result = await paginate(db, stmt, page=page, limit=limit)
+
+    product_ids = [p.id for p in result["items"]]
+    stock_by_id: dict[int, str | None] = {}
+    if product_ids:
+        qty_rows = await db.execute(
+            select(Inventory.product_id, Inventory.quantity).where(
+                Inventory.tenant_id == tenant_id,
+                Inventory.product_id.in_(product_ids),
+            )
+        )
+        qty_by_id = {pid: qty for pid, qty in qty_rows.all()}
+        for p in result["items"]:
+            stock_by_id[p.id] = _classify_stock(qty_by_id.get(p.id), p.min_stock)
+
+    result["stock_by_id"] = stock_by_id
+    return result
 
 
 async def search_products(
