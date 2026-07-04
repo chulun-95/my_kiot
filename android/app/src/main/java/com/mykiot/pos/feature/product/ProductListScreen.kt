@@ -145,6 +145,17 @@ private fun ProductListCard(product: ProductBriefDto, onClick: () -> Unit) {
                         Spacer(Modifier.width(6.dp))
                         MonoBadge(stringResource(R.string.cat_product_status_inactive_short), filled = false)
                     }
+                    when (product.stockStatus) {
+                        "OUT" -> {
+                            Spacer(Modifier.width(6.dp))
+                            MonoBadge(stringResource(R.string.inv_badge_out), filled = true)
+                        }
+                        "LOW" -> {
+                            Spacer(Modifier.width(6.dp))
+                            MonoBadge(stringResource(R.string.inv_badge_low), filled = false)
+                        }
+                        else -> {}
+                    }
                 }
                 Spacer(Modifier.height(2.dp))
                 Text(

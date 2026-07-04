@@ -26,6 +26,7 @@ data class ProductBriefDto(
     val status: String,
     val units: List<ProductUnitDto> = emptyList(),
     @SerialName("matched_unit") val matchedUnit: ProductUnitDto? = null,
+    @SerialName("stock_status") val stockStatus: String? = null,
 )
 
 @Serializable
