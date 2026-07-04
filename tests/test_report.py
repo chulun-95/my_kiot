@@ -646,3 +646,90 @@ async def test_end_of_day_owner_only(client, shop, registered_owner):
 async def test_end_of_day_default_today(client, shop):
     r = await client.get("/api/v1/reports/end-of-day", headers=shop["headers"])
     assert r.status_code == 200
+
+
+# ===================================================================
+# Hub Summary
+# ===================================================================
+
+@pytest.mark.asyncio
+async def test_hub_summary_basic_counts(client, shop):
+    h = shop["headers"]
+    r = await client.get("/api/v1/reports/hub-summary", headers=h)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["total_products"] == 2          # p1, p2 từ fixture shop
+    assert body["total_suppliers"] == 1          # NCC Test từ fixture shop
+    assert body["total_customers"] == 0
+    assert body["draft_receipts_count"] == 0     # phiếu nhập trong fixture đã complete
+    assert body["low_stock_count"] == 0
+    assert body["out_of_stock_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_hub_summary_counts_draft_receipt(client, shop):
+    h = shop["headers"]
+    # Tạo thêm 1 phiếu nhập KHÔNG complete → vẫn ở DRAFT
+    await client.post("/api/v1/goods-receipts", json={
+        "supplier_id": shop["supplier"]["id"],
+        "items": [{"product_id": shop["p1"]["id"], "quantity": 10, "cost_price": 9000}],
+    }, headers=h)
+
+    r = await client.get("/api/v1/reports/hub-summary", headers=h)
+    body = r.json()
+    assert body["draft_receipts_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_hub_summary_low_and_out_of_stock(client, shop):
+    h = shop["headers"]
+    # p1 min_stock=5, tồn ban đầu 100. Bán 96 → tồn 4 (<5) → LOW, chưa OUT.
+    await _complete_invoice(client, h, shop["p1"]["id"], 96)
+    r = await client.get("/api/v1/reports/hub-summary", headers=h)
+    body = r.json()
+    assert body["low_stock_count"] >= 1
+    assert body["out_of_stock_count"] == 0
+
+    # Bán nốt 4 còn lại → tồn 0 → OUT_OF_STOCK.
+    await _complete_invoice(client, h, shop["p1"]["id"], 4)
+    r2 = await client.get("/api/v1/reports/hub-summary", headers=h)
+    body2 = r2.json()
+    assert body2["out_of_stock_count"] >= 1
+
+
+@pytest.mark.asyncio
+async def test_hub_summary_tenant_isolation(client):
+    """Tenant A không thấy số liệu tenant B."""
+    a = (await client.post("/api/v1/auth/register", json={
+        "shop_name": "Shop A", "owner_name": "OA",
+        "phone": "0903111111", "password": "secret123",
+    })).json()
+    b = (await client.post("/api/v1/auth/register", json={
+        "shop_name": "Shop B", "owner_name": "OB",
+        "phone": "0903222222", "password": "secret123",
+    })).json()
+    h_a = _auth(a["access_token"])
+    h_b = _auth(b["access_token"])
+
+    # Shop A tạo 2 SP + 1 KH; Shop B không tạo gì.
+    await client.post("/api/v1/products", json={
+        "name": "PA1", "sku": "PA1", "sale_price": 1000,
+    }, headers=h_a)
+    await client.post("/api/v1/products", json={
+        "name": "PA2", "sku": "PA2", "sale_price": 1000,
+    }, headers=h_a)
+    await client.post("/api/v1/customers", json={"name": "KH A"}, headers=h_a)
+
+    body_a = (await client.get("/api/v1/reports/hub-summary", headers=h_a)).json()
+    body_b = (await client.get("/api/v1/reports/hub-summary", headers=h_b)).json()
+
+    assert body_a["total_products"] == 2
+    assert body_a["total_customers"] == 1
+    assert body_b["total_products"] == 0
+    assert body_b["total_customers"] == 0
+
+
+@pytest.mark.asyncio
+async def test_hub_summary_requires_auth(client):
+    r = await client.get("/api/v1/reports/hub-summary")
+    assert r.status_code == 401

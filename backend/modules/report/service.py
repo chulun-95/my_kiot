@@ -98,6 +98,32 @@ async def _returns_by_period(db: AsyncSession, tenant_id: int, start: datetime, 
 # Dashboard
 # ====================================================================
 
+async def _low_stock_counts(db: AsyncSession, tenant_id: int) -> tuple[int, int]:
+    """Trả (low_stock_count, out_of_stock_count). low_stock_count gồm cả out_of_stock.
+    Anchor trên Product + LEFT JOIN Inventory: SP chưa từng nhập kho vẫn tính hết hàng."""
+    qty_col = func.coalesce(Inventory.quantity, 0)
+    low_q = await db.execute(
+        select(qty_col)
+        .select_from(Product)
+        .outerjoin(
+            Inventory,
+            (Inventory.product_id == Product.id)
+            & (Inventory.tenant_id == tenant_id),
+        )
+        .where(
+            Product.tenant_id == tenant_id,
+            Product.deleted_at.is_(None),
+            Product.status == "ACTIVE",
+            Product.min_stock > 0,
+            qty_col <= Product.min_stock,
+        )
+    )
+    low_rows = low_q.all()
+    out_of_stock_count = sum(1 for (q,) in low_rows if (q or 0) <= 0)
+    low_stock_count = len(low_rows)
+    return low_stock_count, out_of_stock_count
+
+
 async def dashboard(db: AsyncSession, tenant_id: int) -> dict[str, Any]:
     today_start, today_end = _today_range()
 
@@ -134,30 +160,7 @@ async def dashboard(db: AsyncSession, tenant_id: int) -> dict[str, Any]:
     )
     pending_drafts = int(drafts_q.scalar() or 0)
 
-    # Low stock — tách ra OUT_OF_STOCK (qty <= 0) vs LOW (0 < qty <= min)
-    # Anchor trên Product + LEFT JOIN: SP chưa từng nhập kho (không có dòng
-    # inventory) vẫn phải tính là hết hàng. Filter tenant của Inventory đặt
-    # trong ON-clause để giữ outer join.
-    qty_col = func.coalesce(Inventory.quantity, 0)
-    low_q = await db.execute(
-        select(qty_col)
-        .select_from(Product)
-        .outerjoin(
-            Inventory,
-            (Inventory.product_id == Product.id)
-            & (Inventory.tenant_id == tenant_id),
-        )
-        .where(
-            Product.tenant_id == tenant_id,
-            Product.deleted_at.is_(None),
-            Product.status == "ACTIVE",
-            Product.min_stock > 0,
-            qty_col <= Product.min_stock,
-        )
-    )
-    low_rows = low_q.all()
-    out_of_stock_count = sum(1 for (q,) in low_rows if (q or 0) <= 0)
-    low_stock_count = len(low_rows)
+    low_stock_count, out_of_stock_count = await _low_stock_counts(db, tenant_id)
 
     # Inventory value: sum(inventory.quantity * product.cost_price)
     inv_value_q = await db.execute(
@@ -183,6 +186,57 @@ async def dashboard(db: AsyncSession, tenant_id: int) -> dict[str, Any]:
         "low_stock_count": low_stock_count,
         "out_of_stock_count": out_of_stock_count,
         "inventory_value": inventory_value,
+    }
+
+
+# ====================================================================
+# Hub Summary
+# ====================================================================
+
+async def hub_summary(db: AsyncSession, tenant_id: int) -> dict[str, Any]:
+    low_stock_count, out_of_stock_count = await _low_stock_counts(db, tenant_id)
+
+    total_products = int(
+        (await db.execute(
+            select(func.count(Product.id)).where(
+                Product.tenant_id == tenant_id,
+                Product.deleted_at.is_(None),
+                Product.status == "ACTIVE",
+            )
+        )).scalar() or 0
+    )
+    total_customers = int(
+        (await db.execute(
+            select(func.count(Customer.id)).where(
+                Customer.tenant_id == tenant_id,
+                Customer.deleted_at.is_(None),
+            )
+        )).scalar() or 0
+    )
+    total_suppliers = int(
+        (await db.execute(
+            select(func.count(Supplier.id)).where(
+                Supplier.tenant_id == tenant_id,
+                Supplier.deleted_at.is_(None),
+            )
+        )).scalar() or 0
+    )
+    draft_receipts_count = int(
+        (await db.execute(
+            select(func.count(GoodsReceipt.id)).where(
+                GoodsReceipt.tenant_id == tenant_id,
+                GoodsReceipt.status == "DRAFT",
+            )
+        )).scalar() or 0
+    )
+
+    return {
+        "total_products": total_products,
+        "low_stock_count": low_stock_count,
+        "out_of_stock_count": out_of_stock_count,
+        "total_customers": total_customers,
+        "total_suppliers": total_suppliers,
+        "draft_receipts_count": draft_receipts_count,
     }
 
 

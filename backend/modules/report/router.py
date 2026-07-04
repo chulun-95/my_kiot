@@ -17,6 +17,7 @@ from backend.modules.report.schemas import (
     DebtReportResponse,
     EodMethodRow,
     EndOfDayResponse,
+    HubSummaryResponse,
     ProductsSoldResponse,
     ProductsSoldSortBy,
     ProfitResponse,
@@ -55,6 +56,15 @@ async def dashboard(
     if not can_see_cost(tenant, user.role):
         data["inventory_value"] = None
     return DashboardResponse(**data)
+
+
+@router.get("/hub-summary", response_model=HubSummaryResponse)
+async def hub_summary(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+):
+    data = await report_service.hub_summary(db, user.current_tenant_id)
+    return HubSummaryResponse(**data)
 
 
 @router.get("/revenue", response_model=RevenueResponse)

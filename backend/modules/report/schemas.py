@@ -21,6 +21,15 @@ class DashboardResponse(BaseModel):
     inventory_value: Decimal | None = None  # None nếu CASHIER không được xem giá vốn
 
 
+class HubSummaryResponse(BaseModel):
+    total_products: int
+    low_stock_count: int       # gồm cả OUT_OF_STOCK + LOW (giống dashboard)
+    out_of_stock_count: int    # subset của low_stock_count: tồn ≤ 0
+    total_customers: int
+    total_suppliers: int
+    draft_receipts_count: int
+
+
 # ---------- Revenue ----------
 
 class RevenuePoint(BaseModel):
