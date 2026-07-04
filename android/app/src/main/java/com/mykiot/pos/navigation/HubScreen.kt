@@ -2,6 +2,7 @@ package com.mykiot.pos.navigation
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,18 +30,22 @@ import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.LocalShipping
-import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.PointOfSale
 import androidx.compose.material.icons.outlined.Sell
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,17 +66,26 @@ private data class HubItem(
     @StringRes val label: Int,
     val route: String,
     val icon: ImageVector,
-    val ownerOnly: Boolean = false,   // hướng B dùng để ẩn với CASHIER
+    val ownerOnly: Boolean = false,
 )
 
 private data class HubGroup(@StringRes val title: Int, val items: List<HubItem>)
 
 private val hubGroups = listOf(
     HubGroup(
-        R.string.core_hub_group_other,
+        R.string.core_hub_group_quick,
         listOf(
-            HubItem(R.string.core_hub_receipt, Routes.RECEIPT, Icons.AutoMirrored.Outlined.ReceiptLong),
             HubItem(R.string.core_hub_inventory, Routes.INVENTORY, Icons.Outlined.Inventory2),
+            HubItem(R.string.core_hub_receipt, Routes.RECEIPT, Icons.AutoMirrored.Outlined.ReceiptLong),
+            HubItem(R.string.core_hub_products, Routes.PRODUCTS, Icons.Outlined.Sell),
+            HubItem(R.string.core_hub_customers, Routes.CUSTOMERS, Icons.Outlined.Group),
+        ),
+    ),
+    HubGroup(
+        R.string.core_hub_group_manage,
+        listOf(
+            HubItem(R.string.core_hub_suppliers, Routes.SUPPLIERS, Icons.Outlined.LocalShipping),
+            HubItem(R.string.core_hub_categories, Routes.CATEGORIES, Icons.Outlined.Category),
             HubItem(R.string.core_hub_receipt_history, Routes.RECEIPT_HISTORY, Icons.Outlined.History),
             HubItem(R.string.core_hub_returns, Routes.RETURNS, Icons.AutoMirrored.Outlined.AssignmentReturn),
         ),
@@ -79,28 +93,8 @@ private val hubGroups = listOf(
     HubGroup(
         R.string.core_hub_group_other,
         listOf(
-            HubItem(R.string.core_hub_products, Routes.PRODUCTS, Icons.Outlined.Sell),
-            HubItem(R.string.core_hub_customers, Routes.CUSTOMERS, Icons.Outlined.Group),
-            HubItem(R.string.core_hub_suppliers, Routes.SUPPLIERS, Icons.Outlined.LocalShipping),
-            HubItem(R.string.core_hub_categories, Routes.CATEGORIES, Icons.Outlined.Category),
-        ),
-    ),
-    HubGroup(
-        R.string.core_hub_group_other,
-        listOf(
             HubItem(R.string.core_hub_invoices, Routes.INVOICE_HISTORY, Icons.Outlined.Description),
-        ),
-    ),
-    HubGroup(
-        R.string.core_hub_group_other,
-        listOf(
             HubItem(R.string.core_hub_report, Routes.REPORT, Icons.Outlined.Assessment, ownerOnly = true),
-        ),
-    ),
-    HubGroup(
-        R.string.core_hub_group_other,
-        listOf(
-            HubItem(R.string.core_hub_change_password, Routes.CHANGE_PASSWORD, Icons.Outlined.Lock),
         ),
     ),
 )
@@ -113,12 +107,16 @@ fun HubScreen(
     viewModel: HubViewModel = hiltViewModel(),
 ) {
     val user by viewModel.user.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val isOwner = user?.role == "OWNER"
     val visibleGroups = hubGroups
         .map { g -> g.copy(items = g.items.filter { !it.ownerOnly || isOwner }) }
         .filter { it.items.isNotEmpty() }
 
+    LaunchedEffect(Unit) { viewModel.load() }
+
     var showLogoutConfirm by remember { mutableStateOf(false) }
+    var showSettingsMenu by remember { mutableStateOf(false) }
 
     if (showLogoutConfirm) {
         AlertDialog(
@@ -143,10 +141,38 @@ fun HubScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             AppHeader(
-                title = stringResource(R.string.core_hub_title),
+                title = stringResource(
+                    if (isOwner) R.string.core_hub_greeting_owner else R.string.core_hub_greeting_cashier,
+                ),
                 modifier = Modifier.padding(horizontal = 16.dp),
                 actions = {
-                    TextButton(onClick = { showLogoutConfirm = true }) { Text(stringResource(R.string.common_logout)) }
+                    Box {
+                        IconButton(onClick = { showSettingsMenu = true }) {
+                            Icon(
+                                Icons.Outlined.Settings,
+                                contentDescription = stringResource(R.string.core_hub_settings_desc),
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showSettingsMenu,
+                            onDismissRequest = { showSettingsMenu = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.core_hub_change_password)) },
+                                onClick = {
+                                    showSettingsMenu = false
+                                    onNavigate(Routes.CHANGE_PASSWORD)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.common_logout)) },
+                                onClick = {
+                                    showSettingsMenu = false
+                                    showLogoutConfirm = true
+                                },
+                            )
+                        }
+                    }
                 },
             )
         },
@@ -178,7 +204,11 @@ fun HubScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(group.items, key = { it.route }) { item ->
-                        HubCard(item, onClick = { onNavigate(item.route) })
+                        HubCard(
+                            item = item,
+                            caption = state.captions[item.route] ?: "",
+                            onClick = { onNavigate(item.route) },
+                        )
                     }
                 }
                 if (index != visibleGroups.lastIndex) Spacer(Modifier.height(20.dp))
@@ -221,7 +251,7 @@ private fun PosButton(onClick: () -> Unit) {
 }
 
 @Composable
-private fun HubCard(item: HubItem, onClick: () -> Unit) {
+private fun HubCard(item: HubItem, caption: String, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
@@ -230,12 +260,12 @@ private fun HubCard(item: HubItem, onClick: () -> Unit) {
         shadowElevation = 1.dp,
         modifier = Modifier
             .fillMaxWidth()
-            .height(108.dp),
+            .height(84.dp),
     ) {
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(14.dp),
+                .padding(12.dp),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Row(
@@ -247,20 +277,30 @@ private fun HubCard(item: HubItem, onClick: () -> Unit) {
                     item.icon,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(30.dp),
+                    modifier = Modifier.size(22.dp),
                 )
                 Icon(
                     Icons.Outlined.ChevronRight,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.size(16.dp),
                 )
             }
-            Text(
-                stringResource(item.label),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Column {
+                Text(
+                    stringResource(item.label),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+                Text(
+                    caption,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
         }
     }
 }
