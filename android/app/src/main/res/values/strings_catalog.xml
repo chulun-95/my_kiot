@@ -40,6 +40,18 @@
     <!-- ViewModel (AddProductViewModel) -->
     <string name="cat_product_err_name_required">Vui lòng nhập tên sản phẩm</string>
     <string name="cat_product_err_price_invalid">Giá nhập / giá bán không hợp lệ</string>
+    <string name="cat_product_edit">Sửa sản phẩm</string>
+    <string name="cat_product_field_category">Nhóm hàng</string>
+    <string name="cat_product_field_category_none">Không có nhóm</string>
+    <string name="cat_product_field_min_stock">Tồn tối thiểu</string>
+    <string name="cat_product_field_status">Trạng thái</string>
+    <string name="cat_product_status_draft">Nháp</string>
+    <string name="cat_product_err_unit_required">Vui lòng nhập đơn vị tính</string>
+    <string name="cat_product_err_sale_price_required">Vui lòng nhập giá bán</string>
+    <string name="cat_product_err_cost_price_required">Vui lòng nhập giá vốn</string>
+    <string name="cat_product_delete">Xóa sản phẩm</string>
+    <string name="cat_product_delete_confirm_title">Xóa sản phẩm?</string>
+    <string name="cat_product_delete_confirm_message">Sản phẩm sẽ bị ẩn khỏi toàn bộ hệ thống và không thể khôi phục.</string>
 
     <!-- Nhóm hàng (category) -->
     <string name="cat_category_title">Nhóm hàng</string>
