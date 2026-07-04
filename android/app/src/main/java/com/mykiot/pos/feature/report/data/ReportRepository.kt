@@ -5,6 +5,7 @@ import com.mykiot.pos.core.network.ErrorMapper
 import com.mykiot.pos.core.network.ReportApi
 import com.mykiot.pos.core.network.dto.DashboardDto
 import com.mykiot.pos.core.network.dto.EndOfDayDto
+import com.mykiot.pos.core.network.dto.HubSummaryDto
 import com.mykiot.pos.core.network.dto.RevenueDto
 import com.mykiot.pos.core.network.dto.TopProductsDto
 import javax.inject.Inject
@@ -15,6 +16,10 @@ open class ReportRepository @Inject constructor(
 ) {
     open suspend fun dashboard(): ApiResult<DashboardDto> =
         runCatching { reportApi.dashboard() }
+            .fold({ ApiResult.Success(it) }, { ApiResult.Failure(errorMapper.map(it)) })
+
+    open suspend fun hubSummary(): ApiResult<HubSummaryDto> =
+        runCatching { reportApi.hubSummary() }
             .fold({ ApiResult.Success(it) }, { ApiResult.Failure(errorMapper.map(it)) })
 
     open suspend fun endOfDay(): ApiResult<EndOfDayDto> =

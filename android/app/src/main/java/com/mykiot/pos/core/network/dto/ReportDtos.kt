@@ -16,6 +16,16 @@ data class DashboardDto(
 )
 
 @Serializable
+data class HubSummaryDto(
+    @SerialName("total_products") val totalProducts: Int,
+    @SerialName("low_stock_count") val lowStockCount: Int,
+    @SerialName("out_of_stock_count") val outOfStockCount: Int,
+    @SerialName("total_customers") val totalCustomers: Int,
+    @SerialName("total_suppliers") val totalSuppliers: Int,
+    @SerialName("draft_receipts_count") val draftReceiptsCount: Int,
+)
+
+@Serializable
 data class EodMethodRowDto(
     val method: String,
     val opening: String,
