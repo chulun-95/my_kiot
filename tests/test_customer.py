@@ -251,12 +251,16 @@ async def test_update_supplier(client, registered_owner):
 
 @pytest.mark.asyncio
 async def test_update_supplier_partial_does_not_wipe_omitted_fields(client, registered_owner):
-    """Partial update (chỉ gửi 'phone') không được xóa email/tax_code/note đã có.
+    """Regression test: Android gửi JSON với explicit null cho fields không thay đổi.
 
-    Regression: Android gửi JSON với các field null tường minh do
-    encodeDefaults=true, nhưng backend không nên coi 'không gửi trong body'
-    giống 'gửi null' khi field đó thực sự vắng mặt trong payload. Test này
-    verify hành vi ở tầng service/route với payload thực sự chỉ chứa 'phone'.
+    Regression: Android ngắt DTO encode với encodeDefaults=true, nên PUT request
+    chứa ALL fields của SupplierUpdateRequest, với null tường minh cho các field
+    form không populate. Nếu backend dùng 'else: setattr()' mà không check 'v is not None',
+    sẽ wipe email/tax_code/note thành NULL.
+
+    Test này gửi payload thực sự matching Android:
+      {"name": "...", "phone": "0241999999", "email": null, "address": "...", "tax_code": null, "note": null}
+    và verify rằng nulls KHÔNG wipe những giá trị cũ.
     """
     h = _auth(registered_owner["access_token"])
     s = (await client.post("/api/v1/suppliers", json={
@@ -268,15 +272,23 @@ async def test_update_supplier_partial_does_not_wipe_omitted_fields(client, regi
         "note": "Giao hàng thứ 2 hàng tuần",
     }, headers=h)).json()
 
+    # PUT với explicit null cho email/tax_code/note (matching Android encodeDefaults=true behavior)
     r = await client.put(f"/api/v1/suppliers/{s['id']}", json={
+        "name": "NCC Đầy Đủ",
         "phone": "0241999999",
+        "email": None,
+        "address": "KCN Sóng Thần",
+        "tax_code": None,
+        "note": None,
     }, headers=h)
     assert r.status_code == 200
     body = r.json()
+    # Phone được thay đổi
     assert body["phone"] == "0241999999"
-    assert body["email"] == "ncc@example.com"
-    assert body["tax_code"] == "0987654321"
-    assert body["note"] == "Giao hàng thứ 2 hàng tuần"
+    # Các field khác KHÔNG bị wipe - giữ nguyên giá trị cũ
+    assert body["email"] == "ncc@example.com", "Explicit null không được wipe email"
+    assert body["tax_code"] == "0987654321", "Explicit null không được wipe tax_code"
+    assert body["note"] == "Giao hàng thứ 2 hàng tuần", "Explicit null không được wipe note"
     assert body["address"] == "KCN Sóng Thần"
     assert body["name"] == "NCC Đầy Đủ"
 
