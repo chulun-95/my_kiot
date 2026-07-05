@@ -46,3 +46,7 @@ Thumbs.db
 /frontend/playwright-report/
 /frontend/.playwright/
 /.playwright-mcp/
+
+# Claude Code tooling runtime state (worktrees, brainstorm/review sessions)
+/.claude/worktrees/
+/.superpowers/
