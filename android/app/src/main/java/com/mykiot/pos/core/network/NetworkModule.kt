@@ -1,7 +1,10 @@
 package com.mykiot.pos.core.network
 
 import com.mykiot.pos.BuildConfig
+import com.mykiot.pos.core.auth.CurrentUser
+import com.mykiot.pos.core.auth.SessionManager
 import com.mykiot.pos.core.auth.TokenStore
+import com.mykiot.pos.core.auth.parseExpiresAt
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import dagger.Module
 import dagger.Provides
@@ -37,13 +40,29 @@ object NetworkModule {
             .build()
 
     @Provides @Singleton
-    fun refreshCallerProvider(@RefreshClient retrofit: Retrofit): () -> RefreshCaller {
+    fun refreshCallerProvider(
+        @RefreshClient retrofit: Retrofit,
+        tokenStore: TokenStore,
+        sessionManager: SessionManager,
+    ): () -> RefreshCaller {
         val api = retrofit.create(AuthApi::class.java)
         return {
             RefreshCaller { refreshToken ->
                 runCatching {
                     kotlinx.coroutines.runBlocking {
                         val dto = api.refresh(com.mykiot.pos.core.network.dto.RefreshRequest(refreshToken))
+                        // Đồng bộ lại expiresAt (và user/tenant nói chung) mỗi lần access token
+                        // tự làm mới trong lúc dùng app — không cần polling/endpoint riêng.
+                        val currentUser = CurrentUser(
+                            id = dto.user.id,
+                            fullName = dto.user.fullName,
+                            role = dto.user.role,
+                            tenantId = dto.tenant.id,
+                            tenantName = dto.tenant.name,
+                            expiresAt = parseExpiresAt(dto.tenant.expiresAt),
+                        )
+                        sessionManager.set(currentUser)
+                        tokenStore.saveUser(currentUser)
                         TokenPairResult(dto.accessToken, dto.refreshToken)
                     }
                 }.getOrNull()

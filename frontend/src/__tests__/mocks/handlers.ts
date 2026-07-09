@@ -2,10 +2,10 @@ import { http, HttpResponse } from 'msw';
 
 interface RegisterBody {
   shop_name: string;
-  owner_name: string;
   phone: string;
-  email?: string;
+  address: string;
   password: string;
+  confirm_password: string;
 }
 
 interface LoginBody {
@@ -22,7 +22,7 @@ const successUser = {
   role: 'OWNER' as const,
 };
 
-const successTenant = { id: 1, name: 'Shop A', slug: 'shop-a' };
+const successTenant = { id: 1, name: 'Shop A', slug: 'shop-a', expires_at: null };
 
 const tokens = {
   access_token: 'access-1',
@@ -34,7 +34,7 @@ export const handlers = [
   http.post('*/auth/refresh', () =>
     HttpResponse.json({
       user: { id: 1, full_name: 'Owner A', role: 'OWNER' },
-      tenant: { id: 1, name: 'Shop A', slug: 'shop-a' },
+      tenant: { id: 1, name: 'Shop A', slug: 'shop-a', expires_at: null },
       access_token: 'access-1',
     }),
   ),

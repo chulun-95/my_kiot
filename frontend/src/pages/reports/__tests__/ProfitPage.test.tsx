@@ -15,7 +15,7 @@ describe('ProfitPage', () => {
         phone: null,
         email: null,
       },
-      tenant: { id: 1, name: 'Shop', slug: 'shop' },
+      tenant: { id: 1, name: 'Shop', slug: 'shop', expires_at: null },
       accessToken: 'tok',
     });
   });
@@ -44,7 +44,7 @@ describe('ProfitPage', () => {
         phone: null,
         email: null,
       },
-      tenant: { id: 1, name: 'Shop', slug: 'shop' },
+      tenant: { id: 1, name: 'Shop', slug: 'shop', expires_at: null },
       accessToken: 'tok',
     });
     render(

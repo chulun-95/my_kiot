@@ -160,13 +160,13 @@ async def test_delete_category_with_products_blocked(client, registered_owner):
 async def test_category_tenant_isolation(client):
     """Tenant A không được thấy/sửa/xóa nhóm hàng của tenant B."""
     rA = await client.post("/api/v1/auth/register", json={
-        "shop_name": "Shop A", "owner_name": "Owner A",
-        "phone": "0911111111", "password": "secret123",
+        "shop_name": "Shop A", "address": "1 Đường A, Quận 1",
+        "phone": "0911111111", "password": "secret123", "confirm_password": "secret123",
     })
     assert rA.status_code == 201, rA.text
     rB = await client.post("/api/v1/auth/register", json={
-        "shop_name": "Shop B", "owner_name": "Owner B",
-        "phone": "0922222222", "password": "secret123",
+        "shop_name": "Shop B", "address": "2 Đường B, Quận 1",
+        "phone": "0922222222", "password": "secret123", "confirm_password": "secret123",
     })
     assert rB.status_code == 201, rB.text
     tokA = rA.json()["access_token"]

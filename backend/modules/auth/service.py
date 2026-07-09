@@ -30,6 +30,7 @@ from backend.modules.auth.utils import (
 )
 from backend.modules.tenant.models import Tenant
 from backend.shared import audit as audit_helper
+from backend.shared.dates import add_months
 from backend.shared.pagination import paginate
 
 
@@ -75,15 +76,20 @@ async def register(db: AsyncSession, payload: RegisterRequest) -> RegisterRespon
     base_slug = slugify(payload.shop_name)
     slug = await _make_unique_slug(db, base_slug)
 
-    tenant = Tenant(name=payload.shop_name.strip(), slug=slug)
+    tenant = Tenant(
+        name=payload.shop_name.strip(),
+        slug=slug,
+        address=payload.address.strip(),
+        expires_at=add_months(datetime.now(tz=timezone.utc), 6),
+    )
     db.add(tenant)
     await db.flush()
 
     user = User(
         tenant_id=tenant.id,
         phone=payload.phone,
-        email=payload.email,
-        full_name=payload.owner_name.strip(),
+        email=None,
+        full_name=payload.shop_name.strip(),
         password_hash=hash_password(payload.password),
         role="OWNER",
         is_active=True,

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -41,13 +42,18 @@ class EncryptedTokenStore @Inject constructor(
     }
 
     override fun saveUser(user: CurrentUser) {
-        prefs.edit()
-            .putLong(KEY_USER_ID, user.id)
-            .putString(KEY_USER_NAME, user.fullName)
-            .putString(KEY_USER_ROLE, user.role)
-            .putLong(KEY_TENANT_ID, user.tenantId)
-            .putString(KEY_TENANT_NAME, user.tenantName)
-            .apply()
+        prefs.edit().apply {
+            putLong(KEY_USER_ID, user.id)
+            putString(KEY_USER_NAME, user.fullName)
+            putString(KEY_USER_ROLE, user.role)
+            putLong(KEY_TENANT_ID, user.tenantId)
+            putString(KEY_TENANT_NAME, user.tenantName)
+            if (user.expiresAt != null) {
+                putLong(KEY_TENANT_EXPIRES_AT, user.expiresAt.toEpochMilli())
+            } else {
+                remove(KEY_TENANT_EXPIRES_AT)
+            }
+        }.apply()
     }
 
     override fun getUser(): CurrentUser? {
@@ -58,6 +64,11 @@ class EncryptedTokenStore @Inject constructor(
             role = role,
             tenantId = prefs.getLong(KEY_TENANT_ID, 0L),
             tenantName = prefs.getString(KEY_TENANT_NAME, "") ?: "",
+            expiresAt = if (prefs.contains(KEY_TENANT_EXPIRES_AT)) {
+                Instant.ofEpochMilli(prefs.getLong(KEY_TENANT_EXPIRES_AT, 0L))
+            } else {
+                null
+            },
         )
     }
 
@@ -76,5 +87,6 @@ class EncryptedTokenStore @Inject constructor(
         const val KEY_USER_ROLE = "user_role"
         const val KEY_TENANT_ID = "tenant_id"
         const val KEY_TENANT_NAME = "tenant_name"
+        const val KEY_TENANT_EXPIRES_AT = "tenant_expires_at"
     }
 }

@@ -655,12 +655,12 @@ async def test_invoice_tenant_isolation(client):
     """Tenant A KHÔNG được thấy invoice của tenant B."""
     # Register 2 shops
     a = (await client.post("/api/v1/auth/register", json={
-        "shop_name": "Shop A", "owner_name": "OA",
-        "phone": "0901111111", "password": "secret123",
+        "shop_name": "Shop A", "address": "1 Đường A, Quận 1",
+        "phone": "0901111111", "password": "secret123", "confirm_password": "secret123",
     })).json()
     b = (await client.post("/api/v1/auth/register", json={
-        "shop_name": "Shop B", "owner_name": "OB",
-        "phone": "0902222222", "password": "secret123",
+        "shop_name": "Shop B", "address": "2 Đường B, Quận 1",
+        "phone": "0902222222", "password": "secret123", "confirm_password": "secret123",
     })).json()
     h_a = _auth(a["access_token"])
     h_b = _auth(b["access_token"])

@@ -6,9 +6,10 @@ pytestmark = pytest.mark.asyncio
 async def _register(client):
     payload = {
         "shop_name": "Tap Hoa Mobile",
-        "owner_name": "Owner Mobile",
         "phone": "0907654321",
+        "address": "1 Đường Mobile, Quận 1",
         "password": "secret123",
+        "confirm_password": "secret123",
     }
     resp = await client.post("/api/v1/auth/register", json=payload)
     assert resp.status_code == 201, resp.text

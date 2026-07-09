@@ -3,10 +3,10 @@ import type { Role, Tenant, User, TenantOption, LoginPendingSelection } from '..
 
 export interface RegisterPayload {
   shop_name: string;
-  owner_name: string;
   phone: string;
-  email?: string;
+  address: string;
   password: string;
+  confirm_password: string;
 }
 
 export interface LoginPayload {

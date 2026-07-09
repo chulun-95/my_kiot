@@ -1,7 +1,10 @@
+from datetime import datetime, timezone
+
 import jwt
 import pytest
 
 from backend.config import settings
+from backend.shared.dates import add_months
 
 
 # ---------- Register ----------
@@ -10,9 +13,10 @@ from backend.config import settings
 async def test_register_success(client):
     payload = {
         "shop_name": "Tap Hoa Minh Anh",
-        "owner_name": "Nguyen Minh Anh",
         "phone": "0901234567",
+        "address": "123 Đường ABC, Quận 1, TP.HCM",
         "password": "secret123",
+        "confirm_password": "secret123",
     }
     resp = await client.post("/api/v1/auth/register", json=payload)
     assert resp.status_code == 201
@@ -30,14 +34,15 @@ async def test_register_success(client):
 async def test_register_duplicate_phone(client):
     payload = {
         "shop_name": "Shop A",
-        "owner_name": "User A",
         "phone": "0901111111",
+        "address": "1 Đường A, Quận 1",
         "password": "secret123",
+        "confirm_password": "secret123",
     }
     r1 = await client.post("/api/v1/auth/register", json=payload)
     assert r1.status_code == 201
 
-    payload2 = {**payload, "shop_name": "Shop B", "owner_name": "User B"}
+    payload2 = {**payload, "shop_name": "Shop B"}
     r2 = await client.post("/api/v1/auth/register", json=payload2)
     assert r2.status_code == 409
     assert r2.json()["error"]["code"] == "PHONE_EXISTS"
@@ -47,9 +52,10 @@ async def test_register_duplicate_phone(client):
 async def test_register_invalid_phone(client):
     payload = {
         "shop_name": "Shop X",
-        "owner_name": "User X",
         "phone": "1234567",
+        "address": "1 Đường X, Quận 1",
         "password": "secret123",
+        "confirm_password": "secret123",
     }
     resp = await client.post("/api/v1/auth/register", json=payload)
     assert resp.status_code == 422
@@ -59,9 +65,10 @@ async def test_register_invalid_phone(client):
 async def test_register_short_password(client):
     payload = {
         "shop_name": "Shop X",
-        "owner_name": "User X",
         "phone": "0901234567",
+        "address": "1 Đường X, Quận 1",
         "password": "123",
+        "confirm_password": "123",
     }
     resp = await client.post("/api/v1/auth/register", json=payload)
     assert resp.status_code == 422
@@ -71,27 +78,67 @@ async def test_register_short_password(client):
 async def test_register_empty_shop_name(client):
     payload = {
         "shop_name": "",
-        "owner_name": "User X",
         "phone": "0901234567",
+        "address": "1 Đường X, Quận 1",
         "password": "secret123",
+        "confirm_password": "secret123",
     }
     resp = await client.post("/api/v1/auth/register", json=payload)
     assert resp.status_code == 422
 
 
 @pytest.mark.asyncio
+async def test_register_password_mismatch(client):
+    payload = {
+        "shop_name": "Shop Mismatch",
+        "phone": "0903333333",
+        "address": "1 Đường Mismatch, Quận 1",
+        "password": "secret123",
+        "confirm_password": "different456",
+    }
+    resp = await client.post("/api/v1/auth/register", json=payload)
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_register_sets_expiry(client):
+    payload = {
+        "shop_name": "Shop Expiry",
+        "phone": "0904444444",
+        "address": "1 Đường Expiry, Quận 1",
+        "password": "secret123",
+        "confirm_password": "secret123",
+    }
+    before = datetime.now(tz=timezone.utc)
+    resp = await client.post("/api/v1/auth/register", json=payload)
+    assert resp.status_code == 201
+    data = resp.json()
+
+    expires_at_raw = data["tenant"]["expires_at"]
+    assert expires_at_raw is not None
+    expires_at = datetime.fromisoformat(expires_at_raw)
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    expected = add_months(before, 6)
+    assert abs((expires_at - expected).total_seconds()) < 60
+
+
+@pytest.mark.asyncio
 async def test_register_slug_collision_gets_suffix(client):
     p1 = {
         "shop_name": "Tap Hoa",
-        "owner_name": "U1",
         "phone": "0901111111",
+        "address": "1 Đường U1, Quận 1",
         "password": "secret123",
+        "confirm_password": "secret123",
     }
     p2 = {
         "shop_name": "Tap Hoa",
-        "owner_name": "U2",
         "phone": "0902222222",
+        "address": "2 Đường U2, Quận 1",
         "password": "secret123",
+        "confirm_password": "secret123",
     }
     r1 = await client.post("/api/v1/auth/register", json=p1)
     r2 = await client.post("/api/v1/auth/register", json=p2)

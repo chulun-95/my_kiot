@@ -563,12 +563,12 @@ async def test_supplier_debt_derived(client, shop):
 @pytest.mark.asyncio
 async def test_report_tenant_isolation(client):
     a = (await client.post("/api/v1/auth/register", json={
-        "shop_name": "Shop A", "owner_name": "OA",
-        "phone": "0903000001", "password": "secret123",
+        "shop_name": "Shop A", "address": "1 Đường A, Quận 1",
+        "phone": "0903000001", "password": "secret123", "confirm_password": "secret123",
     })).json()
     b = (await client.post("/api/v1/auth/register", json={
-        "shop_name": "Shop B", "owner_name": "OB",
-        "phone": "0903000002", "password": "secret123",
+        "shop_name": "Shop B", "address": "2 Đường B, Quận 1",
+        "phone": "0903000002", "password": "secret123", "confirm_password": "secret123",
     })).json()
     h_a = _auth(a["access_token"])
     h_b = _auth(b["access_token"])
@@ -701,12 +701,12 @@ async def test_hub_summary_low_and_out_of_stock(client, shop):
 async def test_hub_summary_tenant_isolation(client):
     """Tenant A không thấy số liệu tenant B."""
     a = (await client.post("/api/v1/auth/register", json={
-        "shop_name": "Shop A", "owner_name": "OA",
-        "phone": "0903111111", "password": "secret123",
+        "shop_name": "Shop A", "address": "1 Đường A, Quận 1",
+        "phone": "0903111111", "password": "secret123", "confirm_password": "secret123",
     })).json()
     b = (await client.post("/api/v1/auth/register", json={
-        "shop_name": "Shop B", "owner_name": "OB",
-        "phone": "0903222222", "password": "secret123",
+        "shop_name": "Shop B", "address": "2 Đường B, Quận 1",
+        "phone": "0903222222", "password": "secret123", "confirm_password": "secret123",
     })).json()
     h_a = _auth(a["access_token"])
     h_b = _auth(b["access_token"])

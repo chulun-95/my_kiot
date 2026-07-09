@@ -5,6 +5,8 @@ import AppLayout from './components/AppLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import RoleGate from './components/RoleGate';
+import ExpiryWarningBanner from './components/ExpiryWarningBanner';
+import ExpiredOverlay from './components/ExpiredOverlay';
 
 const Login = lazy(() => import('./pages/auth/Login'));
 const Register = lazy(() => import('./pages/auth/Register'));
@@ -69,6 +71,7 @@ function PageFallback() {
 export default function App() {
   const initializing = useAuthStore((s) => s.initializing);
   const bootstrap = useAuthStore((s) => s.bootstrap);
+  const tenant = useAuthStore((s) => s.tenant);
   useEffect(() => {
     void bootstrap();
   }, [bootstrap]);
@@ -84,6 +87,12 @@ export default function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
+        {tenant !== null && (
+          <>
+            <ExpiryWarningBanner />
+            <ExpiredOverlay />
+          </>
+        )}
         <Suspense fallback={<PageFallback />}>
           <Routes>
             <Route path="/login" element={<Login />} />

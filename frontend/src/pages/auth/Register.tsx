@@ -3,15 +3,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { toFriendlyMessage } from '../../utils/errors';
 import { viValidity } from '../../utils/validity';
+import PasswordInput from '../../components/PasswordInput';
 
 export default function Register() {
   const navigate = useNavigate();
   const register = useAuthStore((s) => s.register);
   const [shopName, setShopName] = useState('');
-  const [ownerName, setOwnerName] = useState('');
   const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -22,14 +23,18 @@ export default function Register() {
       setError('Số điện thoại phải có 10 chữ số, bắt đầu bằng 0');
       return;
     }
+    if (password !== confirmPassword) {
+      setError('Xác nhận mật khẩu không khớp');
+      return;
+    }
     setSubmitting(true);
     try {
       await register({
         shop_name: shopName,
-        owner_name: ownerName,
         phone,
-        email: email || undefined,
+        address,
         password,
+        confirm_password: confirmPassword,
       });
       navigate('/dashboard', { replace: true });
     } catch (err) {
@@ -63,21 +68,6 @@ export default function Register() {
         </label>
 
         <label className="block">
-          <span className="text-sm text-slate-700">Tên chủ shop</span>
-          <input
-            value={ownerName}
-            onChange={(e) => setOwnerName(e.target.value)}
-            required
-            minLength={2}
-            className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
-            {...viValidity({
-              valueMissing: 'Vui lòng nhập tên chủ shop',
-              tooShort: 'Tên chủ shop phải có ít nhất 2 ký tự',
-            })}
-          />
-        </label>
-
-        <label className="block">
           <span className="text-sm text-slate-700">Số điện thoại</span>
           <input
             type="tel"
@@ -92,29 +82,44 @@ export default function Register() {
         </label>
 
         <label className="block">
-          <span className="text-sm text-slate-700">Email (tùy chọn)</span>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+          <span className="text-sm text-slate-700">Địa chỉ</span>
+          <textarea
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            required
+            rows={2}
             className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
             {...viValidity({
-              typeMismatch: 'Email không hợp lệ',
+              valueMissing: 'Vui lòng nhập địa chỉ',
             })}
           />
         </label>
 
         <label className="block">
           <span className="text-sm text-slate-700">Mật khẩu</span>
-          <input
-            type="password"
+          <PasswordInput
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
-            className="mt-1 w-full px-3 py-2 border border-slate-300 rounded"
+            wrapperClass="mt-1"
             {...viValidity({
               valueMissing: 'Vui lòng nhập mật khẩu',
+              tooShort: 'Mật khẩu phải có ít nhất 6 ký tự',
+            })}
+          />
+        </label>
+
+        <label className="block">
+          <span className="text-sm text-slate-700">Nhập lại mật khẩu</span>
+          <PasswordInput
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            minLength={6}
+            wrapperClass="mt-1"
+            {...viValidity({
+              valueMissing: 'Vui lòng nhập lại mật khẩu',
               tooShort: 'Mật khẩu phải có ít nhất 6 ký tự',
             })}
           />

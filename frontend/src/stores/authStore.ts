@@ -15,6 +15,7 @@ export interface Tenant {
   id: number;
   name: string;
   slug: string;
+  expires_at: string | null;
 }
 
 export interface TenantOption {

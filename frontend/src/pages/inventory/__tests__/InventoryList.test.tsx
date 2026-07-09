@@ -9,7 +9,7 @@ import { useAuthStore } from '../../../stores/authStore';
 function asOwner() {
   useAuthStore.setState({
     user: { id: 1, full_name: 'Owner', role: 'OWNER', phone: null, email: null },
-    tenant: { id: 1, name: 'Shop', slug: 'shop' },
+    tenant: { id: 1, name: 'Shop', slug: 'shop', expires_at: null },
     accessToken: 'tok',
   });
 }
@@ -17,7 +17,7 @@ function asOwner() {
 function asCashier() {
   useAuthStore.setState({
     user: { id: 2, full_name: 'Cashier', role: 'CASHIER', phone: null, email: null },
-    tenant: { id: 1, name: 'Shop', slug: 'shop' },
+    tenant: { id: 1, name: 'Shop', slug: 'shop', expires_at: null },
     accessToken: 'tok',
   });
 }

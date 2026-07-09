@@ -1,14 +1,13 @@
 package com.mykiot.pos.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import com.mykiot.pos.feature.auth.LoginScreen
 
 @Composable
-fun AppNav(startLoggedIn: Boolean) {
-    val navController = rememberNavController()
+fun AppNav(navController: NavHostController, startLoggedIn: Boolean) {
     val start = if (startLoggedIn) Routes.HOME else Routes.LOGIN
 
     NavHost(navController = navController, startDestination = start) {

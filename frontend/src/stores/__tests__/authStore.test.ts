@@ -33,7 +33,7 @@ describe('authStore', () => {
   it('doLogout clears state', async () => {
     useAuthStore.setState({
       user: { id: 1, full_name: 'X', role: 'OWNER' },
-      tenant: { id: 1, name: 'Y', slug: 'y' },
+      tenant: { id: 1, name: 'Y', slug: 'y', expires_at: null },
       accessToken: 'a',
     });
     await useAuthStore.getState().doLogout();

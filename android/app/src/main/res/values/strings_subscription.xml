@@ -1,0 +1,8 @@
+<resources>
+    <!-- ===== core/ui: ExpiredOverlay (hết hạn gói dịch vụ) ===== -->
+    <string name="subscription_expired_title">Gói dịch vụ đã hết hạn</string>
+    <string name="subscription_expired_message">Vui lòng liên hệ để gia hạn và tiếp tục sử dụng dịch vụ.</string>
+    <string name="subscription_contact_facebook">Liên hệ Facebook</string>
+    <string name="subscription_contact_zalo">Liên hệ Zalo</string>
+    <string name="subscription_logout">Đăng xuất</string>
+</resources>

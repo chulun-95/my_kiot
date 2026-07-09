@@ -13,7 +13,7 @@ function renderAt(role: 'OWNER' | 'CASHIER', userId: number) {
       phone: null,
       email: null,
     },
-    tenant: { id: 1, name: 'Shop A', slug: 'shop-a' },
+    tenant: { id: 1, name: 'Shop A', slug: 'shop-a', expires_at: null },
     accessToken: 'tok',
   });
   return render(

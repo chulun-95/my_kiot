@@ -67,6 +67,9 @@ CANCEL_CASH_TX = "CANCEL_CASH_TX"
 CREATE_SALES_RETURN = "CREATE_SALES_RETURN"
 CANCEL_SALES_RETURN = "CANCEL_SALES_RETURN"
 
+# Phase 8 — subscription
+EXTEND_SUBSCRIPTION = "EXTEND_SUBSCRIPTION"
+
 
 # ====================================================================
 # JSON-safe coercion

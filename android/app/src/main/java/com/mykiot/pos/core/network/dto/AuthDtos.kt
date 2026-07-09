@@ -41,6 +41,7 @@ data class TenantDto(
     val id: Long,
     val name: String,
     val slug: String,
+    @SerialName("expires_at") val expiresAt: String? = null,
 )
 
 @Serializable

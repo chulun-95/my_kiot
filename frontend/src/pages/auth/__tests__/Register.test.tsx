@@ -12,6 +12,24 @@ function renderRegister() {
   );
 }
 
+function fillValidForm() {
+  fireEvent.change(screen.getByLabelText('Tên shop'), {
+    target: { value: 'Shop A' },
+  });
+  fireEvent.change(screen.getByLabelText('Số điện thoại'), {
+    target: { value: '0900000001' },
+  });
+  fireEvent.change(screen.getByLabelText('Địa chỉ'), {
+    target: { value: '123 Đường ABC, Quận 1' },
+  });
+  fireEvent.change(screen.getByLabelText('Mật khẩu'), {
+    target: { value: 'secret1' },
+  });
+  fireEvent.change(screen.getByLabelText('Nhập lại mật khẩu'), {
+    target: { value: 'secret1' },
+  });
+}
+
 describe('Register page', () => {
   beforeEach(() => {
     useAuthStore.setState({
@@ -25,22 +43,15 @@ describe('Register page', () => {
     renderRegister();
     expect(screen.getByText('Đăng ký shop mới')).toBeInTheDocument();
     expect(screen.getByText('Tên shop')).toBeInTheDocument();
+    expect(screen.getByText('Địa chỉ')).toBeInTheDocument();
+    expect(screen.getByText('Nhập lại mật khẩu')).toBeInTheDocument();
+    expect(screen.queryByText('Tên chủ shop')).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Email/)).not.toBeInTheDocument();
   });
 
   it('submits and dispatches register, populating store', async () => {
     renderRegister();
-    fireEvent.change(screen.getByLabelText('Tên shop'), {
-      target: { value: 'Shop A' },
-    });
-    fireEvent.change(screen.getByLabelText('Tên chủ shop'), {
-      target: { value: 'Chủ shop' },
-    });
-    fireEvent.change(screen.getByLabelText('Số điện thoại'), {
-      target: { value: '0900000001' },
-    });
-    fireEvent.change(screen.getByLabelText('Mật khẩu'), {
-      target: { value: 'secret1' },
-    });
+    fillValidForm();
     fireEvent.click(screen.getByRole('button', { name: /đăng ký/i }));
     await waitFor(() => {
       expect(useAuthStore.getState().accessToken).toBe('access-1');
@@ -49,20 +60,31 @@ describe('Register page', () => {
 
   it('rejects invalid phone format client-side', async () => {
     renderRegister();
-    fireEvent.change(screen.getByLabelText('Tên shop'), {
-      target: { value: 'Shop A' },
-    });
-    fireEvent.change(screen.getByLabelText('Tên chủ shop'), {
-      target: { value: 'Chủ shop' },
-    });
+    fillValidForm();
     fireEvent.change(screen.getByLabelText('Số điện thoại'), {
       target: { value: '123' },
-    });
-    fireEvent.change(screen.getByLabelText('Mật khẩu'), {
-      target: { value: 'secret1' },
     });
     fireEvent.click(screen.getByRole('button', { name: /đăng ký/i }));
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('10 chữ số');
+  });
+
+  it('requires address to be filled', () => {
+    renderRegister();
+    const addressField = screen.getByLabelText('Địa chỉ') as HTMLTextAreaElement;
+    expect(addressField.required).toBe(true);
+  });
+
+  it('rejects mismatched confirm password client-side', async () => {
+    renderRegister();
+    fillValidForm();
+    fireEvent.change(screen.getByLabelText('Nhập lại mật khẩu'), {
+      target: { value: 'khac-mat-khau' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /đăng ký/i }));
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Xác nhận mật khẩu không khớp');
+    // Không gọi API khi mismatch — store vẫn giữ trạng thái chưa đăng nhập
+    expect(useAuthStore.getState().accessToken).toBeNull();
   });
 });

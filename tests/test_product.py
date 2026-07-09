@@ -344,13 +344,13 @@ async def test_get_by_barcode_not_found(client, registered_owner):
 @pytest.mark.asyncio
 async def test_product_tenant_isolation(client):
     rA = await client.post("/api/v1/auth/register", json={
-        "shop_name": "Shop A", "owner_name": "Owner A",
-        "phone": "0911111111", "password": "secret123",
+        "shop_name": "Shop A", "address": "1 Đường A, Quận 1",
+        "phone": "0911111111", "password": "secret123", "confirm_password": "secret123",
     })
     assert rA.status_code == 201, rA.text
     rB = await client.post("/api/v1/auth/register", json={
-        "shop_name": "Shop B", "owner_name": "Owner B",
-        "phone": "0922222222", "password": "secret123",
+        "shop_name": "Shop B", "address": "2 Đường B, Quận 1",
+        "phone": "0922222222", "password": "secret123", "confirm_password": "secret123",
     })
     assert rB.status_code == 201, rB.text
     tokA = rA.json()["access_token"]

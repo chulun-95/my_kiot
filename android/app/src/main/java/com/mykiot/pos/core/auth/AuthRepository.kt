@@ -47,6 +47,7 @@ class AuthRepository @Inject constructor(
                     role = dto.user.role,
                     tenantId = dto.tenant.id,
                     tenantName = dto.tenant.name,
+                    expiresAt = parseExpiresAt(dto.tenant.expiresAt),
                 )
                 tokenStore.saveUser(currentUser)
                 sessionManager.set(currentUser)

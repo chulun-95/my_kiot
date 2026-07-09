@@ -8,7 +8,7 @@ import { usePosStore } from '../../../stores/posStore';
 function setupAuth() {
   useAuthStore.setState({
     user: { id: 1, full_name: 'Chủ shop', role: 'OWNER', phone: null, email: null },
-    tenant: { id: 1, name: 'Shop A', slug: 'shop-a' },
+    tenant: { id: 1, name: 'Shop A', slug: 'shop-a', expires_at: null },
     accessToken: 'tok',
   });
 }

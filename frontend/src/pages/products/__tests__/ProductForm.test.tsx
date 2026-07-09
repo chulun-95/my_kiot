@@ -20,7 +20,7 @@ describe('ProductForm', () => {
   beforeEach(() => {
     useAuthStore.setState({
       user: { id: 1, full_name: 'Owner', role: 'OWNER' },
-      tenant: { id: 1, name: 'Shop', slug: 'shop' },
+      tenant: { id: 1, name: 'Shop', slug: 'shop', expires_at: null },
       accessToken: 't',
     });
   });
@@ -49,7 +49,7 @@ describe('ProductForm', () => {
   it('hides cost_price for CASHIER role', async () => {
     useAuthStore.setState({
       user: { id: 2, full_name: 'Cashier', role: 'CASHIER' },
-      tenant: { id: 1, name: 'Shop', slug: 'shop' },
+      tenant: { id: 1, name: 'Shop', slug: 'shop', expires_at: null },
       accessToken: 't',
     });
     renderWithRoute('/products/new');

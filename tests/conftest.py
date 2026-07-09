@@ -114,9 +114,10 @@ async def client(db_engine) -> AsyncClient:
 async def registered_owner(client) -> dict:
     payload = {
         "shop_name": "Tap Hoa Test",
-        "owner_name": "Owner Test",
         "phone": "0901234567",
+        "address": "123 Đường ABC, Quận 1, TP.HCM",
         "password": "secret123",
+        "confirm_password": "secret123",
     }
     resp = await client.post("/api/v1/auth/register", json=payload)
     assert resp.status_code == 201, resp.text

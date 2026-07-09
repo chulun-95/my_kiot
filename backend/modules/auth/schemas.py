@@ -16,6 +16,7 @@ class TenantBrief(BaseModel):
     id: int
     name: str
     slug: str
+    expires_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -46,16 +47,23 @@ class TokenPair(BaseModel):
 
 class RegisterRequest(BaseModel):
     shop_name: str = Field(min_length=2, max_length=200)
-    owner_name: str = Field(min_length=2, max_length=200)
     phone: str
-    email: EmailStr | None = None
+    address: str = Field(min_length=5, max_length=500)
     password: str = Field(min_length=6, max_length=128)
+    confirm_password: str = Field(min_length=6, max_length=128)
 
     @field_validator("phone")
     @classmethod
     def _validate_phone(cls, v: str) -> str:
         if not is_valid_phone(v):
             raise ValueError("Số điện thoại không hợp lệ")
+        return v
+
+    @field_validator("confirm_password")
+    @classmethod
+    def _validate_confirm(cls, v: str, info) -> str:
+        if "password" in info.data and v != info.data["password"]:
+            raise ValueError("Xác nhận mật khẩu không khớp")
         return v
 
 
