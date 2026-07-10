@@ -148,6 +148,37 @@ async def test_register_slug_collision_gets_suffix(client):
     assert r2.json()["tenant"]["slug"].startswith("tap-hoa-")
 
 
+@pytest.mark.asyncio
+async def test_register_creates_default_categories(client):
+    payload = {
+        "shop_name": "Tap Hoa Default Categories",
+        "phone": "0905555555",
+        "address": "1 Đường Y, Quận 1",
+        "password": "secret123",
+        "confirm_password": "secret123",
+    }
+    resp = await client.post("/api/v1/auth/register", json=payload)
+    assert resp.status_code == 201
+    access_token = resp.json()["access_token"]
+
+    cat_resp = await client.get(
+        "/api/v1/categories", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    assert cat_resp.status_code == 200
+    items = cat_resp.json()["items"]
+
+    def _count(nodes):
+        return sum(1 + _count(n["children"]) for n in nodes)
+
+    assert _count(items) == 21
+
+    do_uong = next(n for n in items if n["name"] == "Đồ uống")
+    child_names = {c["name"] for c in do_uong["children"]}
+    assert "Nước ngọt & Tăng lực" in child_names
+    assert "Bia & Rượu" in child_names
+    assert "Nước đóng chai & Trà" in child_names
+
+
 # ---------- Login ----------
 
 @pytest.mark.asyncio

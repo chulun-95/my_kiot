@@ -72,7 +72,7 @@ async def test_create_category_with_invalid_parent(client, registered_owner):
 async def test_list_categories_returns_tree(client, registered_owner):
     h = _auth(registered_owner["access_token"])
     p = (await client.post(
-        "/api/v1/categories", json={"name": "Đồ uống"}, headers=h
+        "/api/v1/categories", json={"name": "Đồ uống Riêng"}, headers=h
     )).json()
     await client.post(
         "/api/v1/categories",
@@ -88,10 +88,11 @@ async def test_list_categories_returns_tree(client, registered_owner):
     r = await client.get("/api/v1/categories", headers=h)
     assert r.status_code == 200
     body = r.json()
-    assert len(body["items"]) == 1
-    root = body["items"][0]
-    assert root["name"] == "Đồ uống"
+    root = next(n for n in body["items"] if n["id"] == p["id"])
+    assert root["name"] == "Đồ uống Riêng"
     assert len(root["children"]) == 2
+    child_names = {c["name"] for c in root["children"]}
+    assert child_names == {"Nước ngọt", "Cà phê"}
 
 
 @pytest.mark.asyncio

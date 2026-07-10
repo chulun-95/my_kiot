@@ -28,6 +28,7 @@ from backend.modules.auth.utils import (
     slugify,
     verify_password,
 )
+from backend.modules.product import service as product_service
 from backend.modules.tenant.models import Tenant
 from backend.shared import audit as audit_helper
 from backend.shared.dates import add_months
@@ -84,6 +85,7 @@ async def register(db: AsyncSession, payload: RegisterRequest) -> RegisterRespon
     )
     db.add(tenant)
     await db.flush()
+    await product_service.create_default_categories_for_tenant(db, tenant.id)
 
     user = User(
         tenant_id=tenant.id,
