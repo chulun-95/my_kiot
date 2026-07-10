@@ -5,12 +5,23 @@
 > phục vụ ~5 cửa hàng, chi phí thấp nhất có thể mà vẫn **always-on** (không cold-start),
 > và dễ dàng scale/chuyển đổi khi nhiều cửa hàng hơn.
 >
-> **Cập nhật 2026-06-20 — Provider đã chốt:** **Vietnix "VPS CHEAP 1"** (2GB RAM, 2 vCPU,
-> 40GB SSD, backup tự động 1 lần/tuần) ~**151k/tháng** (453k/3 tháng). Chọn vì chỉ đắt hơn
-> AZDIGI 1GB (~119k/3th) ~32k mà gấp đôi RAM/CPU, gấp 4 đĩa, kèm backup tuần. Vì là **2GB**
-> nên khi deploy chỉnh `docker-compose.deploy.yml`: `--workers 2`, `mem_limit` api ~1g/db ~640m,
-> Postgres `shared_buffers=256MB`, `max_connections=50` (config 1GB hiện commit vẫn chạy được,
-> chỉ dùng dè). **Triển khai Phần B HOÃN** — làm sau khi hệ thống hoàn thiện hoàn toàn.
+> **Cập nhật 2026-06-20 — Provider đã chốt (SAU ĐÓ ĐỔI, xem cập nhật dưới):** ~~Vietnix "VPS
+> CHEAP 1" (2GB RAM, 2 vCPU, 40GB SSD, backup tự động 1 lần/tuần) ~151k/tháng~~.
+>
+> **Cập nhật 2026-07-05 — Đổi provider sang GenCloud (đã chốt mua):** **GenCloud, gói "Plan 02 -
+> CHEAP"** — 1 vCPU (Xeon Gold 6133/2696v4), **2GB RAM**, 20GB SSD NVMe RAID10, port 10Gbps/
+> network 500Mbps, băng thông không giới hạn, **Auto Backup hàng ngày** (tốt hơn Vietnix backup
+> tuần), **Firewall AntiDDoS Pro**, OS **ubuntu-24.04-x86_64** (đúng OS đã giả định trong plan/
+> `frontend/nginx.conf`). Đã cân nhắc thêm phương án "VPS Siêu Tốc — Gold Cheap 2" (cùng lớp 1C/
+> 2G, 60k/th, rẻ hơn, nhưng chỉ 16GB SSD không RAID + không backup provider) — **không chọn**,
+> giữ GenCloud vì có RAID10 + backup hàng ngày an toàn hơn cho dữ liệu khách hàng thật. RAM bằng
+> Vietnix nhưng **chỉ 1 vCPU** (Vietnix có 2) — chấp nhận được vì FastAPI async
+> I/O-bound, tải 5-10 shop rất thấp, không cần đa worker. Đã chỉnh `docker-compose.deploy.yml`
+> cho đúng 1 core: `--workers 1` (không phải 2), `mem_limit` api **768m**/db **640m**, Postgres
+> `shared_buffers=192MB`, `effective_cache_size=768MB`, `max_connections=40`. Backup hàng ngày
+> của provider là snapshot hạ tầng — **vẫn giữ** `scripts/backup.sh` (pg_dump → R2 + Google
+> Drive) song song vì đó là backup tầng app, portable, phục hồi chọn lọc được. **Triển khai
+> Phần B vẫn HOÃN** — làm sau khi hệ thống hoàn thiện hoàn toàn.
 
 ## 0. Bối cảnh & quyết định đã chốt
 

@@ -11,14 +11,14 @@ services:
     command:
       - "postgres"
       - "-c"
-      - "shared_buffers=128MB"
+      - "shared_buffers=192MB"
       - "-c"
-      - "effective_cache_size=512MB"
+      - "effective_cache_size=768MB"
       - "-c"
       - "work_mem=8MB"
       - "-c"
-      - "max_connections=30"
-    mem_limit: 384m
+      - "max_connections=40"
+    mem_limit: 640m
     volumes:
       - pos_db_data:/var/lib/postgresql/data
     healthcheck:
@@ -31,7 +31,7 @@ services:
     image: ghcr.io/chulun-95/my_kiot-api:${IMAGE_TAG:-latest}
     restart: always
     env_file: .env.prod
-    mem_limit: 512m
+    mem_limit: 768m
     depends_on:
       db:
         condition: service_healthy
