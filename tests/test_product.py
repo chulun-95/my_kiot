@@ -454,3 +454,71 @@ async def test_list_products_stock_status_none_when_sufficient(client, registere
     resp = await client.get("/api/v1/products", headers=h)
     item = next(i for i in resp.json()["items"] if i["id"] == p["id"])
     assert item["stock_status"] is None
+
+
+@pytest.mark.asyncio
+async def test_create_default_categories_for_tenant(db_session):
+    from sqlalchemy import select
+    from backend.modules.product.service import create_default_categories_for_tenant
+    from backend.modules.product.models import Category
+    from backend.modules.tenant.models import Tenant
+
+    tenant = Tenant(name="Shop Default Cat", slug="shop-default-cat", address="1 Đường A")
+    db_session.add(tenant)
+    await db_session.flush()
+
+    created = await create_default_categories_for_tenant(db_session, tenant.id)
+    await db_session.commit()
+
+    assert len(created) == 21
+
+    rows = (
+        await db_session.execute(select(Category).where(Category.tenant_id == tenant.id))
+    ).scalars().all()
+    assert len(rows) == 21
+
+    by_name = {c.name: c for c in rows}
+    do_uong = by_name["Đồ uống"]
+    assert do_uong.depth == 1
+    assert do_uong.parent_id is None
+    nc_ngot = by_name["Nước ngọt & Tăng lực"]
+    assert nc_ngot.depth == 2
+    assert nc_ngot.parent_id == do_uong.id
+
+
+@pytest.mark.asyncio
+async def test_create_default_categories_tenant_isolation(db_session):
+    from sqlalchemy import select
+    from backend.modules.product.service import create_default_categories_for_tenant
+    from backend.modules.product.models import Category
+    from backend.modules.tenant.models import Tenant
+
+    tenant_a = Tenant(name="Shop A", slug="shop-a-cat", address="1 Đường A")
+    tenant_b = Tenant(name="Shop B", slug="shop-b-cat", address="2 Đường B")
+    db_session.add_all([tenant_a, tenant_b])
+    await db_session.flush()
+
+    await create_default_categories_for_tenant(db_session, tenant_a.id)
+    await create_default_categories_for_tenant(db_session, tenant_b.id)
+    await db_session.commit()
+
+    rows_a = (
+        await db_session.execute(select(Category).where(Category.tenant_id == tenant_a.id))
+    ).scalars().all()
+    rows_b = (
+        await db_session.execute(select(Category).where(Category.tenant_id == tenant_b.id))
+    ).scalars().all()
+    assert len(rows_a) == 21
+    assert len(rows_b) == 21
+
+    ids_a = {c.id for c in rows_a}
+    ids_b = {c.id for c in rows_b}
+    assert ids_a.isdisjoint(ids_b)
+
+    # parent_id của mỗi tenant chỉ trỏ vào category CÙNG tenant
+    for c in rows_a:
+        if c.parent_id is not None:
+            assert c.parent_id in ids_a
+    for c in rows_b:
+        if c.parent_id is not None:
+            assert c.parent_id in ids_b

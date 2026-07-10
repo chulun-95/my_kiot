@@ -19,6 +19,7 @@ from backend.modules.product.schemas import (
 )
 from backend.shared import audit as audit_helper
 from backend.shared.code_generator import generate_code
+from backend.shared.default_categories import DEFAULT_CATEGORIES
 from backend.shared.pagination import paginate
 from backend.shared.text import vi_like_pattern
 
@@ -251,6 +252,31 @@ async def delete_category(
         old_data={"name": cat.name, "depth": cat.depth, "parent_id": cat.parent_id},
     )
     await db.commit()
+
+
+async def create_default_categories_for_tenant(
+    db: AsyncSession, tenant_id: int
+) -> list[Category]:
+    """Seed 21 nhóm hàng tạp hóa mặc định cho 1 tenant mới (gọi từ auth_service.register()
+    hoặc migration backfill). Chèn depth=1 trước, rồi depth=2 tham chiếu parent_id vừa tạo —
+    DEFAULT_CATEGORIES đã đảm bảo thứ tự này. KHÔNG tự commit (caller kiểm soát transaction).
+    KHÔNG ghi audit log (đây là seed hệ thống, khác create_category() là CRUD action của user)."""
+    id_by_key: dict[str, int] = {}
+    created: list[Category] = []
+    for key, name, depth, parent_key in DEFAULT_CATEGORIES:
+        parent_id = id_by_key.get(parent_key) if parent_key else None
+        cat = Category(
+            tenant_id=tenant_id,
+            parent_id=parent_id,
+            name=name,
+            depth=depth,
+            sort_order=0,
+        )
+        db.add(cat)
+        await db.flush()
+        id_by_key[key] = cat.id
+        created.append(cat)
+    return created
 
 
 # ====================================================================
