@@ -15,8 +15,8 @@ describe('PWA manifest', () => {
     expect(json.icons[0].src).toBeTruthy();
   });
 
-  it('icon.svg exists', () => {
-    const iconPath = path.resolve(__dirname, '../../public/icon.svg');
+  it('shopping-cart.png exists', () => {
+    const iconPath = path.resolve(__dirname, '../../public/shopping-cart.png');
     expect(fs.existsSync(iconPath)).toBe(true);
   });
 });
