@@ -56,7 +56,7 @@ export default function ReceiptPrint({ invoice, tenant, onClose }: Props) {
       <div className="bg-white rounded shadow-lg w-full max-w-md p-4 space-y-3">
         <div className="receipt text-xs">
           <div className="text-center font-semibold text-sm">
-            {tenant?.name ?? 'my_kiot POS'}
+            {tenant?.name ?? 'My-Kiot POS'}
           </div>
           <div className="text-center text-[10px] text-slate-600">
             HÓA ĐƠN BÁN HÀNG

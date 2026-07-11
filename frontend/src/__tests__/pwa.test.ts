@@ -7,7 +7,7 @@ describe('PWA manifest', () => {
     const manifestPath = path.resolve(__dirname, '../../public/manifest.webmanifest');
     const raw = fs.readFileSync(manifestPath, 'utf8');
     const json = JSON.parse(raw);
-    expect(json.name).toBe('my_kiot POS');
+    expect(json.name).toBe('My-Kiot POS');
     expect(json.short_name).toBe('Kiot POS');
     expect(json.start_url).toBe('/');
     expect(Array.isArray(json.icons)).toBe(true);

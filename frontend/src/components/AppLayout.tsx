@@ -175,7 +175,7 @@ export default function AppLayout() {
     <div className="flex h-screen bg-slate-50 text-slate-900">
       <aside className="w-60 shrink-0 bg-slate-900 text-slate-100 flex flex-col">
         <div className="px-4 py-4 text-lg font-semibold border-b border-slate-700">
-          <Link to="/dashboard">my_kiot POS</Link>
+          <Link to="/dashboard">My-Kiot POS</Link>
         </div>
         <nav className="flex-1 overflow-y-auto py-2">
           {navItems.map((item) => (
