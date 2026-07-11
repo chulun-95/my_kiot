@@ -128,6 +128,25 @@ const icons = {
       <path d="M19 8v6" />
     </Icon>
   ),
+  user: (
+    <Icon>
+      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </Icon>
+  ),
+  lock: (
+    <Icon>
+      <rect x="3" y="11" width="18" height="11" rx="2" />
+      <path d="M7 11V7a5 5 0 0110 0v4" />
+    </Icon>
+  ),
+  logout: (
+    <Icon>
+      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </Icon>
+  ),
 } as const;
 
 const cashierNav: Array<{ to: string; label: string; icon: ReactNode }> = [
@@ -196,14 +215,19 @@ export default function AppLayout() {
         <header className="h-14 px-4 flex items-center justify-between border-b border-slate-200 bg-white">
           <div className="text-sm text-slate-600">{tenant?.name ?? 'Chưa chọn shop'}</div>
           <div className="flex items-center gap-3 text-sm">
-            <span className="text-slate-700">{user?.full_name ?? 'Khách'}</span>
-            <Link to="/me/change-password" className="text-slate-700 underline">
+            <span className="flex items-center gap-1.5 text-slate-700">
+              {icons.user}
+              {user?.full_name ?? 'Khách'}
+            </span>
+            <Link to="/me/change-password" className="flex items-center gap-1.5 text-slate-700 underline">
+              {icons.lock}
               Đổi mật khẩu
             </Link>
             <button
               onClick={handleLogout}
-              className="px-3 py-1 rounded bg-slate-100 hover:bg-slate-200 border border-slate-200"
+              className="flex items-center gap-1.5 px-3 py-1 rounded bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700"
             >
+              {icons.logout}
               Đăng xuất
             </button>
           </div>
